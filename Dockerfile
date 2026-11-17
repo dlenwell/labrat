@@ -11,7 +11,7 @@
 # "Run in containers" section for first-run notes.
 
 # Match the Python version the test gate runs on.
-FROM python:3.14-slim
+FROM python:3.15-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

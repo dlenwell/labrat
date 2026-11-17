@@ -10,4 +10,4 @@ the background discovery and telemetry collectors.
 Used by: collector.__main__, inventory_backup.
 """
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
