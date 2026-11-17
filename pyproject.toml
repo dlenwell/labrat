@@ -13,7 +13,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "Flask>=3.1,<4",
-    "gunicorn>=23,<27",
+    "gunicorn>=27.0.1,<28",
     "SQLAlchemy>=2.0,<3",
     "alembic>=1.13,<2",
     "argon2-cffi>=23.1,<26",
