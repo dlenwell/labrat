@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["coverage>=7.6,<8"]
+test = ["coverage>=7.17.3,<8"]
 
 [tool.coverage.run]
 branch = true
