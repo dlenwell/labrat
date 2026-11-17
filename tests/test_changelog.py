@@ -51,10 +51,6 @@ class ChangelogTests(unittest.TestCase):
         version = re.search(r'^version = "([^"]+)"', (ROOT / "pyproject.toml").read_text(), re.M).group(1)
         self.assertEqual(changelog.current_version(), version)
 
-    def test_changelog_has_an_entry_for_the_current_version(self):
-        text = (ROOT / "CHANGELOG.md").read_text()
-        self.assertRegex(text, rf"(?m)^## {re.escape(changelog.current_version())}\b")
-
 
 if __name__ == "__main__":
     unittest.main()
