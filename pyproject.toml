@@ -19,7 +19,7 @@ dependencies = [
     "argon2-cffi>=25.1.0,<26",
     "cryptography>=50,<51",
     "pysnmp>=7.1.32,<8",
-    "requests>=2.31,<3",
+    "requests>=2.34.2,<3",
     "tomlkit>=0.13,<1",
 ]
 
