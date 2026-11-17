@@ -1,0 +1,238 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Used by: Discovery, Equipment and Diagram, Discovery clients, Floor plan, Locations, Location detail, Locations map, Settings. #}
+{#
+  Shared slide-out drawer shell for Equipment, Discovery, and Settings.
+
+  Call it with the page's panels as the body:
+
+    {% from "private/_device_drawer.html" import device_drawer %}
+    {% call device_drawer("Add equipment") %}
+      <section class="device-drawer-view" data-view="details" ...>
+        <h2 class="device-drawer-panel-title">...</h2>
+        ...
+      </section>
+    {% endcall %}
+
+  Each panel is a `.device-drawer-view` with a `data-view` name and one
+  `.device-drawer-panel-title` heading, which the title bar shows (it stays
+  in the panel for screen readers). static/js/device-drawer.js drives it and
+  static/css/device-drawer.css styles it; change the shell here only.
+
+  Args:
+    title: Title bar text before any panel is shown.
+    initial_view: Name of the panel active on load.
+#}
+{% macro device_drawer(title, initial_view="shelf") -%}
+<aside class="device-drawer" id="device-drawer" data-view="{{ initial_view }}" aria-labelledby="device-drawer-title" inert>
+  <header class="device-drawer-bar">
+    <button class="device-drawer-icon" id="device-drawer-back" type="button" aria-label="Back" hidden>←</button>
+    <h2 class="device-drawer-title" id="device-drawer-title" tabindex="-1">{{ title }}</h2>
+    {# The active panel's tools (its .device-drawer-panel-tools, moved here by
+       device-drawer.js), right-aligned. #}
+    <div class="device-drawer-tools" id="device-drawer-tools"></div>
+    {# Close shows only on phones, where the drawer fills the screen; wider
+       screens close it with a click outside or Escape (owner). #}
+    <button class="device-drawer-icon device-drawer-close" id="device-drawer-close" type="button" aria-label="Close panel">×</button>
+  </header>
+  <div class="device-drawer-track">
+    {{ caller() }}
+  </div>
+</aside>
+{%- endmacro %}
+
+{#
+  Shared device panels, rendered by static/js/device-details.js and styled
+  by static/css/device-details.css. Put all three inside device_drawer() on
+  any page that shows device details.
+#}
+
+{# Details for the selected device; its tools (placement and rename) show in
+   the drawer's title bar while it is active. #}
+{% macro device_details_panel() -%}
+<section class="device-drawer-view device-details-panel" data-view="details" aria-labelledby="device-details-title" aria-hidden="true" inert>
+  <h2 class="device-drawer-panel-title" id="device-details-title" tabindex="-1">Equipment details</h2>
+  <div id="device-details-body" class="device-details" tabindex="0" aria-label="Device details and network ports">
+    <p class="device-muted">Select a device to see its details.</p>
+  </div>
+  <div class="device-drawer-panel-tools" data-tools-for="details" role="group" aria-label="Device tools" hidden>
+    <button class="button button-quiet room-icon-button" id="device-details-place" type="button" aria-label="Edit placement" title="Edit placement" data-tooltip="Edit placement">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg>
+    </button>
+    <button class="button button-quiet room-icon-button" id="device-details-rename" type="button" aria-label="Rename" title="Rename" data-tooltip="Rename">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>
+    </button>
+    <button class="button button-quiet room-icon-button" id="device-details-ignore" type="button" aria-label="Ignore device" title="Ignore device" data-tooltip="Ignore device" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM4 20 20 4"/></svg>
+    </button>
+  </div>
+</section>
+{%- endmacro %}
+
+{# Inventory display name; discovery keeps the source-reported name. #}
+{% macro device_rename_panel() -%}
+<section class="device-drawer-view" data-view="rename" aria-labelledby="device-rename-title" aria-hidden="true" inert>
+  <h2 class="device-drawer-panel-title" id="device-rename-title">Rename equipment</h2>
+  <form id="device-rename-form" class="device-form">
+    <p class="device-field-help">This display name belongs to your inventory. Discovery keeps the source-reported name separately.</p>
+    <p class="device-field-help" id="device-rename-reported"></p>
+    <label for="device-rename-name">Display name</label>
+    <input id="device-rename-name" name="name" type="text" maxlength="120" required autocomplete="off">
+    <div class="device-drawer-footer">
+      <button class="button" type="submit">Save name</button>
+      <button class="button button-quiet" id="device-rename-cancel" type="button">Cancel</button>
+    </div>
+    <p id="device-rename-feedback" class="device-form-feedback" role="status" aria-live="polite" hidden></p>
+  </form>
+</section>
+{%- endmacro %}
+
+{# Explicit choice of which server NIC an unresolved LLDP neighbor is. #}
+{% macro device_neighbor_panel() -%}
+<section class="device-drawer-view" data-view="neighbor-match" aria-labelledby="device-neighbor-title" aria-hidden="true" inert>
+  <h2 class="device-drawer-panel-title" id="device-neighbor-title">Match observed neighbor</h2>
+  <form id="device-neighbor-form" class="device-form">
+    <p id="device-neighbor-summary" class="device-field-help"></p>
+    <label for="device-neighbor-server">Existing server</label>
+    <select id="device-neighbor-server" required></select>
+    <label for="device-neighbor-port">Physical NIC</label>
+    <select id="device-neighbor-port" required></select>
+    <p class="device-field-help">Confirm which physical NIC this reported neighbor identifies. Its observed cables will follow future discovery updates.</p>
+    <div class="device-drawer-footer">
+      <button class="button" type="submit">Save neighbor match</button>
+      <button class="button button-quiet" id="device-neighbor-cancel" type="button">Cancel</button>
+    </div>
+    <p id="device-neighbor-feedback" class="device-form-feedback" role="status" aria-live="polite" hidden></p>
+  </form>
+</section>
+{%- endmacro %}
+
+{#
+  Shared placement editor and "Add new place", driven by
+  static/js/device-placement.js. Put both inside device_drawer() next to the
+  details panels.
+#}
+
+{# Room, then place; rack options appear for a rack. #}
+{% macro device_placement_panel() -%}
+<section class="device-drawer-view" data-view="placement" aria-labelledby="device-placement-title" aria-hidden="true" inert>
+  <h2 class="device-drawer-panel-title" id="device-placement-title">Place or move device</h2>
+  <form id="device-placement-form" class="device-form">
+    <fieldset class="device-identity-options" id="device-identity" aria-describedby="device-identity-help" hidden>
+      <legend>Inventory identity</legend>
+      <label class="device-identity-choice">
+        <input type="radio" name="device_identity" value="new" checked>
+        <span><strong>Create a new device</strong><small>Create a separate inventory record for this discovery.</small></span>
+      </label>
+      <label class="device-identity-choice">
+        <input type="radio" name="device_identity" value="existing">
+        <span><strong>Use an existing device</strong><small>Link this discovery to an inventory record. No records are removed.</small></span>
+      </label>
+      <p class="device-field-help" id="device-identity-help">Choose an existing device only when it represents this same physical equipment.</p>
+      <div id="device-existing-picker" hidden>
+        <label for="device-existing-device">Choose an inventory device</label>
+        <select id="device-existing-device" name="existing_device_id"></select>
+      </div>
+    </fieldset>
+    <fieldset class="device-place-picker">
+      <legend>1. Choose an area</legend>
+      <div class="device-choice-list" id="device-placement-rooms" role="group" aria-label="Areas"></div>
+    </fieldset>
+    <fieldset class="device-place-picker" id="device-mount-picker" hidden>
+      <legend>2. Choose a place in the area</legend>
+      <div class="device-choice-list" id="device-placement-containers" role="group" aria-label="Places in the area"></div>
+      <p class="device-field-help" id="device-no-mounts" hidden>No places are set up in this area yet.</p>
+      <button class="button button-secondary" id="device-add-place" type="button">Add new place</button>
+    </fieldset>
+    <div class="device-rack-fields" id="device-rack-fields" hidden>
+      <label for="device-placement-mode">In the rack</label>
+      <select id="device-placement-mode" name="placement_mode">
+        <option value="rack">Inside the rack</option>
+        <option value="rack_shelf">Shared 1U shelf</option>
+        <option value="on_top">On top</option>
+      </select>
+      <p class="device-field-help" id="device-shared-shelf-help" hidden>Uses one rack U. Devices pack side by side; drag them within the shelf in Equipment to reorder.</p>
+      <div id="device-unit-fields">
+        <label id="device-position-label" for="device-rack-u">Bottom rack unit</label>
+        <input id="device-rack-u" name="rack_u" type="number" min="1" step="1">
+        <div id="device-height-field">
+          <label for="device-height">Equipment height (U)</label>
+          <input id="device-height" name="height_u" type="number" min="1" max="128" step="1" value="1">
+        </div>
+        <label for="device-face">Rack position</label>
+        <select id="device-face" name="face">
+          <option value="front">Front</option>
+          <option value="rear">Back</option>
+          <option value="full_depth">Full depth (front and back)</option>
+        </select>
+      </div>
+    </div>
+    <label for="device-port-facing">Network ports face</label>
+    <select id="device-port-facing" name="port_facing">
+      <option value="">Not set</option>
+      <option value="front">Front</option>
+      <option value="rear">Back</option>
+    </select>
+    <div class="device-drawer-footer">
+      <button class="button" id="device-placement-save" type="submit" disabled>Save placement</button>
+      <button class="button button-quiet" id="device-placement-cancel" type="button">Cancel</button>
+      <button class="button button-quiet device-drawer-danger" id="device-unplace" type="button" hidden>Unplace</button>
+    </div>
+    <p id="device-placement-feedback" class="device-form-feedback" role="status" aria-live="polite" hidden></p>
+  </form>
+</section>
+{%- endmacro %}
+
+{# A new mounting place in the room chosen for placement. #}
+{% macro device_place_panel() -%}
+<section class="device-drawer-view" data-view="place" aria-labelledby="device-place-title" aria-hidden="true" inert>
+  <h2 class="device-drawer-panel-title" id="device-place-title">Add new place</h2>
+  <form id="device-place-form" class="device-form">
+    <p class="device-field-help" id="device-place-room"></p>
+    <label for="device-place-kind">Place type</label>
+    <select id="device-place-kind" name="kind">
+      <option value="rack">Rack</option>
+      <option value="wall">Wall mount</option>
+      <option value="shelf">Shelf</option>
+      <option value="floor">Floor area</option>
+      <option value="surface">Other surface</option>
+    </select>
+    <p class="device-field-help">Every area already has north, east, south, and west walls, a floor, and a ceiling.</p>
+    <div id="device-place-name-field">
+      <label for="device-place-name">Name</label>
+      <input id="device-place-name" name="name" type="text" maxlength="120" required placeholder="e.g. Main Rack">
+    </div>
+    <div id="device-place-rack-fields" hidden>
+      <label for="device-place-height">Rack height (U)</label>
+      <input id="device-place-height" name="height_u" type="number" min="1" max="128" value="36">
+      <label for="device-place-width">Rack rail width</label>
+      <select id="device-place-width" name="width_inches">
+        <option value="19">19 inch (standard)</option>
+        <option value="10">10 inch (compact)</option>
+      </select>
+      <label for="device-place-faces">Rack faces</label>
+      <select id="device-place-faces" name="rack_faces">
+        <option value="both">Front and rear</option>
+        <option value="front">Front only</option>
+      </select>
+    </div>
+    <div id="device-place-wall-field" hidden>
+      <label for="device-place-wall">Wall</label>
+      <select id="device-place-wall" name="wall_side">
+        <option value="north">North wall</option>
+        <option value="east">East wall</option>
+        <option value="south">South wall</option>
+        <option value="west">West wall</option>
+      </select>
+    </div>
+    <div id="device-place-parent-field" hidden>
+      <label for="device-place-parent">Parent surface (optional)</label>
+      <select id="device-place-parent" name="parent_id"></select>
+    </div>
+    <div class="device-drawer-footer">
+      <button class="button" type="submit">Add place</button>
+      <button class="button button-quiet" id="device-place-cancel" type="button">Cancel</button>
+    </div>
+    <p id="device-place-feedback" class="device-form-feedback" role="status" aria-live="polite" hidden></p>
+  </form>
+</section>
+{%- endmacro %}

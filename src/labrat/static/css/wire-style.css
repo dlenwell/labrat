@@ -1,0 +1,8 @@
+/* Used by: Discovery, Equipment and Diagram. */
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+
+/* Icon sizing and hover/focus tooltips use the shared room-icon-button skin. */
+.room-wire-style[data-style="square"] .wire-style-curved,
+.room-wire-style[data-style="curved"] .wire-style-square {
+    display: none;
+}

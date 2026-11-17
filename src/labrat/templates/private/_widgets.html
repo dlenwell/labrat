@@ -1,0 +1,23 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Used by: Home, Discovery, Equipment and Diagram, Discovery clients, Cluster, Networks, Floor plan, Widgets. #}
+{#
+  The widget kit (planning/specs/widgets.md): charts, bars, tiles, and
+  panels any page can stitch in.
+
+  widget_styles(): the stylesheets (widgets, and the disk shelf), for the
+  extra_styles block.
+  widget_scripts(): the scripts (window.LabratWidgets, then the disk shelf
+  widget, which adds to it), before any page
+  script that draws widgets. It also draws every [data-widget] element on
+  load; a page that names feeds (data-widget-feed) loads the feed scripts
+  it needs after this, such as js/cluster-model.js and js/widget-feeds.js.
+#}
+{% macro widget_styles() -%}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/widgets.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/widget-shelf.css') }}">
+{%- endmacro %}
+
+{% macro widget_scripts() -%}
+<script src="{{ url_for('static', filename='js/widgets.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/widget-shelf.js') }}" defer></script>
+{%- endmacro %}

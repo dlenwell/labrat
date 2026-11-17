@@ -1,0 +1,165 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Used by: every page. #}
+{# Shared document layout. Content lives in templates, never Python or JS. #}
+{% from "_icons.html" import icon as header_icon %}
+<!doctype html>
+{#
+  data-theme and data-accent: this browser's theme and accent, from its
+  cookies (labrat/themes.py). Disco ignores the accent.
+#}
+<html lang="en" data-theme="{{ theme }}" data-accent="{{ accent }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="LabRat — know what's lurking in your lab.">
+    <title>{% block title %}LabRat{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/labrat-mark.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {# main.js first: page scripts, even ones a page adds in its head, rely
+       on its shared helpers (labratJson) being defined before they run. #}
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    {% block extra_styles %}{% endblock %}
+  </head>
+  <body class="{% block body_class %}{% endblock %}">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header">
+      {#
+        The wordmark sits on a pill with the mascot hiding behind it: his
+        head peeks out past the right end looking right, a paw grips that
+        edge, and his tail leaves the left end and wraps under the pill
+        (main.css section 03). Decorative images; the link's label names it.
+      #}
+      <a class="brand" href="{{ url_for('public.index') }}" aria-label="LabRat landing page">
+        {# The landing page empties this block: its mascot is behind the rack. #}
+        {% block brand_mascot %}
+        <img class="brand-rat-tail" src="{{ url_for('static', filename='img/rat-tail-wiggle.svg') }}" alt="">
+        <img class="brand-rat-head" src="{{ url_for('static', filename='img/rat-peek-right.svg') }}" alt="">
+        <img class="brand-rat-head brand-rat-glint" src="{{ url_for('static', filename='img/rat-glint-right.svg') }}" alt="">
+        <img class="brand-rat-paw" src="{{ url_for('static', filename='img/rat-paw-right.svg') }}" alt="">
+        {% endblock %}
+        <span class="brand-name"><span class="brand-name-lab">Lab</span><span class="brand-name-rat">Rat</span></span>
+      </a>
+
+      <nav class="site-navigation" aria-label="Main navigation">
+        {% if viewer %}
+          {#
+            Page links. Wider screens show them as one pill track with the
+            current page's tab lit (main.css section 03); phones fold them
+            behind the ☰ button below (section 08, main.js bindSiteMenu).
+          #}
+          <div class="site-navigation-links" id="site-navigation-links">
+          <a class="navigation-link" href="{{ url_for('private.home') }}"{% if request.endpoint == 'private.home' %} aria-current="page"{% endif %}>Home</a>
+          <a class="navigation-link" href="{{ url_for('private.observations') }}"{% if request.endpoint == 'private.observations' %} aria-current="page"{% endif %}>Observations</a>
+          <a class="navigation-link" href="{{ url_for('private.topology') }}"{% if request.endpoint in ('private.topology', 'private.discovery_clients') %} aria-current="page"{% endif %}>Discovery</a>
+          <a class="navigation-link" href="{{ url_for('private.cluster') }}"{% if request.endpoint == 'private.cluster' %} aria-current="page"{% endif %}>Cluster</a>
+          <a class="navigation-link" href="{{ url_for('private.networks') }}"{% if request.endpoint == 'private.networks' %} aria-current="page"{% endif %}>Networks</a>
+          {#
+            Locations menu: one dropdown with each location followed by
+            its rooms, visible inline on every screen size.
+          #}
+          {% set location_page = request.endpoint in ('private.locations', 'private.location_detail', 'private.room_view', 'private.room_default', 'private.room_equipment', 'private.room_wiring') %}
+          {% set current_site = request.view_args.get('site_id') if request.view_args else none %}
+          {% set current_room = request.view_args.get('room_id') if request.view_args else none %}
+          <details class="nav-menu locations-menu">
+            <summary class="nav-menu-button{% if location_page %} is-current{% endif %}">
+              Locations
+              <svg class="nav-menu-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+            </summary>
+            <ul class="nav-menu-panel locations-menu-panel">
+              <li><a class="nav-menu-item" href="{{ url_for('private.locations') }}"{% if request.endpoint == 'private.locations' %} aria-current="page"{% endif %}>All locations</a></li>
+              {% for site in locations_menu %}
+                <li class="locations-menu-site">
+                  <a class="nav-menu-item" href="{{ url_for('private.location_detail', site_id=site.id) }}"{% if current_site == site.id %} aria-current="page"{% endif %}>{{ site.name }}</a>
+                  {% if site.rooms %}
+                    <ul class="locations-menu-rooms" id="nav-rooms-{{ site.id }}" aria-label="Areas in {{ site.name }}">
+                      {% for room in site.rooms %}
+                        <li><a class="nav-menu-item" href="{{ url_for('private.room_default', room_id=room.id) }}" title="{{ room.name }}" aria-label="{{ room.name }}"{% if current_room == room.id %} aria-current="page"{% endif %}>{{ room.name|truncate(12, true, "…", 0) }}</a></li>
+                      {% endfor %}
+                    </ul>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </details>
+          </div>
+          {#
+            Account menu: Profile, Settings, and Sign out under the viewer's
+            name. Like the Locations menu, a <details> disclosure that works
+            without scripts; main.js adds closing on Escape, an outside
+            click, or focus leaving it.
+          #}
+          {% set account_page = request.endpoint in ('private.profile', 'private.settings') %}
+          <details class="nav-menu account-menu">
+            <summary class="account-menu-button{% if account_page %} is-current{% endif %}" aria-label="Account menu for {{ viewer.display_name or viewer.username }}">
+              <span class="account-menu-avatar" aria-hidden="true">{{ (viewer.display_name or viewer.username)[:1] | upper }}</span>
+              <span class="account-menu-name">{{ viewer.display_name or viewer.username }}</span>
+              <svg class="account-menu-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+            </summary>
+            <ul class="nav-menu-panel">
+              <li><a class="nav-menu-item" href="{{ url_for('private.profile') }}"{% if request.endpoint == 'private.profile' %} aria-current="page"{% endif %}><span>Profile</span>{{ header_icon("profile", "account-menu-icon") }}</a></li>
+              <li><a class="nav-menu-item" href="{{ url_for('private.settings') }}"{% if request.endpoint == 'private.settings' %} aria-current="page"{% endif %}><span>Settings</span>{{ header_icon("settings", "account-menu-icon") }}</a></li>
+              <li>
+                <form class="navigation-form" method="post" action="{{ url_for('public.signout') }}">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                  <button class="nav-menu-item" type="submit"><span>Sign out</span>{{ header_icon("signout", "account-menu-icon") }}</button>
+                </form>
+              </li>
+            </ul>
+          </details>
+          <button class="site-menu-toggle" id="site-menu-toggle" type="button" aria-expanded="false" aria-controls="site-navigation-links" aria-label="Menu">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+        {% elif site_build %}
+          {# The static website (scripts/build_site.py) renders the docs with
+             this header: there is no app to sign in to there. #}
+          <span class="header-note">Your homelab, mapped.</span>
+          <a class="navigation-link" href="{{ url_for('docs.index') }}"{% if request.endpoint and request.endpoint.startswith('docs.') %} aria-current="page"{% endif %}>Docs</a>
+          {% if site_build.repo_url %}<a class="navigation-link" href="{{ site_build.repo_url }}">Source</a>{% endif %}
+        {% else %}
+          <span class="header-note">Your homelab, mapped.</span>
+          <a class="navigation-link" href="{{ url_for('public.signin') }}">Sign in</a>
+        {% endif %}
+      </nav>
+    </header>
+
+    {% if viewer and source_strip %}
+      {#
+        One light per endpoint, WAN first, on one line; read from the local
+        cache only. Names are short; full names, states, and ages are in
+        the tooltip and visually hidden text. The window clips the list;
+        when the lights overflow, main.js turns it into a slow ticker.
+      #}
+      <aside class="source-strip" aria-label="Discovery source status">
+        <span class="source-strip-label">Sources</span>
+        <div class="source-strip-window">
+        <ul class="source-strip-list">
+          {% for source in source_strip %}
+            <li class="source-strip-item" title="{{ source.lines | join('\n') }}">
+              <span class="led led-{{ source.state }}{% if source.fresh %} is-fresh{% endif %}" aria-hidden="true"></span>
+              <span class="readout">{{ source.name }}</span>
+              {% if source.detail %}<span class="source-strip-detail">{{ source.detail }}</span>{% endif %}
+              <span class="visually-hidden">{{ source.lines | join('; ') }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+        </div>
+      </aside>
+    {% endif %}
+
+    <main class="page-content" id="main-content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <span class="readout">LabRat {{ app_version }}</span>
+      <span aria-hidden="true">·</span>
+      <span>Local-first homelab inventory</span>
+      <span aria-hidden="true">·</span>
+      {# Docs live here, not in the header (owner's choice). #}
+      <a href="{{ url_for('docs.index') }}">Docs</a>
+      <span aria-hidden="true">·</span>
+      <a href="{{ url_for('docs.api') }}">API routes</a>
+    </footer>
+  </body>
+</html>

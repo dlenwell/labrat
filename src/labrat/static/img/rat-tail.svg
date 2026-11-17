@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 48" aria-hidden="true">
+  <!--
+    The LabRat mascot's tail, curling around the rack preview's corner on
+    the landing page: it leaves from behind the rack's right edge, curls out
+    and down, runs a short way left under the rack's bottom, and ends in a
+    small upward curl. The landing page sizes this image to about a third of
+    the rack's width, so the rack's bottom and right edges hide its base
+    (the top-right corner here). Thick at the base, thin at the tip, with a
+    darker underside for depth. Colors follow the logo's tail.
+  -->
+  <defs>
+    <linearGradient id="tail-skin" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#b97d92"/>
+      <stop offset="1" stop-color="#eab3c6"/>
+    </linearGradient>
+  </defs>
+  <!-- Underside shadow along the whole tail. -->
+  <path d="M94 4C110 8 116 20 106 30 94 40 70 40 44 40 24 40 13 36 11 28 9 21 15 17 20 22"
+        fill="none" stroke="#6e4656" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
+        opacity="0.5" transform="translate(0 1.6)"/>
+  <!-- The tail, in segments that thin toward the tip. -->
+  <path d="M94 4C110 8 116 20 106 30" fill="none" stroke="url(#tail-skin)" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M106 30C94 40 70 40 44 40" fill="none" stroke="url(#tail-skin)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M44 40C24 40 13 36 11 28" fill="none" stroke="#e6abbf" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M11 28C9 21 15 17 20 22" fill="none" stroke="#eab3c6" stroke-width="1.9" stroke-linecap="round"/>
+  <!-- Faint ring segments, as on a real rat's tail. -->
+  <path d="M111 18l-4 1M100 35.5l-1.6-3.6M76 41.6v-3.6M56 41.6v-3.4M36 40.8l-.4-3M20 37.6l.8-2.6"
+        stroke="#9a6478" stroke-width="0.7" stroke-linecap="round" opacity="0.45"/>
+</svg>

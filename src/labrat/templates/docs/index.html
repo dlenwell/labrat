@@ -1,0 +1,53 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "docs/base.html" %}
+{% from "docs/_shot.html" import shot %}
+
+{% block title %}LabRat · Documentation{% endblock %}
+{% block docs_title %}Docs{% endblock %}
+{% block docs_intro %}What LabRat records, what its collector observes, and which changes stay under your control.{% endblock %}
+
+{% block docs_content %}
+<section class="docs-prose" aria-labelledby="docs-what-title">
+  <h2 id="docs-what-title">Know what's lurking in your lab</h2>
+  <p>LabRat is a local-first discovery and physical inventory app for a homelab. A read-only collector reads your UniFi Network and Proxmox VE controllers, finds NUT UPS servers in the networks you allow it to scan, and can listen for MikroTik announcements. The web app shows what it found and where each piece of equipment lives: locations, areas, racks, shelves, ports, and cables.</p>
+</section>
+
+{{ shot('home', 'The Home page of a demo lab: inventory counts, observed equipment by type, internet and VPN status, and collector sources.', 'Home, in a demo lab with two internet connections, a VPN tunnel, three servers, and a UPS.') }}
+
+<section class="docs-prose" aria-labelledby="docs-how-title">
+  <h2 id="docs-how-title">How the pieces fit</h2>
+  <ol class="docs-steps">
+    <li><strong>The collector observes.</strong> It runs on its own schedule, sends only read requests, and writes what it sees to a local cache. Browsing LabRat never contacts a controller.</li>
+    <li><strong>You decide what it means.</strong> A discovered device is an observation until an administrator places it or links it to an inventory record. LabRat never merges records or moves equipment on its own.</li>
+    <li><strong>The inventory is yours.</strong> Locations, areas, rack positions, and names you choose survive later scans, and can be backed up and restored from Settings.</li>
+  </ol>
+</section>
+
+<div class="docs-card-grid">
+  <a class="docs-card" href="{{ url_for('docs.setup') }}">
+    <span class="docs-card-kicker">01 / Start</span>
+    <strong>Setup</strong>
+    <span>Install, create the administrator, connect integrations, and choose what the collector may scan.</span>
+  </a>
+  <a class="docs-card" href="{{ url_for('docs.tour') }}">
+    <span class="docs-card-kicker">02 / Pages</span>
+    <strong>Tour</strong>
+    <span>Home, Observations, Discovery, Cluster, Networks, Locations, and each area's Floor plan, Equipment, and Diagram.</span>
+  </a>
+  <a class="docs-card" href="{{ url_for('docs.inventory') }}">
+    <span class="docs-card-kicker">03 / Model</span>
+    <strong>Inventory and placement</strong>
+    <span>Locations, areas, rack positions, identity, and where link evidence comes from.</span>
+  </a>
+  <a class="docs-card" href="{{ url_for('docs.discovery') }}">
+    <span class="docs-card-kicker">04 / Sources</span>
+    <strong>Discovery and provenance</strong>
+    <span>What UniFi, Proxmox, Pi-hole, NUT, SNMP, and MikroTik report, and how observations stay separate.</span>
+  </a>
+  <a class="docs-card" href="{{ url_for('docs.api') }}">
+    <span class="docs-card-kicker">05 / Reference</span>
+    <strong>API routes</strong>
+    <span>Paths, methods, and access rules, read from the running app.</span>
+  </a>
+</div>
+{% endblock %}

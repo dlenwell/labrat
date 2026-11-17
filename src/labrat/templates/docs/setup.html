@@ -1,0 +1,89 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "docs/base.html" %}
+{% from "docs/_shot.html" import shot %}
+
+{% block title %}LabRat · Setup{% endblock %}
+{% block docs_title %}Setup{% endblock %}
+{% block docs_intro %}From a fresh checkout to a collector reading your lab.{% endblock %}
+
+{% block docs_content %}
+<section class="docs-prose" aria-labelledby="setup-install-title">
+  <h2 id="setup-install-title">1. Install</h2>
+  <p>LabRat needs Python 3.11 or newer, SQLite, and Git. The collector needs network access to the controllers you connect. From the repository root:</p>
+  <pre><code>python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .
+cp local_config.example.toml local_config.toml</code></pre>
+  <p>Prefer containers? The repository has a sample image and Compose file that run the web app and the collector from one image, writing the config for you on first start:</p>
+  <pre><code>mkdir -p deploy/data deploy/config
+export LABRAT_UID=$(id -u) LABRAT_GID=$(id -g)
+LABRAT_ALLOWED_HOSTS=labrat.example.lan \
+  docker compose -f deploy/compose.yaml up -d --build</code></pre>
+  <p>Then skip to step 4. The repository's <code>docs/setup.md</code>, under <em>Run in containers</em>, covers checking it, permissions, the port, HTTPS, MikroTik discovery, and upgrades.</p>
+
+  <h2 id="setup-config-title">2. Write the private configuration</h2>
+  <p><code>local_config.toml</code> is ignored by Git and holds everything private: the session key, the database path, the browser hosts LabRat accepts, and later your integration credentials. Before the first start:</p>
+  <ul>
+    <li>Set <code>[auth] secret_key</code> to a new random value: <code>python -c 'import secrets; print(secrets.token_urlsafe(48))'</code>.</li>
+    <li>Set <code>[server] allowed_hosts</code> to the hostnames or addresses people will type into their browsers. Without it, only loopback hosts are accepted.</li>
+    <li>Leave the session cookie's secure flag off only for plain-HTTP development; turn it on behind HTTPS.</li>
+  </ul>
+
+  <h2 id="setup-start-title">3. Create the database and start</h2>
+  <pre><code>alembic -c alembic.ini upgrade head
+gunicorn -c gunicorn.conf.py labrat.app:app</code></pre>
+  <p>Run the migration again after each upgrade; Flask never creates tables on its own. The checked-in Gunicorn config listens on <code>127.0.0.1:8000</code>. For a VM, container, or reverse proxy, choose a bind address in your deployment and add its hostname to <code>allowed_hosts</code>.</p>
+
+  <h2 id="setup-admin-title">4. Create the administrator</h2>
+  <p>Open LabRat and select <strong>First-time setup</strong> to create the first account, which is the administrator. The form asks for a one-time setup code, which keeps anyone else who reaches the page first from claiming it: LabRat prints <code>LabRat first-time setup code: …</code> to its log when it starts (for the containers, <code>docker compose logs web</code>), and keeps it in the <code>.setup-code</code> file beside the database. Setup closes as soon as that account exists. That account manages integrations, discovery, placement, and backups.</p>
+
+  <h2 id="setup-integrations-title">5. Connect your controllers</h2>
+  <p>Open <strong>Settings</strong> from your name in the header, then <strong>Integrations</strong>. Each connection shows its status, address, and edit and delete buttons; the filter narrows a long list.</p>
+</section>
+
+{{ shot('settings-integrations', 'Settings, Integrations panel listing two connections, Office gateway and Lab cluster, each with a status lamp, address, edit, and delete buttons.', height=600) }}
+
+<section class="docs-prose" aria-labelledby="setup-add-title">
+  <p id="setup-add-title">Select <strong>+</strong> to open the catalog, choose a category, then the product. The first integrations are UniFi Network (an API key), Proxmox VE (an API token ID and secret), and Pi-hole (an application password); new ones join the same catalog as adapters are added. Use credentials with read-only access: the collector only reads. For Proxmox, granting the token <code>VM.Audit</code> on <code>/vms</code> also lets Discovery recognize your VMs and containers among network clients.</p>
+</section>
+
+<div class="docs-shot-pair">
+  {{ shot('settings-catalog', 'The Add integration drawer with Network and Compute categories and a search field.', 'The catalog groups integrations by category.', width=440, height=760) }}
+  {{ shot('settings-add-unifi', 'The Add UniFi Network form: connection name, controller address, API key, certificate settings, and Enable collection.', 'Test connection checks access without saving.', width=440, height=760) }}
+</div>
+
+<section class="docs-prose" aria-labelledby="setup-tls-title">
+  <p id="setup-tls-title"><strong>Test connection</strong> checks read-only API access without saving or running discovery. Certificate checking is on by default; under <strong>Certificate settings</strong> you can point at your own CA bundle instead of turning verification off. Saved connections, and their credentials, go into <code>local_config.toml</code>, never the database, and are left out of inventory backups. A running collector picks up the change before its next full scan.</p>
+
+  <h2 id="setup-discovery-title">6. Choose what the collector may scan</h2>
+  <p><strong>Settings → Discovery</strong> lists the discovery methods beyond your controllers. Each has a switch and an edit button; switching a method off keeps its settings and everything it already found.</p>
+</section>
+
+{{ shot('settings-discovery', 'Settings, Discovery panel with Network scanning, NUT discovery, SNMP interface lookups, and MikroTik discovery, each with a switch and edit button.', height=740) }}
+
+<section class="docs-prose" aria-labelledby="setup-methods-title">
+  <ul id="setup-methods-title">
+    <li><strong>Network scanning</strong> is the permission list. LabRat only contacts addresses inside the subnets you allow here. UniFi suggests the networks it knows, but every suggestion starts off; you switch on the ones LabRat may scan, and can add other networks or single addresses, one per line. All selections share a 4096-address limit.</li>
+    <li><strong>NUT discovery</strong> finds Network UPS Tools servers inside the allowed subnets and reads them with list commands only. It never logs in to a UPS or sends it commands. Set how often UPS readings refresh between full scans.</li>
+    <li><strong>SNMP interface lookups</strong> fill in physical NIC addresses and link state for the Proxmox nodes you name, over SNMPv3, when the Proxmox API leaves them out.</li>
+    <li><strong>MikroTik discovery</strong> listens for MNDP announcements without sending anything. Announcements do not cross routers, so the collector must share a network segment with your MikroTik devices.</li>
+  </ul>
+</section>
+
+{{ shot('settings-scan', 'The Network scanning drawer: a filter for suggested subnets and a field for additional networks or addresses.', 'Network scanning: only these subnets may be contacted. Access indicators never grant permission.', width=440, height=700) }}
+
+<section class="docs-prose" aria-labelledby="setup-collector-title">
+  <h2 id="setup-collector-title">7. Run the collector</h2>
+  <p>The collector is a separate process from the web app. Try one cycle first, then list what it stored:</p>
+  <pre><code>python -m labrat.collector --once
+python -m labrat.collector --list</code></pre>
+  <p>Run it without either switch to keep polling (add <code>--interval</code> to set the seconds between full scans). Between scans it also reads internet and UPS status on shorter timers. It reloads <code>local_config.toml</code> before each full scan, so Settings changes need no restart. Run it under your service manager, beside the web app.</p>
+  <p>Within a minute or two, the <strong>Sources</strong> strip under the header and the Home page show each source's health. A source that fails keeps its last observations, marked stale, instead of dropping them.</p>
+
+  <h2 id="setup-place-title">8. Map your lab</h2>
+  <p>Add a location and its areas in <a href="{{ url_for('private.locations') }}">Locations</a>, then add racks in an area's Floor plan. In <a href="{{ url_for('private.topology') }}">Discovery</a>, select a device and place it: create a new inventory record (the default) or link it to an existing one, then choose the area and position. The <a href="{{ url_for('docs.tour') }}">tour</a> walks through every page.</p>
+
+  <h2 id="setup-backup-title">9. Back up your inventory</h2>
+  <p><strong>Settings → Backup and restore</strong> downloads your curated inventory as one JSON file: locations, areas, racks, placements, equipment, names, ports, cables, and discovery links. It leaves out accounts, credentials, local configuration, and live observations, which the collector rebuilds. A restore first previews what it would change, and applies only when you confirm.</p>
+</section>
+{% endblock %}

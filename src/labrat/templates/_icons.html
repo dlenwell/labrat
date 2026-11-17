@@ -1,0 +1,58 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Used by: every page. #}
+{#
+  Line icons for page chrome: 24-unit grid, stroked with
+  currentColor, the same drawing style as Discovery's device icons and the
+  rack toolbar. Decorative: always hidden from assistive technology, so the
+  text beside each icon carries its meaning. Inline SVG, which the content
+  security policy allows (it blocks only inline style attributes).
+#}
+{% set _icon_paths = {
+  "profile": '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
+  "settings": '<path d="m9 3-.6 2-2 .8-1.8-1-3 5.2 1.5 1.4v2.2L1.6 15l3 5.2 1.8-1 2 .8.6 2h6l.6-2 2-.8 1.8 1 3-5.2-1.5-1.4v-2.2l1.5-1.4-3-5.2-1.8 1-2-.8L15 3z"/><circle cx="12" cy="12.5" r="3"/>',
+  "signout": '<path d="M10 4H4v16h6M9 12h12m-4-4 4 4-4 4"/>',
+  "vm": '<rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M6 9.5l2.25 5 2.25-5M13 14.5v-5l2.25 3 2.25-3v5"/>',
+  "container": '<path d="m12 2 9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10M7.5 4.5l9 5"/>',
+  "refresh": '<path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/>',
+  "search": '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
+  "client": '<rect x="4" y="4" width="16" height="12" rx="2"/><path d="M8 21h8M12 16v5M8 9h8"/>',
+  "computer": '<rect x="2" y="3" width="14" height="12" rx="1"/><path d="M6 19h6M9 15v4"/><rect x="18" y="7" width="4" height="14" rx="1"/><path d="M19 10h2M20 17h.01"/>',
+  "laptop": '<path d="M5 16V4h14v12M2 16h20l-2 4H4zM9 17h6"/>',
+  "phone": '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 5h4M11 19h2"/>',
+  "tablet": '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M11 19h2"/>',
+  "printer": '<path d="M6 8V3h12v5M6 17H3V8h18v9h-3M6 13h12v8H6zM17 10h1"/>',
+  "camera": '<path d="M3 8h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="14" r="4"/>',
+  "television": '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="m8 2 4 3 4-3M7 22h10"/>',
+  "speaker": '<rect x="6" y="2" width="12" height="20" rx="2"/><circle cx="12" cy="7" r="1"/><circle cx="12" cy="15" r="4"/>',
+  "iot": '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/><circle cx="12" cy="12" r="2"/>',
+  "gamepad": '<path d="M7 7h10c3 0 5 12 2 13l-5-4h-4l-5 4C2 19 4 7 7 7zM7 10v5M4.5 12.5h5M16 11h.01M19 14h.01"/>',
+  "alert": '<path d="M12 3.5 2.5 20h19zM12 10v4.5M12 17.5h.01"/>',
+  "server": '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M5 9h14M5 16h14M8 5h2M8 12h2M8 19h2"/>',
+  "wifi": '<path d="M2 8a16 16 0 0 1 20 0M5 12a11 11 0 0 1 14 0M8 16a6 6 0 0 1 8 0"/><circle cx="12" cy="20" r="1"/>',
+  "wired": '<path d="M5 2h14v12l-3 3H8l-3-3zM8 2v5M12 2v5M16 2v5M12 17v5"/>',
+  "scan": '<path d="M3 8V3h5M16 3h5v5M21 16v5h-5M8 21H3v-5M3 12h18"/><circle cx="12" cy="12" r="4"/>',
+  "add": '<path d="M12 5v14M5 12h14"/>',
+  "close": '<path d="m6 6 12 12M18 6 6 18"/>',
+  "chevron": '<path d="m9 5 7 7-7 7"/>',
+  "save": '<path d="M5 3h12l4 4v14H3V3zM7 3v6h10V3M7 21v-8h10v8"/>',
+  "observations": '<path d="M3 12h4l3-7 4 14 3-7h4"/>',
+  "equipment": '<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M5 8h14M5 13h14M5 18h14M8 5.5h2M8 10.5h2M8 15.5h2"/>',
+  "discovery": '<rect x="10" y="3" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><rect x="17" y="17" width="4" height="4" rx="1"/><path d="M12 7v5M5 17v-5h14v5"/>',
+  "locations": '<path d="M4 21V9l8-6 8 6v12M9.5 21v-5.5h5V21M3 21h18"/><path d="M7.5 11h2v2h-2zM14.5 11h2v2h-2z"/>',
+  "observed": '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  "inventory": '<path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5zM3 7.5l9 4.5 9-4.5M12 12v9"/>',
+  "rack": '<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M5 8h14M5 13h14M5 18h14"/>',
+  "placement": '<path d="M12 21s-7-6.4-7-12a7 7 0 0 1 14 0c0 5.6-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  "book": '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5V5.5M8 7h8"/>',
+  "api": '<path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 5l-4 14"/>',
+  "discover": '<path d="M21 12a9 9 0 1 1-9-9"/><path d="M12 12l7-7"/><circle cx="12" cy="12" r="4.5"/>',
+  "place": '<path d="M3 21h18M5 21V11h6v10M13 21V6h6v15M7.5 14h1M15.5 9h1M15.5 13h1"/>',
+  "trace": '<path d="M4 7h5a3 3 0 0 1 3 3v4a3 3 0 0 0 3 3h5"/><rect x="2" y="5" width="2.5" height="4" rx=".5"/><rect x="19.5" y="15" width="2.5" height="4" rx=".5"/>',
+  "edit": '<path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/>',
+  "trash": '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  "watch": '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 12l3-3 3 2 5-4"/>',
+} %}
+
+{% macro icon(name, class_name="") -%}
+<svg class="page-icon{% if class_name %} {{ class_name }}{% endif %}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">{{ _icon_paths[name] | safe }}</svg>
+{%- endmacro %}

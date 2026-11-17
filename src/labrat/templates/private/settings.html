@@ -1,0 +1,196 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "base.html" %}
+
+{% block title %}LabRat · Settings{% endblock %}
+{% block body_class %}settings-body workspace-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% if panel in ['integrations', 'discovery'] %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/device-drawer.css') }}">
+<script src="{{ url_for('static', filename='js/device-drawer.js') }}" defer></script>
+{% if panel == 'integrations' %}<script src="{{ url_for('static', filename='js/settings-integrations.js') }}" defer></script>{% else %}<script src="{{ url_for('static', filename='js/settings-discovery.js') }}" defer></script>{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<header class="settings-heading">
+  <h1 class="eyebrow">Preferences &amp; administration</h1>
+</header>
+
+<div class="settings-layout">
+  <nav class="settings-navigation" aria-label="Settings sections">
+    <a href="{{ url_for('private.settings') }}" {% if panel == 'appearance' %}aria-current="page"{% endif %}>
+      <span>Appearance</span><small>Theme and accent</small>
+    </a>
+    <a href="{{ url_for('private.widgets') }}">
+      <span>Widgets</span><small>Gallery of charts and panels</small>
+    </a>
+    {% if viewer.is_admin %}
+    <a href="{{ url_for('private.settings', panel='integrations') }}" {% if panel == 'integrations' %}aria-current="page"{% endif %}>
+      <span>Integrations</span><small>Discovery connections</small>
+    </a>
+    <a href="{{ url_for('private.settings', panel='discovery') }}" {% if panel == 'discovery' %}aria-current="page"{% endif %}>
+      <span>Discovery</span><small>Methods and scan scope</small>
+    </a>
+    <a href="{{ url_for('private.settings', panel='backup') }}" {% if panel == 'backup' %}aria-current="page"{% endif %}>
+      <span>Backup and restore</span><small>Curated inventory</small>
+    </a>
+    {% endif %}
+  </nav>
+  <div class="settings-panel">
+{% if panel == 'appearance' %}
+{% if saved %}
+  <p class="settings-saved" role="status">Appearance saved for this browser.</p>
+{% endif %}
+
+<section class="settings-section" aria-labelledby="settings-appearance-title">
+  <div class="settings-section-heading">
+    <p class="eyebrow">Appearance</p>
+    <h2 id="settings-appearance-title">Theme</h2>
+    <p>How LabRat looks in this browser, on every page.</p>
+  </div>
+
+  {# Plain form POST (labrat/pages/private.py save_appearance): no script needed. #}
+  <form class="settings-form" method="post" action="{{ url_for('private.save_appearance') }}">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <fieldset class="theme-choices">
+      <legend class="visually-hidden">Theme</legend>
+      {% for choice in themes %}
+        <label class="theme-choice{% if not choice.ready %} is-unavailable{% endif %}" data-theme-preview="{{ choice.key }}">
+          <input type="radio" name="theme" value="{{ choice.key }}"
+                 {% if choice.key == theme %}checked{% endif %}
+                 {% if not choice.ready %}disabled aria-describedby="theme-{{ choice.key }}-soon"{% endif %}>
+          {# A miniature page in the theme's colors: header, panel, accent. #}
+          <span class="theme-preview" aria-hidden="true">
+            <span class="theme-preview-bar"></span>
+            <span class="theme-preview-panel"><i></i><i></i><i></i></span>
+          </span>
+          <span class="theme-choice-text">
+            <span class="theme-choice-name">{{ choice.label }}</span>
+            <span class="theme-choice-description">{{ choice.description }}</span>
+            {% if not choice.ready %}
+              <span class="theme-choice-soon" id="theme-{{ choice.key }}-soon">Coming soon</span>
+            {% endif %}
+          </span>
+        </label>
+      {% endfor %}
+    </fieldset>
+
+    {#
+      Accent color for Dark, Light, and Match my system. settings.css hides
+      it while Disco is selected (Disco has its own palette); each swatch
+      shows the color's Light and Dark shades.
+    #}
+    <fieldset class="accent-choices">
+      <legend class="accent-choices-legend">Accent color</legend>
+      <p class="accent-choices-note" id="accent-note">For Dark, Light, and Match my system. Every choice keeps text readable in both.</p>
+      <div class="accent-choice-row">
+        {% for choice in accents %}
+          <label class="accent-choice" data-accent-choice="{{ choice.key }}">
+            <input type="radio" name="accent" value="{{ choice.key }}" aria-describedby="accent-note"
+                   {% if choice.key == accent %}checked{% endif %}>
+            <span class="accent-swatch" aria-hidden="true"></span>
+            <span class="accent-choice-name">{{ choice.label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="button-row">
+      <button class="button" type="submit">Save appearance</button>
+    </div>
+  </form>
+</section>
+{% elif panel == 'discovery' %}
+  {% include "private/_settings_discovery.html" %}
+{% elif panel == 'integrations' %}
+  {% include "private/_settings_integrations.html" %}
+{% else %}
+<section class="settings-section" aria-labelledby="settings-backup-title">
+  <div class="settings-section-heading">
+    <p class="eyebrow">Inventory</p>
+    <h2 id="settings-backup-title">Backup and restore</h2>
+    <p>Keep a copy of the work discovery cannot do for you.</p>
+  </div>
+
+  {% if restored %}
+    <p class="settings-saved" role="status">Inventory restored. Your discovery observations and audit history have been preserved.</p>
+  {% endif %}
+  {% if error %}
+    <p class="form-error" role="alert">{{ error }}</p>
+  {% endif %}
+
+  {% if preview %}
+  <div class="backup-review" aria-labelledby="restore-review-title">
+    <p class="eyebrow">Review before restoring</p>
+    <h3 id="restore-review-title">Restore this inventory backup?</h3>
+    <p>Backup created <time datetime="{{ created_at }}">{{ created_at[:10] }} at {{ created_at[11:16] }} UTC</time>.
+      {% if preview.same_instance %}From this LabRat instance.{% else %}Restoring into an empty inventory.{% endif %}</p>
+    <div class="backup-table-scroll">
+      <table class="backup-summary">
+        <caption class="visually-hidden">Changes that will be made when this backup is restored</caption>
+        <thead><tr><th scope="col">Inventory</th><th scope="col">Add</th><th scope="col">Update</th><th scope="col">Unchanged</th></tr></thead>
+        <tbody>
+          {% for row in preview.rows %}
+          <tr><th scope="row">{{ row.label }}</th><td>{{ row.created }}</td><td>{{ row.updated }}</td><td>{{ row.unchanged }}</td></tr>
+          {% else %}
+          <tr><td colspan="4">This backup has no inventory records.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p>{{ preview.attributes }} saved attributes will be restored. {{ preview.matched }} discovery associations are available to reconnect.</p>
+    {% if preview.unmatched %}
+      <p class="backup-notice">{{ preview.unmatched }} discovery associations are unavailable here. Equipment will still be restored; link its observations in Discovery when they are available.</p>
+    {% endif %}
+    {% if preview.cleared_placements %}
+      <p class="backup-notice">{{ preview.cleared_placements }} current equipment placements will be cleared because those devices were unplaced in the backup.</p>
+    {% endif %}
+    <p>Backed-up records take their saved values. Additional equipment and places stay in your inventory. Placements and manual group assignments for backed-up equipment return to the backup.</p>
+    <form class="settings-form" method="post" action="{{ url_for('private.backup.restore') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="restore_token" value="{{ restore_token }}">
+      <label class="backup-confirm"><input type="checkbox" name="confirm" value="restore" required> I want to apply these inventory changes.</label>
+      <div class="button-row">
+        <button class="button" type="submit">Restore inventory</button>
+        <a class="button button-quiet" href="{{ url_for('private.settings', panel='backup') }}">Cancel</a>
+      </div>
+    </form>
+    <p class="backup-footnote">This preview expires in 15 minutes. If inventory changes, you will need to preview it again.</p>
+  </div>
+  {% else %}
+  <div class="backup-actions">
+    <article class="backup-action">
+      <span class="backup-step" aria-hidden="true">01 / EXPORT</span>
+      <h3>Keep your work</h3>
+      <p>Download your inventory as a file you can keep somewhere safe.</p>
+      <form method="post" action="{{ url_for('private.backup.download') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <button class="button" type="submit">Download backup</button>
+      </form>
+    </article>
+    <article class="backup-action">
+      <span class="backup-step" aria-hidden="true">02 / RESTORE</span>
+      <h3>Bring your inventory back</h3>
+      <p>Choose a backup, then review the changes before applying it.</p>
+      <form class="backup-upload" method="post" enctype="multipart/form-data" action="{{ url_for('private.backup.preview') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <label for="inventory-backup">Inventory backup file</label>
+        <input id="inventory-backup" type="file" name="backup" accept=".json,application/json" required aria-describedby="backup-file-note">
+        <p id="backup-file-note" class="backup-footnote">LabRat inventory backup · JSON · up to 5 MB</p>
+        <button class="button button-secondary" type="submit">Preview restore</button>
+      </form>
+    </article>
+  </div>
+  <div class="backup-scope">
+    <h3>What your backup includes</h3>
+    <p>Locations, areas, racks, mounting places and layouts. Equipment, display names, placements, manual groups, saved attributes, and inventory interfaces and cables.</p>
+    <p>Accounts, passwords, integration credentials, live discovery data, observation-ignore rules, browser preferences, and audit history are excluded. Configure integrations separately on a fresh installation.</p>
+    <p>Restore into this instance or an empty inventory on a fresh installation. A backup contains your inventory details; keep the downloaded file private.</p>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+  </div>
+</div>
+{% endblock %}

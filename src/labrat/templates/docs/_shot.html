@@ -1,0 +1,9 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# A screenshot of the demo lab, linked to its full-size image. Pass the
+   image's own size; drawer crops (narrow, tall) use the drawer layout. #}
+{% macro shot(name, alt, caption=none, width=1440, height=900) %}
+<figure class="docs-shot{% if width < 600 %} docs-shot-drawer{% endif %}">
+  <a href="{{ url_for('static', filename='img/docs/' ~ name ~ '.webp') }}"><img src="{{ url_for('static', filename='img/docs/' ~ name ~ '.webp') }}" alt="{{ alt }}" width="{{ width }}" height="{{ height }}" loading="lazy" decoding="async"></a>
+  {% if caption %}<figcaption>{{ caption }}</figcaption>{% endif %}
+</figure>
+{% endmacro %}

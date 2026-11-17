@@ -1,0 +1,39 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% from "_icons.html" import icon %}
+{% from "private/_device_drawer.html" import device_drawer %}
+<section class="settings-section" aria-labelledby="settings-discovery-title" data-discovery-settings data-overview-url="{{ url_for('private.settings', panel='discovery') }}">
+  <div class="settings-section-heading integration-heading">
+    <div><p class="eyebrow">Collection</p><h2 id="settings-discovery-title">Discovery</h2></div>
+  </div>
+  {% if discovery_error %}<p class="form-error" role="alert">{{ discovery_error }}</p>{% endif %}
+  {% if request.args.get('saved') == 'discovery' %}<p class="discovery-feedback" role="status">Discovery settings saved.</p>{% endif %}
+  <div class="discovery-methods">
+    {% for method in discovery_methods %}
+    <article class="discovery-method">
+      <span class="discovery-method-icon">{{ icon(method.icon) }}</span>
+      <a class="discovery-method-name" href="{{ url_for('private.settings', panel='discovery', method=method.key) }}" data-discovery-open><strong>{{ method.label }}</strong><small>{{ method.description }}</small></a>
+      <form method="post" action="{{ url_for('private.discovery_settings.save') }}" class="discovery-toggle-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="revision" value="{{ discovery_revision }}">
+        <input type="hidden" name="method" value="{{ method.key }}">
+        <input type="hidden" name="operation" value="toggle">
+        <label class="discovery-switch" title="{{ 'Disable' if method.enabled else 'Enable' }} {{ method.label }}">
+          <input type="checkbox" name="enabled" value="1" role="switch" aria-label="{{ method.label }}" {% if method.enabled %}checked{% endif %}>
+          <span aria-hidden="true"></span>
+        </label>
+        <button class="button button-quiet room-icon-button discovery-toggle-save" type="submit" aria-label="Save {{ method.label }}" title="Save {{ method.label }}" data-tooltip="Save {{ method.label }}">{{ icon('save') }}</button>
+      </form>
+      <a class="button button-quiet room-icon-button" href="{{ url_for('private.settings', panel='discovery', method=method.key) }}" data-discovery-open aria-label="Configure {{ method.label }}" title="Configure {{ method.label }}" data-tooltip="Configure {{ method.label }}">{{ icon('edit') }}</a>
+    </article>
+    {% endfor %}
+  </div>
+  <p class="integration-note">Only allowed subnets are scanned. Switching a method off keeps its settings and discovered devices.</p>
+  {% call device_drawer() %}
+    {% for view in ['menu', 'editor', 'detail'] %}
+    <section class="device-drawer-view integration-drawer-panel" data-view="{{ view }}" aria-hidden="true" inert>
+      <h2 class="device-drawer-panel-title" data-discovery-title="{{ view }}">{% if discovery_editor and discovery_editor.view == view %}{{ discovery_editor.label }}{% else %}Discovery{% endif %}</h2>
+      <div data-discovery-slot="{{ view }}">{% if discovery_editor and discovery_editor.view == view %}{% include "private/_discovery_editor.html" %}{% endif %}</div>
+    </section>
+    {% endfor %}
+  {% endcall %}
+</section>

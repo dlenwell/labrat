@@ -1,0 +1,1022 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/*
+ * Node diagnostics, the Cluster page's Nodes tab (js/nodes.js): an
+ * engineering readout for one Proxmox node (owner: "an engineering
+ * diagnostics screen for one of the computer cores"). It sits in the
+ * shared view frame and borrows meters, lamps, the tooltip, and the area
+ * chart from cluster.css. This file owns the deck layout, the bracketed
+ * subsystem modules, the core gauge, and the drawn hardware.
+ *
+ * Contents
+ *   01. Screen and deck layout
+ *   02. Modules and readouts
+ *   03. The core gauge
+ *   04. Drives, dials, bays
+ *   05. Network jacks, accelerators, guests
+ *   06. Phones and reduced motion
+ */
+
+/* ========================================================================== */
+/* 01. SCREEN AND DECK LAYOUT                                                  */
+/* ========================================================================== */
+
+.diag-screen {
+    display: grid;
+    gap: var(--space-3);
+}
+
+/* The status line reads like a console banner. */
+.diag-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid color-mix(in srgb, var(--hue) 40%, var(--color-border));
+    border-left: 4px solid var(--hue);
+    border-radius: var(--radius-small);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--hue) 12%, transparent), transparent 60%);
+    color: var(--color-text-secondary);
+    font: 600 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.08em;
+}
+
+.diag-status strong {
+    color: var(--color-text-primary);
+    font: 700 var(--text-lg) var(--font-display);
+    letter-spacing: 0.12em;
+}
+
+.diag-status-sep {
+    color: var(--color-text-faint);
+}
+
+/*
+ * The deck (owner: the whole node on one laptop screen, balanced around
+ * the gauges). From 1400px: hardware on the left, health, the data
+ * drives, and the day's traces on the right, and the centre twice as wide, the
+ * core gauge and the 24-hour CPU clock beside services over two short
+ * stacks. Narrower, the columns flatten (display: contents) and each box
+ * takes its named grid area: three columns, then two, then one (06).
+ */
+.diag-deck {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+        "core   clock  svc"
+        "load   boot   maint"
+        "mem    boot   certs"
+        "net    mmap   traces"
+        "drives pci    traces";
+    gap: var(--space-3);
+    align-items: stretch;
+}
+
+.diag-centre-grid,
+.diag-centre-top {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+@media (max-width: 1399.98px) {
+    .diag-deck > .diag-column,
+    .diag-centre-top,
+    .diag-centre-grid,
+    .diag-centre-grid > .diag-column {
+        display: contents;
+    }
+
+    .diag-deck > .diag-column > *,
+    .diag-centre-top > *,
+    .diag-centre-grid > .diag-column > * {
+        min-width: 0;
+    }
+
+    .diag-deck .diag-core {
+        align-self: center;
+    }
+
+    .diag-deck .diag-core-svg,
+    .diag-deck .diag-clock .widget-clock-wrap {
+        max-width: 16rem;
+    }
+}
+
+.is-area-load { grid-area: load; }
+.is-area-mem { grid-area: mem; }
+.is-area-net { grid-area: net; }
+.is-area-drives { grid-area: drives; }
+.is-area-core { grid-area: core; }
+.is-area-clock { grid-area: clock; }
+.is-area-svc { grid-area: svc; }
+.is-area-boot { grid-area: boot; }
+.is-area-mmap { grid-area: mmap; }
+.is-area-pci { grid-area: pci; }
+.is-area-maint { grid-area: maint; }
+.is-area-certs { grid-area: certs; }
+.is-area-traces { grid-area: traces; }
+
+@media (min-width: 1400px) {
+    .diag-deck {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+        grid-template-areas: none;
+        gap: var(--space-2);
+    }
+
+    /* Inside the columns the boxes flow in order, not by area. */
+    .diag-deck [class*="is-area-"] {
+        grid-area: auto;
+    }
+
+    .diag-column,
+    .diag-centre-grid,
+    .diag-centre-top {
+        gap: var(--space-2);
+    }
+
+    /* The columns end level: each one's last box takes up the slack. */
+    .diag-deck {
+        align-items: stretch;
+    }
+
+    .diag-deck .diag-column {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .diag-deck .diag-column > :last-child {
+        flex: 1 1 auto;
+    }
+
+    .diag-centre-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: stretch;
+    }
+
+    /* The two gauges side by side, services beside them. */
+    .diag-centre-top {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr);
+        gap: var(--space-2);
+        align-items: center;
+    }
+
+    /* The boot drive's readout two pairs to a line in its narrower box. */
+    .diag-deck .diag-boot > .diag-readout {
+        grid-template-columns: repeat(2, max-content minmax(0, 1fr));
+    }
+
+    /* The core gauge as a centrepiece, no taller than its stacks need. */
+    .diag-deck .diag-core-svg,
+    .diag-deck .diag-clock .widget-clock-wrap {
+        max-width: 13rem;
+    }
+
+    .diag-module {
+        padding: var(--space-2) var(--space-3);
+    }
+}
+
+/* Compact traces wherever the deck has three columns. */
+@media (min-width: 1101px) {
+    /* Trace rows two to a line, so each sparkline is narrower and so
+       shorter: seven rows take four lines. */
+    .diag-module-traces {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.2rem var(--space-3);
+        align-items: center;
+    }
+
+    .diag-module-traces > :first-child {
+        grid-column: 1 / -1;
+    }
+
+    .diag-module-traces .cluster-node-row {
+        grid-template-columns: 3.2rem minmax(0, 1fr) 2.8rem;
+        gap: var(--space-1);
+        min-height: 0;
+    }
+}
+
+/* Donuts sit beside their legends in the deck's boxes, above phone width. */
+@media (min-width: 641px) {
+    .diag-deck .diag-module .widget-donut > .widget-round-svg {
+        flex-basis: 6rem;
+        min-width: 5rem;
+    }
+
+    .diag-deck .diag-module .widget-donut > .widget-legend {
+        flex-basis: 10rem;
+    }
+}
+
+.diag-column {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.diag-traces {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    gap: var(--space-3);
+}
+
+/* ========================================================================== */
+/* 02. MODULES AND READOUTS                                                    */
+/* ========================================================================== */
+
+/*
+ * A module is a sunk well with bracket corners (two drawn corners, top
+ * left and bottom right) in the hue, so it reads as an instrument bay.
+ */
+.diag-module {
+    position: relative;
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-shadow) 18%, transparent), transparent 36px),
+        color-mix(in srgb, var(--color-panel-background) 82%, var(--color-shade));
+    box-shadow:
+        inset 0 6px 8px -6px var(--color-shadow),
+        inset 0 -1px 0 color-mix(in srgb, var(--color-lift) 6%, transparent);
+}
+
+.diag-module::before,
+.diag-module::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+}
+
+.diag-module::before {
+    top: -1px;
+    left: -1px;
+    border-top: 2px solid var(--hue);
+    border-left: 2px solid var(--hue);
+    border-top-left-radius: var(--radius-small);
+}
+
+.diag-module::after {
+    right: -1px;
+    bottom: -1px;
+    border-right: 2px solid var(--hue);
+    border-bottom: 2px solid var(--hue);
+    border-bottom-right-radius: var(--radius-small);
+}
+
+.diag-module-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+.diag-module-heading h2 {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    color: var(--color-text-primary);
+    font: 700 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.diag-code {
+    padding: 0.05rem 0.35rem;
+    border: 1px solid color-mix(in srgb, var(--hue) 50%, transparent);
+    border-radius: 3px;
+    color: var(--hue);
+    font: 600 10px var(--font-mono);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.diag-aside,
+.diag-muted {
+    color: var(--color-text-muted);
+    font: var(--text-xs) var(--font-mono);
+}
+
+.diag-muted {
+    margin: 0;
+}
+
+.diag-readout {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.2rem var(--space-3);
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-xs);
+}
+
+.diag-readout dt {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.diag-readout dd {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diag-capacity {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.diag-capacity-row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) 5.5rem;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.diag-key-label {
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-mono);
+    text-transform: uppercase;
+}
+
+.diag-figure {
+    color: var(--color-text-primary);
+    font: 600 var(--text-xs) var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* Memory cells: in use, allocated, free. */
+.diag-cells {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 2px;
+}
+
+.diag-cell,
+.diag-key {
+    height: 12px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--hue) 10%, var(--color-console-recess));
+}
+
+.diag-cell.is-used,
+.diag-key.is-used {
+    background: var(--hue);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--hue) 45%, transparent);
+}
+
+.diag-cell.is-reserved,
+.diag-key.is-reserved {
+    background: color-mix(in srgb, var(--hue) 42%, var(--color-console-recess));
+}
+
+.diag-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem 0.5rem;
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.diag-key {
+    width: 0.8rem;
+    height: 0.6rem;
+}
+
+/* ========================================================================== */
+/* 03. THE CORE GAUGE                                                          */
+/* ========================================================================== */
+
+.diag-core {
+    position: relative;
+    margin: 0;
+    padding: var(--space-2);
+    border-radius: 50%;
+    outline: none;
+}
+
+.diag-core:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.diag-core-svg {
+    display: block;
+    width: 100%;
+    max-width: 26rem;
+    height: auto;
+    margin: 0 auto;
+}
+
+/* The clock drawn at the core gauge's size, its hours readable. */
+.diag-clock .widget-clock-wrap {
+    max-width: 26rem;
+}
+
+.diag-clock .widget-round-svg {
+    overflow: visible;
+}
+
+.diag-clock .widget-clock-hour {
+    font-size: 14px;
+}
+
+.diag-core-model {
+    margin-top: var(--space-1);
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font: var(--text-xs) var(--font-mono);
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diag-ring-frame {
+    fill: color-mix(in srgb, var(--hue) 4%, var(--color-console-recess));
+    stroke: color-mix(in srgb, var(--hue) 35%, var(--color-border));
+    stroke-width: 1.5;
+}
+
+.diag-ring-frame.is-faint {
+    fill: color-mix(in srgb, var(--hue) 6%, var(--color-panel-background));
+    stroke: color-mix(in srgb, var(--hue) 20%, var(--color-border));
+}
+
+.diag-tick {
+    stroke: color-mix(in srgb, var(--hue) 18%, var(--color-console-recess));
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+.diag-tick.is-lit {
+    stroke: var(--hue);
+}
+
+.diag-tick.is-lit.is-warning { stroke: var(--color-status-warning); }
+.diag-tick.is-lit.is-alarm { stroke: var(--color-status-error); }
+
+.diag-track {
+    fill: none;
+    stroke: color-mix(in srgb, var(--hue) 12%, var(--color-console-recess));
+    stroke-width: 12;
+}
+
+.diag-arc {
+    fill: none;
+    stroke: var(--hue);
+    stroke-width: 12;
+    stroke-linecap: round;
+}
+
+.diag-arc.is-reserved {
+    stroke: color-mix(in srgb, var(--hue) 40%, var(--color-console-recess));
+}
+
+.diag-arc.is-thin {
+    stroke-width: 8;
+}
+
+.diag-arc.is-warning { stroke: var(--color-status-warning); }
+.diag-arc.is-alarm { stroke: var(--color-status-error); }
+
+/* Centre text in the gauge's units (420 across), sized to stay legible
+   when the gauge is drawn at about 14rem. */
+.diag-core-figure {
+    fill: var(--color-text-primary);
+    font: 650 84px var(--font-display);
+}
+
+.diag-core-caption {
+    fill: var(--hue);
+    font: 600 22px var(--font-mono);
+    letter-spacing: 0.16em;
+}
+
+/* The rings' legend under the gauge: each named by a swatch of its shape. */
+.diag-core-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.2rem var(--space-3);
+    margin-top: var(--space-1);
+    color: var(--color-text-secondary);
+    font: 600 var(--text-xs) var(--font-mono);
+}
+
+.diag-core-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.diag-core-key strong {
+    color: var(--color-text-primary);
+}
+
+.diag-core-swatch {
+    display: inline-block;
+    width: 1rem;
+    border-radius: 2px;
+    background: var(--hue);
+}
+
+.diag-core-swatch.is-ticks {
+    height: 0.45rem;
+    background: repeating-linear-gradient(90deg, var(--hue) 0 2px, transparent 2px 4px);
+}
+
+.diag-core-swatch.is-thick { height: 0.4rem; }
+.diag-core-swatch.is-thin { height: 0.25rem; }
+
+/* The sweep: one turn per data refresh (owner), phased to the last load
+   by nodes.js (duration and a negative delay through the CSSOM), then it
+   rests at the top until the next refresh redraws it. */
+.diag-sweep {
+    transform-box: view-box;
+    transform-origin: 50% 50%;
+    animation: diag-sweep 30s linear 1 both;
+}
+
+.diag-sweep.is-idle {
+    display: none;
+}
+
+.diag-sweep-wedge {
+    fill: color-mix(in srgb, var(--hue) 10%, transparent);
+}
+
+@keyframes diag-sweep {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================================================== */
+/* 04. DRIVES, DIALS, BAYS                                                     */
+/* ========================================================================== */
+
+.diag-boot {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(7rem, 0.8fr);
+    gap: var(--space-2) var(--space-3);
+    align-items: center;
+    margin-bottom: var(--space-3);
+}
+
+.diag-boot > .diag-readout {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, max-content minmax(0, 1fr));
+}
+
+.diag-boot.is-compact {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
+}
+
+.diag-boot.is-compact > .diag-drive-name {
+    margin: 0;
+}
+
+.diag-drive-art {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.diag-board {
+    fill: color-mix(in srgb, var(--hue) 14%, var(--color-console-recess));
+    stroke: color-mix(in srgb, var(--hue) 45%, var(--color-border));
+}
+
+.diag-notch,
+.diag-pin {
+    fill: color-mix(in srgb, var(--color-status-warning) 55%, var(--color-console-recess));
+}
+
+.diag-chip {
+    fill: color-mix(in srgb, var(--color-shade) 70%, var(--color-console-recess));
+    stroke: color-mix(in srgb, var(--hue) 25%, transparent);
+}
+
+.diag-chip.is-ctrl {
+    stroke: var(--hue);
+}
+
+.diag-screw,
+.diag-spindle {
+    fill: var(--color-border-bright);
+}
+
+.diag-platter {
+    fill: color-mix(in srgb, var(--color-border-bright) 30%, var(--color-console-recess));
+    stroke: var(--color-border-bright);
+}
+
+.diag-arm {
+    stroke: var(--color-border-bright);
+    stroke-width: 3;
+    stroke-linecap: round;
+}
+
+.diag-led {
+    fill: var(--color-lamp-on);
+}
+
+.is-warn .diag-led { fill: var(--color-status-warning); }
+.is-alarm .diag-led { fill: var(--color-status-error); }
+
+.diag-drive-name,
+.diag-dial-caption {
+    margin: var(--space-1) 0 0;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font: var(--text-xs) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diag-dial-caption {
+    color: var(--color-text-muted);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.diag-dial {
+    display: block;
+    width: 100%;
+    max-width: 9rem;
+    margin: 0 auto;
+}
+
+.diag-dial-track,
+.diag-dial-zone,
+.diag-dial-fill {
+    fill: none;
+    stroke-width: 10;
+}
+
+.diag-dial-track { stroke: color-mix(in srgb, var(--hue) 12%, var(--color-console-recess)); }
+.diag-dial-zone { stroke-width: 3; }
+.diag-dial-zone.is-warning { stroke: color-mix(in srgb, var(--color-status-warning) 60%, transparent); }
+.diag-dial-zone.is-alarm { stroke: color-mix(in srgb, var(--color-status-error) 60%, transparent); }
+.diag-dial-fill.is-on { stroke: var(--hue); }
+.diag-dial-fill.is-warn { stroke: var(--color-status-warning); }
+.diag-dial-fill.is-alarm { stroke: var(--color-status-error); }
+
+.diag-dial-needle {
+    stroke: var(--color-text-primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.diag-dial-hub {
+    fill: var(--color-text-primary);
+}
+
+.diag-dial-figure {
+    fill: var(--color-text-primary);
+    font: 650 18px var(--font-display);
+}
+
+.diag-bays {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+    gap: var(--space-2);
+}
+
+.diag-bay {
+    display: grid;
+    gap: 0.25rem;
+    padding: var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-small);
+    background: color-mix(in srgb, var(--color-panel-background) 70%, var(--color-shade));
+    outline: none;
+}
+
+.diag-bay:hover,
+.diag-bay:focus-visible {
+    border-color: var(--hue);
+}
+
+.diag-bay.is-warn { border-color: color-mix(in srgb, var(--color-status-warning) 60%, transparent); }
+.diag-bay.is-alarm { border-color: var(--color-status-error); }
+
+.diag-bay-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.diag-bay-type {
+    margin-left: auto;
+    color: var(--color-text-muted);
+    font: 10px var(--font-mono);
+    text-transform: uppercase;
+}
+
+.diag-bay-size {
+    margin: 0;
+    color: var(--color-text-primary);
+    font: 650 var(--text-sm) var(--font-mono);
+}
+
+.diag-bay-role,
+.diag-bay-foot {
+    margin: 0;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font: 10px var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diag-bay-foot {
+    display: flex;
+    justify-content: space-between;
+}
+
+.diag-temp.is-warn { color: var(--color-status-warning); }
+.diag-temp.is-alarm { color: var(--color-status-error); }
+
+/* ========================================================================== */
+/* 05. NETWORK JACKS, ACCELERATORS, GUESTS                                     */
+/* ========================================================================== */
+
+.diag-jacks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.diag-jack {
+    display: grid;
+    justify-items: center;
+    width: 3.6rem;
+    gap: 0.1rem;
+    outline: none;
+}
+
+.diag-jack-art {
+    width: 2.6rem;
+    height: auto;
+}
+
+.diag-jack-body {
+    fill: color-mix(in srgb, var(--color-border-bright) 25%, var(--color-console-recess));
+    stroke: var(--color-border-strong);
+}
+
+.diag-jack-hole {
+    fill: var(--color-console-recess);
+}
+
+.diag-jack-led {
+    fill: var(--color-led-off);
+}
+
+.diag-jack.is-up .diag-jack-led {
+    fill: var(--color-lamp-port);
+}
+
+.diag-jack.is-up .diag-jack-body {
+    stroke: var(--color-lamp-port);
+}
+
+.diag-jack:focus-visible .diag-jack-body {
+    stroke: var(--color-accent);
+}
+
+.diag-jack-name,
+.diag-jack-speed {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font: 10px var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diag-jack-speed {
+    color: var(--color-text-secondary);
+}
+
+.diag-cards {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.diag-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font: var(--text-xs) var(--font-mono);
+}
+
+.diag-card strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* A small drawn card: a board with a fan ring. */
+.diag-card-art {
+    flex: 0 0 auto;
+    width: 2.2rem;
+    height: 1.1rem;
+    border: 1px solid var(--hue);
+    border-radius: 3px;
+    background:
+        radial-gradient(circle at 30% 50%, transparent 28%, var(--hue) 30%, var(--hue) 36%, transparent 38%),
+        radial-gradient(circle at 72% 50%, transparent 28%, var(--hue) 30%, var(--hue) 36%, transparent 38%),
+        color-mix(in srgb, var(--hue) 12%, var(--color-console-recess));
+}
+
+.diag-count {
+    color: var(--color-text-muted);
+}
+
+.diag-guests {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.diag-guest {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    font: var(--text-xs) var(--font-mono);
+    outline: none;
+}
+
+.diag-guest:hover,
+.diag-guest:focus-visible {
+    border-color: var(--hue);
+}
+
+.diag-guest.is-stopped {
+    color: var(--color-text-muted);
+}
+
+.diag-guest-spec {
+    color: var(--color-text-muted);
+}
+
+.diag-guest-ip {
+    color: var(--color-text-secondary);
+}
+
+/* ========================================================================== */
+/* 06. PHONES AND REDUCED MOTION                                               */
+/* ========================================================================== */
+
+@media (max-width: 1100px) {
+    .diag-deck {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas:
+            "core   clock"
+            "svc    load"
+            "boot   mem"
+            "boot   net"
+            "mmap   drives"
+            "pci    maint"
+            "certs  maint"
+            "traces traces";
+    }
+}
+
+@media (max-width: 640px) {
+    .diag-deck {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "core" "clock" "load" "mem" "net" "drives" "svc" "boot" "mmap" "pci" "maint" "certs" "traces";
+    }
+
+    .diag-boot,
+    .diag-boot > .diag-readout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .diag-boot > .diag-readout {
+        grid-template-columns: max-content minmax(0, 1fr);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .diag-sweep {
+        animation: none;
+        display: none;
+    }
+}
+
+/* Donuts in a narrow module stack the chart over its legend. */
+.diag-module .widget-donut > .widget-round-svg {
+    flex-basis: 10rem;
+}
+
+.diag-module .widget-donut > .widget-legend {
+    flex-basis: 100%;
+}
+
+/* Health row: maintenance, certificates, services. */
+.diag-health {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: var(--space-3);
+}
+
+.diag-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.diag-flag,
+.diag-status-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    font: 600 10px var(--font-mono);
+    letter-spacing: 0.08em;
+}
+
+.diag-flag.is-warn,
+.diag-status-flag {
+    border-color: color-mix(in srgb, var(--color-status-warning) 55%, transparent);
+    color: var(--color-status-warning);
+}
+
+.diag-updates {
+    display: grid;
+    gap: 0.15rem;
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+    font: var(--text-xs) var(--font-mono);
+}
+
+.diag-updates li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.diag-update-name {
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diag-certs {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.diag-cert {
+    display: grid;
+    grid-template-columns: auto minmax(0, 7.5rem) minmax(0, 1fr) 3rem;
+    align-items: center;
+    gap: var(--space-2);
+    outline: none;
+}
+
+.diag-cert-name {
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font: var(--text-xs) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

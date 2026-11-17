@@ -1,0 +1,550 @@
+/*
+ * Copyright 2026 LabRat contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Locations map (/locations/map and /locations/<id>/map): one pannable,
+ * zoomable SVG canvas of buildings, areas, racks, equipment, and cables
+ * (locations-map.js). Colors come from main.css tokens: device types
+ * from --color-type-*, cables from --color-cable-*, furniture from
+ * --color-furniture-*, so the map matches Discovery and Equipment in
+ * every theme.
+ */
+
+/* ========================================================================== */
+/* 01. CANVAS                                                                  */
+/* ========================================================================== */
+
+.locations-map {
+    position: relative;
+    height: 70vh;
+    min-height: 360px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background-color: var(--color-console-recess);
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--color-border) 35%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--color-border) 35%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+    cursor: grab;
+    touch-action: none;
+    outline: none;
+}
+
+.locations-map:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.locations-map.is-panning {
+    cursor: grabbing;
+}
+
+.locations-map-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    user-select: none;
+}
+
+.locations-map-empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    color: var(--color-text-muted);
+}
+
+.locations-map-empty[hidden],
+.locations-map-tip[hidden] {
+    display: none;
+}
+
+.locations-map-tip {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    gap: 2px;
+    max-width: 240px;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    font: var(--text-xs) var(--font-mono);
+    pointer-events: none;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 25%);
+}
+
+.locations-map-tip span {
+    color: var(--color-text-secondary);
+}
+
+/* ========================================================================== */
+/* 02. BUILDINGS AND AREAS                                                     */
+/* ========================================================================== */
+
+.map-site-outline {
+    fill: color-mix(in srgb, var(--color-panel-background) 55%, transparent);
+    stroke: var(--color-border-bright, var(--color-border));
+    stroke-width: 2;
+}
+
+.map-site-name {
+    fill: var(--color-text-primary);
+    font: 700 16px var(--font-display, var(--font-sans));
+    letter-spacing: 0.04em;
+}
+
+.map-room-floor {
+    fill: var(--color-panel-background);
+    stroke: var(--color-border);
+    stroke-width: 1.5;
+}
+
+.map-room-name {
+    fill: var(--color-text-primary);
+    font: 600 13px var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.map-room-link:hover .map-room-name,
+.map-room-link:focus-visible .map-room-name {
+    fill: var(--color-accent);
+    text-decoration: underline;
+}
+
+.map-room-empty {
+    fill: var(--color-text-muted);
+    font: 12px var(--font-sans);
+}
+
+/* ========================================================================== */
+/* 03. RACKS AND EQUIPMENT                                                     */
+/* ========================================================================== */
+
+.map-rack-name {
+    fill: var(--color-furniture-rack);
+    font: 600 10px var(--font-mono);
+}
+
+.map-rack-frame {
+    fill: var(--color-furniture-rack-surface);
+    stroke: var(--color-furniture-rack);
+    stroke-width: 1.5;
+}
+
+.map-rack-bay {
+    fill: var(--color-console-recess, var(--color-page-background));
+}
+
+.map-rack-unit {
+    stroke: color-mix(in srgb, var(--color-furniture-rack) 18%, transparent);
+    stroke-width: 1;
+}
+
+.map-device {
+    --type: var(--color-text-muted);
+    --type-surface: var(--color-surface-raised);
+    cursor: pointer;
+    outline: none;
+}
+
+.map-device.is-type-server { --type: var(--color-type-server); --type-surface: var(--color-type-server-surface); }
+.map-device.is-type-switch { --type: var(--color-type-switch); --type-surface: var(--color-type-switch-surface); }
+.map-device.is-type-router { --type: var(--color-type-router); --type-surface: var(--color-type-router-surface); }
+.map-device.is-type-firewall { --type: var(--color-type-firewall); --type-surface: var(--color-type-firewall-surface); }
+.map-device.is-type-ap { --type: var(--color-type-ap); --type-surface: var(--color-type-ap-surface); }
+.map-device.is-type-ups { --type: var(--color-type-ups); --type-surface: var(--color-type-ups-surface); }
+.map-device.is-type-modem { --type: var(--color-type-modem); --type-surface: var(--color-type-modem-surface); }
+
+.map-device-body {
+    fill: var(--type-surface);
+    stroke: color-mix(in srgb, var(--type) 70%, transparent);
+    stroke-width: 1;
+}
+
+.map-device-stripe {
+    fill: var(--type);
+}
+
+.map-device-name {
+    fill: var(--color-text-primary);
+    font: 600 10.5px var(--font-mono);
+    pointer-events: none;
+}
+
+.map-device-where {
+    fill: var(--color-text-muted);
+    font: 9.5px var(--font-mono);
+    pointer-events: none;
+}
+
+.map-device:hover .map-device-body,
+.map-device:focus-visible .map-device-body {
+    stroke: var(--type);
+    stroke-width: 2;
+}
+
+/* ========================================================================== */
+/* 04. PATCH PANELS AND CABLES                                                 */
+/* ========================================================================== */
+
+.map-panel {
+    fill: var(--color-furniture-mount-surface);
+    stroke: var(--color-furniture-mount);
+    stroke-width: 1.5;
+}
+
+.map-panel-name {
+    fill: var(--color-furniture-mount-text);
+    font: 600 9px var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.map-socket {
+    fill: var(--color-console-recess, var(--color-page-background));
+    stroke: var(--color-furniture-mount);
+}
+
+.map-cable {
+    --cable: var(--color-cable-unknown);
+    fill: none;
+    stroke: var(--cable);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.85;
+}
+
+.map-cable.is-medium-copper { --cable: var(--color-cable-copper); }
+.map-cable.is-medium-dac { --cable: var(--color-cable-dac); }
+.map-cable.is-medium-fiber-mm { --cable: var(--color-cable-fiber-mm); }
+.map-cable.is-medium-fiber-sm { --cable: var(--color-cable-fiber-sm); }
+.map-cable.is-medium-fiber { --cable: var(--color-cable-fiber); }
+
+.map-cable.is-tentative {
+    stroke-dasharray: 5 4;
+}
+
+.map-cables-inner .map-cable {
+    stroke-width: 1.5;
+    opacity: 0.7;
+}
+
+.map-cable.is-lit {
+    stroke-width: 3.5;
+    opacity: 1;
+}
+
+@media (max-width: 640px) {
+    .locations-map {
+        height: 60vh;
+    }
+}
+
+/* Sockets take their cable's colour, so a panel reads at a glance. */
+.map-socket[class*="is-medium-"] {
+    fill: var(--cable);
+    stroke: color-mix(in srgb, var(--cable) 60%, var(--color-furniture-mount));
+}
+
+.map-socket.is-medium-copper { --cable: var(--color-cable-copper); }
+.map-socket.is-medium-dac { --cable: var(--color-cable-dac); }
+.map-socket.is-medium-fiber-mm { --cable: var(--color-cable-fiber-mm); }
+.map-socket.is-medium-fiber-sm { --cable: var(--color-cable-fiber-sm); }
+.map-socket.is-medium-fiber { --cable: var(--color-cable-fiber); }
+.map-socket.is-medium-unknown { --cable: var(--color-cable-unknown); }
+
+.map-socket.is-lit {
+    stroke: var(--color-text-primary);
+    stroke-width: 2;
+}
+
+/* ========================================================================== */
+/* 05. LEVEL OF DETAIL                                                         */
+/* ========================================================================== */
+
+/* Zoomed far out (locations-map.js sets data-detail): small text gives way
+   to shapes, and building names grow to stay readable (area names grow in
+   locations-map.js, capped at their room's width). */
+.locations-map[data-detail="low"] :is(.map-device-name, .map-device-where, .map-rack-name, .map-panel-name, .map-rack-unit) {
+    display: none;
+}
+
+.locations-map[data-detail="low"] .map-site-name {
+    font-size: calc(14px / var(--map-zoom, 1));
+}
+
+/* ========================================================================== */
+/* 06. KEY AND MINIMAP                                                         */
+/* ========================================================================== */
+
+.locations-map-key {
+    position: absolute;
+    left: var(--space-3);
+    bottom: var(--space-3);
+    z-index: 1;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
+    color: var(--color-text-secondary);
+    font: var(--text-xs) var(--font-mono);
+    cursor: default;
+}
+
+.locations-map-key summary {
+    color: var(--color-text-primary);
+    cursor: pointer;
+}
+
+.locations-map-key ul {
+    display: grid;
+    gap: 3px;
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.locations-map-key li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.map-key-line {
+    --cable: var(--color-cable-unknown);
+    width: 22px;
+    height: 0;
+    border-top: 2px solid var(--cable);
+}
+
+.map-key-line.is-medium-copper { --cable: var(--color-cable-copper); }
+.map-key-line.is-medium-dac { --cable: var(--color-cable-dac); }
+.map-key-line.is-medium-fiber-mm { --cable: var(--color-cable-fiber-mm); }
+.map-key-line.is-medium-fiber-sm { --cable: var(--color-cable-fiber-sm); }
+
+.map-key-line.is-tentative {
+    border-top-style: dashed;
+    --cable: var(--color-cable-tentative);
+}
+
+.map-key-panel {
+    width: 22px;
+    height: 8px;
+    border: 1px solid var(--color-furniture-mount);
+    border-radius: 2px;
+    background: var(--color-furniture-mount-surface);
+}
+
+.locations-map-mini {
+    position: absolute;
+    right: var(--space-3);
+    bottom: var(--space-3);
+    z-index: 1;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
+    cursor: crosshair;
+}
+
+.map-mini-site {
+    fill: none;
+    stroke: var(--color-border-bright);
+}
+
+.map-mini-room {
+    fill: color-mix(in srgb, var(--color-text-muted) 30%, transparent);
+}
+
+.map-mini-view {
+    fill: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    stroke: var(--color-accent);
+    stroke-width: 1.5;
+}
+
+@media (max-width: 640px) {
+    .locations-map-mini {
+        display: none;
+    }
+
+    .locations-map-key:not([open]) {
+        padding: var(--space-1) var(--space-2);
+    }
+}
+
+/* ========================================================================== */
+/* 07. SELECTION, FIND, AND THE DEVICE PANEL                                   */
+/* ========================================================================== */
+
+.map-device.is-selected .map-device-body {
+    stroke: var(--color-accent);
+    stroke-width: 2.5;
+}
+
+.map-cable.is-chosen,
+.map-socket.is-chosen {
+    stroke-width: 3.5;
+    opacity: 1;
+}
+
+/* Finding: matches keep their colour, everything else steps back. */
+.locations-map.is-finding .map-device:not(.is-match),
+.locations-map.is-finding .map-cable:not(.is-chosen) {
+    opacity: 0.25;
+}
+
+.map-device.is-match .map-device-body {
+    stroke: var(--color-accent);
+    stroke-width: 2;
+}
+
+.locations-map-find {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: 34px;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-console-recess);
+    color: var(--color-text-muted);
+}
+
+.locations-map-find svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+.locations-map-find input {
+    width: 9rem;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-primary);
+    font: var(--text-sm) var(--font-mono);
+    outline: none;
+}
+
+.locations-map-find:focus-within {
+    border-color: var(--color-accent);
+}
+
+.locations-map-find-count {
+    color: var(--color-text-muted);
+    font: var(--text-xs) var(--font-mono);
+    white-space: nowrap;
+}
+
+.locations-map-panel {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    z-index: 2;
+    display: grid;
+    gap: var(--space-2);
+    width: min(320px, calc(100% - 2 * var(--space-3)));
+    max-height: calc(100% - 2 * var(--space-3) - 150px);
+    overflow: auto;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 30%);
+    cursor: default;
+}
+
+.locations-map-panel[hidden] {
+    display: none;
+}
+
+.locations-map-panel header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.locations-map-panel h2 {
+    margin: 0;
+    font: 600 var(--text-md) var(--font-mono);
+    overflow-wrap: anywhere;
+}
+
+.locations-map-panel h3 {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-secondary);
+    font: 600 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.locations-map-panel dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px var(--space-3);
+    margin: 0;
+    font: var(--text-sm) var(--font-mono);
+}
+
+.locations-map-panel dt {
+    color: var(--color-text-muted);
+}
+
+.locations-map-panel dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.locations-map-panel-cables {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.locations-map-panel-cables li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.locations-map-panel-jump {
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    color: var(--color-text-primary);
+    font: var(--text-xs) var(--font-mono);
+    text-align: left;
+    cursor: pointer;
+}
+
+.locations-map-panel-jump:hover,
+.locations-map-panel-jump:focus-visible {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
+.locations-map-panel-open {
+    justify-self: start;
+    margin-top: var(--space-2);
+}
+
+@media (max-width: 640px) {
+    .locations-map-find input {
+        width: 6rem;
+    }
+
+    .locations-map-panel {
+        top: auto;
+        bottom: var(--space-3);
+        max-height: 55%;
+    }
+}

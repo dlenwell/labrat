@@ -1,0 +1,50 @@
+name: Bug report
+description: Something in LabRat does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security problems go to a private report instead (the Security tab, "Report a vulnerability"); see SECURITY.md.
+
+        Please leave out credentials, hostnames, IP and MAC addresses, and other details of your network. Replace them with invented values such as `switch-1` or `192.0.2.10`.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Equipment
+        2. Select a switch with an SFP+ uplink
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: LabRat version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How it runs
+      options:
+        - Directly (Gunicorn)
+        - Sample container (Compose)
+        - Other (say below)
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sources involved
+      description: Which integrations or discovery methods are involved (UniFi, Proxmox, Pi-hole, NUT, SNMP, MikroTik discovery), and versions if you know them.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or errors
+      description: Collector or web app output, with private details replaced.
+      render: text

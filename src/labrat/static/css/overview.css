@@ -1,0 +1,682 @@
+/*
+ * Copyright 2026 LabRat contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Home overview and in-app documentation. These pages share the same card
+ * surface and typography so their visual rhythm stays consistent.
+ *
+ * Used by: Home, Docs.
+ */
+
+/* Readouts: numbers and identifiers use the mono face (see main.css). */
+.home-stat strong,
+.home-source-list strong,
+.docs-method {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* ========================================================================== */
+/* 01. SHARED SURFACES AND HEADINGS                                            */
+/* ========================================================================== */
+
+.home-dashboard,
+.docs-shell {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.home-section,
+.docs-content {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-panel-background-deep);
+    box-shadow: 0 16px 44px color-mix(in srgb, var(--color-shadow) 20%, transparent);
+}
+
+.home-section {
+    padding: 1.35rem;
+}
+
+.home-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.home-section-heading h2 {
+    margin: 0.1rem 0 0;
+    color: var(--color-text-primary);
+    font-size: 1.3rem;
+}
+
+.home-section-heading .eyebrow {
+    margin: 0;
+    font-size: 0.7rem;
+}
+
+/* ========================================================================== */
+/* 02. HOME FRAME                                                             */
+/* ========================================================================== */
+
+/* Home is one view frame (view-frame.css) with no visible heading (owner);
+   its sections are sunk into the frame like the room views' panels, one
+   shade darker with a shadow inside their top edge. */
+.home-body .view-frame .home-section {
+    border-color: var(--color-console-bezel-edge, var(--color-border));
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-shadow) 18%, transparent), transparent 40px),
+        color-mix(in srgb, var(--color-panel-background-deep) 82%, var(--color-shade));
+    box-shadow:
+        inset 0 7px 9px -6px var(--color-shadow),
+        inset 0 -1px 0 color-mix(in srgb, var(--color-console-bezel-highlight, var(--color-border)) 55%, transparent);
+}
+
+.home-dashboard.view-frame {
+    gap: var(--space-3);
+}
+
+/* ========================================================================== */
+/* 03. SNAPSHOT NUMBERS AND QUICK LINKS                                       */
+/* ========================================================================== */
+
+.home-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+/* Each tile takes its own hue: a top rule, an icon, and a lit number. */
+.home-stat {
+    position: relative;
+    display: grid;
+    gap: 0.15rem;
+    padding: 1rem;
+    border: 1px solid var(--color-border-strong);
+    border-top: 2px solid var(--hue, var(--color-accent));
+    border-radius: var(--radius-control);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--hue, var(--color-accent)) 9%, transparent), transparent 70%),
+        var(--color-surface-raised);
+}
+
+.home-stat-icon {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    color: var(--hue, var(--color-accent));
+    opacity: 0.85;
+}
+
+/* Big lit numbers, like a front-panel display. */
+.home-stat strong {
+    color: color-mix(in srgb, var(--hue, var(--color-accent)) 70%, var(--color-lift));
+    font-size: clamp(1.9rem, 4vw, 2.8rem);
+    font-weight: 500;
+    line-height: 1.05;
+    text-shadow: 0 0 18px color-mix(in srgb, var(--hue, var(--color-accent)) 40%, transparent);
+}
+
+/*
+ * What's in your lab: one bar of recognized observations by equipment type,
+ * in the device-type colors every page uses, with a counted legend.
+ */
+.home-mix {
+    margin-top: 1rem;
+}
+
+.home-mix-title {
+    margin: 0 0 0.55rem;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.home-mix-bar {
+    display: block;
+    width: 100%;
+    height: 0.85rem;
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    background: var(--color-surface-sunken);
+}
+
+.home-mix-bar rect {
+    stroke: var(--color-panel-background-deep);
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+}
+
+.home-mix-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.1rem;
+    margin: 0.65rem 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+}
+
+.home-mix-legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.home-mix-legend strong {
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-weight: 500;
+}
+
+.home-mix-swatch {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 3px;
+    background: var(--type);
+}
+
+/*
+ * Device-type colors: the same tokens as rack stripes and Discovery cards.
+ * They stay multicolor in every theme (owner's choice): one tone made the
+ * bar too hard to read.
+ */
+.home-mix [data-category] { --type: var(--color-text-muted); }
+.home-mix [data-category="server"] { --type: var(--color-type-server); }
+.home-mix [data-category="switch"] { --type: var(--color-type-switch); }
+.home-mix [data-category="router"] { --type: var(--color-type-router); }
+.home-mix [data-category="firewall"] { --type: var(--color-type-firewall); }
+.home-mix [data-category="access_point"] { --type: var(--color-type-ap); }
+.home-mix [data-category="modem"] { --type: var(--color-type-modem); }
+.home-mix [data-category="ups"] { --type: var(--color-type-ups); }
+.home-mix-bar rect { fill: var(--type); }
+
+
+.home-stat span {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.home-lower-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.85fr);
+    gap: 1rem;
+}
+
+.home-link-grid,
+.home-docs-grid {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.home-link-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-link-card,
+.home-docs-grid a,
+.docs-card {
+    display: grid;
+    gap: 0.45rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+.home-link-card:hover,
+.home-docs-grid a:hover,
+.docs-card:hover {
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+}
+
+.home-link-card {
+    position: relative;
+    min-height: 135px;
+    padding: 0.95rem;
+}
+
+/* Hued cards (home quick links and field-guide links): a left rule, icon,
+   and kicker in the card's hue, and a glow of it on hover. */
+.home-link-card[data-hue],
+.home-docs-grid a[data-hue] {
+    border-left: 3px solid var(--hue);
+    background:
+        linear-gradient(120deg, color-mix(in srgb, var(--hue) 10%, transparent), transparent 55%),
+        var(--color-surface-raised);
+}
+
+.home-link-card[data-hue]:hover,
+.home-docs-grid a[data-hue]:hover {
+    border-color: var(--hue);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--hue) 22%, transparent);
+}
+
+.home-link-card[data-hue] > span {
+    color: var(--hue);
+}
+
+.home-link-icon,
+.home-doc-icon {
+    color: var(--hue, var(--color-accent));
+}
+
+.home-link-icon {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.home-link-card > span,
+.docs-card-kicker {
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 0.67rem;
+    font-weight: 500;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.home-link-card strong,
+.home-docs-grid strong,
+.docs-card strong {
+    font-size: 1rem;
+}
+
+.home-link-card small {
+    color: var(--color-text-secondary);
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+
+.home-link-footnote {
+    margin: 0.9rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+}
+
+/* ========================================================================== */
+/* 04. COLLECTOR STATUS AND DOCUMENTATION LINKS                               */
+/* ========================================================================== */
+
+.home-source-list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    list-style: none;
+}
+
+/* Condensed ledger rows (STYLEGUIDE "Lists and tables", owner): the name,
+   then its state and age under it, every other row faintly striped. */
+.home-source-list li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 0.55rem;
+    min-width: 0;
+    padding: 0.3rem 0.6rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.home-source-list li:last-child {
+    border-bottom: 0;
+}
+
+.home-source-list li:nth-child(even) {
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+}
+
+/* Source lights use the shared .led styles in main.css. */
+.home-source-list .led {
+    grid-row: 1 / span 2;
+}
+
+.home-source-list strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-source-list small {
+    grid-column: 2;
+    min-width: 0;
+    overflow: hidden;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-source-list small,
+.home-source-empty {
+    color: var(--color-text-secondary);
+    font-size: 0.72rem;
+}
+
+.home-docs-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.home-docs-grid a {
+    min-height: 93px;
+    padding: 0.85rem;
+}
+
+.home-docs-grid span {
+    color: var(--color-text-secondary);
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+
+/* The WAN card follows Observations' internet colors: download and its
+   chart in internet cyan, upload in periwinkle, latency neutral. The
+   state lamp keeps its status color. */
+.home-wan-section .wan-card-stat[data-kind="rx"] .wan-card-value {
+    color: var(--color-signal-internet);
+}
+
+.home-wan-section .wan-card-stat[data-kind="tx"] .wan-card-value {
+    color: var(--color-signal-internet-tx);
+}
+
+/* The VPN column takes Observations' VPN hue. */
+.home-wan-section .wan-card-vpn .wan-card-stat .wan-card-value {
+    color: var(--color-signal-vpn, var(--color-signal-internet));
+}
+
+.home-wan-section .wan-card-vpn .wan-spark-rx-area { fill: color-mix(in srgb, var(--color-signal-vpn, var(--color-signal-internet)) 24%, transparent); }
+.home-wan-section .wan-card-vpn .wan-spark-rx { stroke: var(--color-signal-vpn, var(--color-signal-internet)); }
+
+.home-wan-section .wan-spark-rx-area { fill: color-mix(in srgb, var(--color-signal-internet) 24%, transparent); }
+.home-wan-section .wan-spark-rx { stroke: var(--color-signal-internet); }
+.home-wan-section .wan-spark-tx { stroke: var(--color-signal-internet-tx); }
+
+/* A hued section (the WAN card) tints its eyebrow rule and label. */
+.home-section[data-hue] .eyebrow {
+    color: var(--hue);
+}
+
+.home-section[data-hue] .eyebrow::before {
+    background: var(--hue);
+}
+
+.home-docs-section .home-section-heading > a {
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+/* ========================================================================== */
+/* 05. DOCUMENTATION SHELL AND PROSE                                          */
+/* ========================================================================== */
+
+/* The docs use the shared view frame (docs/base.html): a compact heading
+   with the guide pages as pill tabs, and the guide sunk into the frame
+   like Home's sections. */
+.docs-shell.view-frame {
+    gap: 0;
+}
+
+.docs-body .view-frame .docs-content {
+    border-color: var(--color-console-bezel-edge, var(--color-border));
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-shadow) 18%, transparent), transparent 40px),
+        color-mix(in srgb, var(--color-panel-background-deep) 82%, var(--color-shade));
+    box-shadow:
+        inset 0 7px 9px -6px var(--color-shadow),
+        inset 0 -1px 0 color-mix(in srgb, var(--color-console-bezel-highlight, var(--color-border)) 55%, transparent);
+}
+
+.docs-content {
+    padding: clamp(1.25rem, 3vw, 2.2rem);
+}
+
+.docs-prose {
+    max-width: 48rem;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+}
+
+.docs-prose h2 {
+    margin: 1.7rem 0 0.45rem;
+    color: var(--color-text-primary);
+    font-size: 1.35rem;
+}
+
+.docs-prose h2:first-child {
+    margin-top: 0;
+}
+
+.docs-prose p,
+.docs-prose ul,
+.docs-prose ol {
+    margin: 0.4rem 0 1rem;
+}
+
+.docs-prose li + li {
+    margin-top: 0.45rem;
+}
+
+.docs-prose li strong,
+.docs-prose p strong {
+    color: var(--color-text-primary);
+}
+
+/* Screenshots of the demo lab, each linked to its full-size image. */
+.docs-shot {
+    max-width: 62rem;
+    margin: 0.4rem 0 1.8rem;
+}
+
+.docs-shot a {
+    display: block;
+    overflow: hidden;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+}
+
+.docs-shot a:hover,
+.docs-shot a:focus-visible {
+    border-color: var(--color-accent-muted);
+}
+
+.docs-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.docs-shot figcaption {
+    margin-top: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+/* Drawer crops are narrow and tall: shown near their real size, and two
+   related drawers sit side by side. */
+.docs-shot-drawer {
+    max-width: 20rem;
+}
+
+.docs-shot-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 20rem));
+    gap: 1.25rem;
+}
+
+/* A set of drawer crops (a device's tabs, say), as many across as fit. */
+.docs-shot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: 1rem;
+    max-width: 62rem;
+    margin-bottom: 1rem;
+}
+
+.docs-shot-grid .docs-shot {
+    margin-bottom: 0.4rem;
+}
+
+.docs-prose code,
+.docs-route-table code {
+    overflow-wrap: anywhere;
+    color: var(--color-accent-strong);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.9em;
+}
+
+.docs-prose pre {
+    overflow-x: auto;
+    padding: 1rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-field-background);
+}
+
+.docs-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin: 1.4rem 0 2rem;
+}
+
+.docs-card {
+    align-content: start;
+    min-height: 145px;
+    padding: 1rem;
+}
+
+.docs-card > span:last-child {
+    color: var(--color-text-secondary);
+    font-size: 0.79rem;
+    line-height: 1.55;
+}
+
+/* ========================================================================== */
+/* 06. LIVE API ROUTE TABLE                                                   */
+/* ========================================================================== */
+
+.docs-table-scroll {
+    overflow-x: auto;
+}
+
+.docs-route-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--color-text-secondary);
+    font-size: 0.81rem;
+    text-align: left;
+}
+
+.docs-route-table th,
+.docs-route-table td {
+    padding: 0.7rem 0.65rem;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+}
+
+.docs-route-table th {
+    color: var(--color-accent);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.docs-method {
+    display: inline-block;
+    min-width: 3.3rem;
+    padding: 0.2rem 0.35rem;
+    border: 1px solid var(--color-accent-muted);
+    border-radius: var(--radius-small);
+    color: var(--color-accent-strong);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.72rem;
+    text-align: center;
+}
+
+/* ========================================================================== */
+/* 07. NARROW SCREENS                                                         */
+/* ========================================================================== */
+
+@media (max-width: 850px) {
+    .home-lower-grid,
+    .home-docs-grid,
+    .docs-card-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Six guide tabs outgrow a phone's width: they scroll sideways on their
+   own row instead of squeezing. */
+@media (max-width: 640px) {
+    .docs-shot-pair {
+        grid-template-columns: minmax(0, 20rem);
+    }
+
+    .docs-heading .docs-view-switch {
+        flex: 1 1 100%;
+        margin-left: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .docs-heading .docs-view-switch .room-view-tab {
+        flex: 0 0 auto;
+    }
+}
+
+@media (max-width: 620px) {
+    .home-stat-grid,
+    .home-link-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .home-section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Lab health: live widgets (widgets.css) laid out on Home                    */
+/* -------------------------------------------------------------------------- */
+
+/* Lab health: full-width rows (attention, tiles), then the charts in
+   their own grid, so the wide rows never leave an empty column. */
+.home-live-grid {
+    display: grid;
+    gap: 1.1rem;
+    min-width: 0;
+}
+
+.home-live-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: 1.1rem 1.35rem;
+}
+
+.home-live-grid > *,
+.home-live-charts > * {
+    min-width: 0;
+}

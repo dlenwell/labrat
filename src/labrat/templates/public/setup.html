@@ -1,0 +1,83 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "base.html" %}
+
+{% block title %}LabRat · First-time setup{% endblock %}
+
+{% block content %}
+<section class="form-card panel-screws" aria-labelledby="setup-title">
+  <p class="eyebrow">One-time setup</p>
+  <h1 id="setup-title">Create your LabRat administrator.</h1>
+  <p class="intro">Start with one local account. Other sign-in providers can be added later.</p>
+
+  {% if error %}
+    <p class="form-error" role="alert">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('public.setup') }}" class="form-fields">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+
+    <div class="form-field">
+      <label for="setup-code">Setup code</label>
+      <input
+        id="setup-code"
+        name="setup_code"
+        type="text"
+        autocomplete="one-time-code"
+        spellcheck="false"
+        maxlength="40"
+        required
+        autofocus
+      >
+      <p class="field-help">LabRat printed this code to its log when it started; it is also in the <code>.setup-code</code> file beside its database. It proves you run this server.</p>
+    </div>
+
+    <div class="form-field">
+      <label for="username">Username</label>
+      <input
+        id="username"
+        name="username"
+        type="text"
+        autocomplete="username"
+        minlength="3"
+        maxlength="64"
+        pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,63}"
+        value="{{ username }}"
+        required
+      >
+      <p class="field-help">3–64 characters. Letters, numbers, dots, dashes, and underscores.</p>
+    </div>
+
+    <div class="form-field">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        autocomplete="new-password"
+        minlength="12"
+        maxlength="1024"
+        required
+      >
+      <p class="field-help">Use at least 12 characters. A long passphrase works well.</p>
+    </div>
+
+    <div class="form-field">
+      <label for="confirm-password">Confirm password</label>
+      <input
+        id="confirm-password"
+        name="confirm_password"
+        type="password"
+        autocomplete="new-password"
+        minlength="12"
+        maxlength="1024"
+        required
+      >
+    </div>
+
+    <div class="form-actions">
+      <button class="button" type="submit">Create administrator</button>
+    </div>
+  </form>
+  <p class="footnote">This page closes permanently after the first account is created.</p>
+</section>
+{% endblock %}

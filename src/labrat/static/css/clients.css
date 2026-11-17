@@ -1,0 +1,450 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/* Client browsing: a ledger of device portraits and lamps inside the shared
+   Discovery frame (view-frame.css). */
+
+/* ========================================================================== */
+/* 01. FRAME, HEADING, AND SEARCH                                             */
+/* ========================================================================== */
+
+/*
+ * The list's frame, not the page, is the size container: a container is
+ * also the containing block for fixed descendants, and the shared drawer
+ * (fixed, slid off screen when closed) must stay relative to the window.
+ */
+.clients-frame {
+    container-type: inline-size;
+}
+
+/* "Clients" with its shown count on the same line. */
+.clients-readouts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem var(--space-3);
+}
+
+.clients-readouts .view-summary {
+    margin-top: 0;
+}
+
+/* Compact search at the start of the shared toolbar. */
+.clients-search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 13rem;
+    height: 40px;
+    margin-right: var(--space-1);
+    padding-inline: 0.6rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-console-recess);
+}
+
+.clients-search .page-icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-muted);
+}
+
+.clients-search input {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.clients-search:focus-within {
+    border-color: var(--color-accent);
+}
+
+/* ========================================================================== */
+/* 02. TOOLBAR                                                                */
+/* ========================================================================== */
+
+/* Toolbar wraps under the title on narrow frames; search takes the slack. */
+.clients-toolbar {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* The phone-only Search button; wide frames show the field itself. */
+.clients-compact-only {
+    display: none !important;
+}
+
+/* ========================================================================== */
+/* 03. TABLE AND ROWS                                                         */
+/* ========================================================================== */
+
+/* clients.js fits this viewport to the window; headers stay sticky. */
+.clients-table-scroll {
+    /* Positioned, so absolutely placed screen-reader labels in the rows are
+       clipped here rather than widening the page on phones. */
+    position: relative;
+    min-height: 240px;
+    overflow: auto;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-console-recess);
+}
+
+.clients-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: left;
+}
+
+.clients-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--color-surface-raised);
+    border-bottom: 1px solid var(--color-border-strong);
+    white-space: nowrap;
+}
+
+.clients-table th button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    background: transparent;
+    border: 0;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    text-align: left;
+    cursor: pointer;
+}
+
+.clients-table th button:hover,
+.clients-table th button:focus-visible {
+    color: var(--color-accent-strong);
+    outline: 1px solid var(--color-accent);
+    outline-offset: -2px;
+}
+
+/*
+ * Ledger rows: a raised panel tone, not the page's, with every other line
+ * a shade lighter, like a checkbook register. Hover and the open row
+ * still win over both stripes.
+ */
+.client-row {
+    background: var(--color-surface-raised);
+}
+
+/* Greenbar-paper stripe: a faint wash of the accent, readable in every theme. */
+.client-row:nth-child(even) {
+    background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface-raised));
+}
+
+.client-row td {
+    padding: 0.25rem 0.6rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    vertical-align: middle;
+}
+
+.client-row:last-child td {
+    border-bottom: 0;
+}
+
+.client-row {
+    cursor: pointer;
+}
+
+.client-row:hover,
+.client-row:focus-within,
+.client-row:has([aria-expanded="true"]) {
+    background: var(--color-surface-hover);
+}
+
+.client-open {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    min-width: 9rem;
+    max-width: 22rem;
+}
+
+.client-open:focus-visible {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 3px;
+}
+
+/* ========================================================================== */
+/* 04. CELLS: PORTRAIT, IDENTITY, ADDRESS, PLACEMENT                          */
+/* ========================================================================== */
+
+.client-avatar {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-signal-compute);
+    box-shadow: inset 0 1px 2px var(--color-shadow);
+}
+
+.client-avatar .page-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* List rows show the bare icon; only the drawer portrait keeps its frame. */
+.client-row .client-avatar {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.client-identity {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0;
+    line-height: 1.25;
+}
+
+.client-identity strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Maker and family on one line, cut short with an ellipsis. */
+.client-identity small {
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.client-address,
+.client-attachment,
+.client-place {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+}
+
+.client-address {
+    font-family: var(--font-mono);
+}
+
+/* One line: the primary address, then "+N" for a merged VM's other cards
+   (all of them in the cell's tooltip). */
+.client-address {
+    white-space: nowrap;
+}
+
+.client-address-more {
+    margin-left: 0.4rem;
+    padding: 0 0.3rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    cursor: help;
+}
+
+/* A heading without a sort button keeps the buttons' padding and tone. */
+.clients-table th.clients-unsorted {
+    padding: 0.45rem 0.6rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    font-weight: inherit;
+}
+
+/* ========================================================================== */
+/* 05. CONNECTION / HOST                                                      */
+/* ========================================================================== */
+
+/* Connection / host: kind icon, attaching device link, then its detail. */
+.client-link-icon {
+    display: inline-flex;
+    margin-right: 0.35rem;
+    vertical-align: -0.2em;
+    color: var(--color-text-secondary);
+}
+
+.client-link-icon .page-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* The attaching device: bold primary text, no underline (owner). */
+.client-uplink {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-text-primary);
+    font: inherit;
+    font-weight: 700;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.client-uplink:hover,
+.client-uplink:focus-visible {
+    color: var(--color-accent);
+}
+
+/* ========================================================================== */
+/* 06. CONDITION, EMPTY LIST, AND PORT RESULTS                                */
+/* ========================================================================== */
+
+.client-condition {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--text-sm);
+}
+
+.clients-empty {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+.clients-empty > .page-icon {
+    width: 48px;
+    height: 48px;
+}
+
+.client-scan-results {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.client-scan-results > span {
+    padding: 0.6rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-small);
+    background: var(--color-console-recess);
+    font-family: var(--font-mono);
+}
+
+/* ========================================================================== */
+/* 07. PHONES AND NARROW FRAMES                                               */
+/* ========================================================================== */
+
+/* Narrow screens scroll the table horizontally, preserving sortable columns. */
+/* Phones: a Search button stands in for the field; the toggles and Refresh
+   fold into the shared ☰ menu (view-frame.css). */
+@media (max-width: 640px) {
+    .clients-compact-only {
+        display: grid !important;
+    }
+
+    /* Search opens as its own row under the buttons (view-frame.css
+       orders the heading rows; 4 is between the tool row and the summary). */
+    .clients-search {
+        display: none;
+        order: 4 !important;
+        flex: 1 1 100%;
+        width: auto;
+        margin-right: 0;
+    }
+
+    .clients-toolbar[data-search-open] .clients-search {
+        display: flex;
+    }
+
+    .clients-toolbar[data-search-open] #clients-search-toggle {
+        color: var(--color-accent);
+    }
+}
+
+/* Narrow frames scroll the table horizontally, preserving sortable columns. */
+@container (max-width: 650px) {
+    .clients-table {
+        min-width: 760px;
+    }
+}
+
+/* ========================================================================== */
+/* 08. DETAIL DRAWER                                                          */
+/* ========================================================================== */
+
+/* The detail portrait connects the selected list row to its drawer. */
+.client-detail-hero {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border-strong);
+}
+
+.client-detail-hero .client-avatar {
+    width: 64px;
+    height: 64px;
+    flex: none;
+}
+
+.client-detail-hero .client-avatar .page-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.client-detail-hero h3 {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.client-detail-hero p {
+    margin: 0.4rem 0;
+}
+
+/* Per-card headings when a merged VM row has several network cards. */
+.client-card-heading {
+    margin: var(--space-3) 0 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+}
+
+/* Client details tabs sit under the portrait (clients.js tabDetails). */
+.client-detail-tabs {
+    margin-top: 0;
+}
+
+.client-detail-panel:focus-visible {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+/* The Ports tab: notes, actions, then results; long evidence wraps. */
+.client-port-check {
+    padding-block: var(--space-2);
+    overflow-wrap: anywhere;
+}
+
+.client-port-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-block: var(--space-3);
+}
+
+.clients-page [hidden] {
+    display: none !important;
+}

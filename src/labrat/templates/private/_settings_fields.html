@@ -1,0 +1,31 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% macro settings_fields(fields, prefix, secret_note='A secret is saved. Leave blank to keep it; enter it again if you change the controller address.') -%}
+<div class="integration-fields">
+  {% for field in fields %}
+  {% set definition = field.definition %}
+  {% set field_id = prefix ~ '-' ~ definition.key|replace('_', '-') %}
+  <div class="integration-field">
+    <label for="{{ field_id }}">{{ definition.label }}{% if not definition.required %} <span>(optional)</span>{% endif %}</label>
+    {% if definition.type == 'select' %}
+    <select id="{{ field_id }}" name="{{ definition.key }}" {% if definition.required %}required{% endif %}>
+      {% for choice in definition.choices %}<option value="{{ choice.value }}" {% if choice.value == field.value %}selected{% endif %}>{{ choice.label }}</option>{% endfor %}
+    </select>
+    {% elif definition.type == 'checkbox' %}
+    <input id="{{ field_id }}" name="{{ definition.key }}" type="checkbox" value="1" {% if field.value %}checked{% endif %}>
+    {% elif definition.type == 'lines' %}
+    <textarea id="{{ field_id }}" name="{{ definition.key }}" rows="4" maxlength="8192" {% if definition.required %}required{% endif %} aria-describedby="{{ field_id }}-note" spellcheck="false">{{ field.value }}</textarea>
+    {% else %}
+    <input id="{{ field_id }}" name="{{ definition.key }}" type="{{ definition.type }}"
+      {% if definition.type != 'password' %}value="{{ field.value }}"{% endif %}
+      {% if definition.required and not field.saved %}required{% endif %}
+      maxlength="{{ definition.max_length|default(2048) }}"
+      {% if definition.pattern %}pattern="{{ definition.pattern }}"{% endif %}
+      {% if definition.type == 'number' %}{% if definition.min is defined %}min="{{ 0 if definition.allow_zero else definition.min }}"{% endif %} {% if definition.max is defined %}max="{{ definition.max }}"{% endif %}{% endif %}
+      {% if definition.placeholder %}placeholder="{{ definition.placeholder }}"{% endif %}
+      autocomplete="{{ 'new-password' if definition.type == 'password' else 'off' }}" spellcheck="false" aria-describedby="{{ field_id }}-note">
+    {% endif %}
+    <small id="{{ field_id }}-note">{% if field.saved %}{{ secret_note }}{% else %}{{ definition.help|default('') }}{% endif %}</small>
+  </div>
+  {% endfor %}
+</div>
+{%- endmacro %}

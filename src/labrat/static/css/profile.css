@@ -1,0 +1,105 @@
+/*
+ * Copyright 2026 LabRat contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Profile page: account details and the user's recent audited changes.
+ * All colors, type, and spacing come from tokens in main.css.
+ */
+
+.profile-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--space-4);
+    align-items: start;
+}
+
+.profile-panel {
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-panel-background-deep);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent);
+}
+
+.profile-panel h2 {
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-xl);
+}
+
+.profile-panel .account-details {
+    margin-top: var(--space-5);
+}
+
+.profile-panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+/* Total change count, shown as a small lit readout. */
+.profile-count {
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-accent-muted);
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-surface);
+    color: var(--color-accent-strong);
+    font-size: var(--text-sm);
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Activity list: what changed, on what, and how long ago                      */
+/* -------------------------------------------------------------------------- */
+
+.profile-activity {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.profile-activity li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-left: 3px solid var(--color-accent-muted);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background);
+}
+
+.profile-activity-label {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+.profile-activity-subject {
+    grid-row: 2;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-activity-age {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    align-self: center;
+    color: var(--color-text-faint);
+    font-size: var(--text-xs);
+}
+
+.profile-empty {
+    margin: var(--space-5) 0 0;
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 760px) {
+    .profile-layout {
+        grid-template-columns: 1fr;
+    }
+}

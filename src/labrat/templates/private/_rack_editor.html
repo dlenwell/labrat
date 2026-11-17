@@ -1,0 +1,52 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Used by: Equipment and Diagram, Floor plan. #}
+{#
+  The rack editor, one panel of the shared device drawer on every page that
+  edits racks (owner: one editor, not a copy per page). static/js/
+  rack-editor.js (RackEditor) fills and saves it; styles are the drawer's
+  form styles in static/css/device-details.css.
+
+  Name, height, rail width, and faces; a Rack menu when the room has several
+  racks; the rack's shared shelves, each renamed in place or deleted. Changes
+  save when the panel closes or another panel opens. Delete rack is a tool
+  in the drawer bar.
+#}
+{% macro rack_editor_panel() -%}
+<section class="device-drawer-view rack-editor" data-view="rack-edit" id="rack-edit-view" aria-labelledby="rack-edit-title" aria-hidden="true" inert>
+  <h2 class="device-drawer-panel-title" id="rack-edit-title">Edit rack</h2>
+  <form id="rack-edit-form" class="device-form rack-editor-form">
+    <p class="device-field-help" id="rack-edit-location"></p>
+    <div class="rack-editor-field" id="rack-edit-pick-field" hidden>
+      <label for="rack-edit-pick">Rack</label>
+      <select id="rack-edit-pick"></select>
+    </div>
+    <label for="rack-edit-name">Rack name</label>
+    <input id="rack-edit-name" name="name" type="text" maxlength="120" required autocomplete="off">
+    <label for="rack-edit-height">Height (U)</label>
+    <input id="rack-edit-height" name="height_u" type="number" min="1" max="128" step="1" required>
+    <label for="rack-edit-width">Rail width</label>
+    <select id="rack-edit-width" name="width_inches">
+      <option value="19">19 inch (standard)</option>
+      <option value="10">10 inch (compact)</option>
+    </select>
+    <label for="rack-edit-faces">Faces</label>
+    <select id="rack-edit-faces" name="rack_faces">
+      <option value="both">Front and rear (two-sided)</option>
+      <option value="front">Front only (one-sided)</option>
+    </select>
+    <p class="device-field-help">Changes save when you close this panel. Move or unplace devices before removing a face or units they occupy.</p>
+    <p id="rack-edit-feedback" class="device-form-feedback" role="status" aria-live="polite" hidden></p>
+    {# Filled by RackEditor: rename (in place) or delete each shared shelf. #}
+    <section class="rack-editor-shelves" id="rack-edit-shelves-panel" aria-labelledby="rack-edit-shelves-title" hidden>
+      <h3 id="rack-edit-shelves-title">Shared shelves</h3>
+      <p class="device-field-help">1U shelves holding smaller equipment side by side. Deleting one unplaces what is on it.</p>
+      <ul class="rack-editor-shelf-list" id="rack-edit-shelves"></ul>
+    </section>
+  </form>
+  <div class="device-drawer-panel-tools" data-tools-for="rack-edit" role="group" aria-label="Rack tools" hidden>
+    <button class="button button-quiet room-icon-button device-danger-tool" id="rack-edit-delete" type="button" aria-label="Delete rack: asks first, can unplace equipment" title="Delete rack: asks first, can unplace equipment" data-tooltip="Delete rack">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/></svg>
+    </button>
+  </div>
+</section>
+{%- endmacro %}

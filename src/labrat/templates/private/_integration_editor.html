@@ -1,0 +1,59 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% from "_icons.html" import icon %}
+{% from "private/_settings_fields.html" import settings_fields %}
+{% set editor = integration_editor %}
+<div data-integration-editor data-editor-title="{{ 'Add' if editor.is_new else 'Edit' }} {{ editor.label }}" data-editor-category="{{ editor.category }}" data-editor-new="{{ '1' if editor.is_new else '0' }}">
+  {% if integration_message %}
+    <p class="{{ 'settings-saved' if integration_ok else 'form-error' }}" role="{{ 'status' if integration_ok else 'alert' }}">{{ integration_message }}</p>
+  {% endif %}
+  {% if not editor.is_new %}
+  <section class="integration-health" aria-label="Connection status">
+    <h3><span class="led led-{{ editor.health.state }}" aria-hidden="true"></span>{{ editor.health.label }}</h3>
+    <p>{{ editor.health.message }}</p>
+    <dl>
+      <dt>Last successful collection</dt><dd>{% if editor.health.last_success %}<time datetime="{{ editor.health.last_success }}">{{ editor.health.last_success }}</time>{% else %}Not yet collected{% endif %}</dd>
+      <dt>Last attempt</dt><dd>{% if editor.health.last_attempt %}<time datetime="{{ editor.health.last_attempt }}">{{ editor.health.last_attempt }}</time>{% else %}Not yet attempted{% endif %}</dd>
+    </dl>
+  </section>
+  {% endif %}
+  <form class="settings-form integration-form" method="post" action="{{ url_for('private.integrations.save') }}" data-integration-form data-test-url="{{ url_for('private.integrations.test') }}">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="revision" value="{{ integration_revision }}">
+    <input type="hidden" name="kind" value="{{ editor.kind }}">
+    <input type="hidden" name="is_new" value="{{ '1' if editor.is_new else '0' }}">
+    <input type="hidden" name="name" value="{{ editor.name }}">
+    <div class="integration-fields">
+      <div class="integration-field">
+        <label for="integration-display-name">Connection name</label>
+        <input id="integration-display-name" name="display_name" value="{{ editor.display_name }}" required maxlength="80" autocomplete="off">
+        <small>A name you recognize. You can change it later.</small>
+      </div>
+    </div>
+    {{ settings_fields(editor.fields, "integration") }}
+    <details class="integration-advanced">
+      <summary>Certificate settings</summary>
+      <div class="integration-fields">
+        <div class="integration-field">
+          <label for="integration-tls">Certificate verification</label>
+          <select id="integration-tls" name="tls_mode">
+            <option value="verify" {% if editor.tls_mode == 'verify' %}selected{% endif %}>Verify the controller certificate</option>
+            {% if editor.legacy_tls %}<option value="existing" {% if editor.tls_mode == 'existing' %}selected{% endif %}>Keep existing setting: verification disabled</option>{% endif %}
+          </select>
+        </div>
+        <div class="integration-field">
+          <label for="integration-ca">Custom CA bundle <span>(optional)</span></label>
+          <input id="integration-ca" name="ca_bundle" value="{{ editor.ca_bundle }}" maxlength="2048" autocomplete="off">
+          <small>Absolute path to a CA certificate file on the LabRat server. Leave blank to use system trust.</small>
+        </div>
+      </div>
+    </details>
+    <label class="integration-enabled"><input type="checkbox" name="enabled" value="1" {% if editor.enabled %}checked{% endif %}> Enable collection</label>
+    <p class="integration-test-result" data-integration-result role="status" aria-live="polite" hidden></p>
+    <p class="integration-note">Test connection checks read-only API access without saving. A full scan may need additional read permissions.</p>
+    <div class="device-drawer-footer integration-form-actions">
+      <button class="button room-icon-button" type="submit" aria-label="Save integration" title="Save integration" data-tooltip="Save integration">{{ icon('save') }}</button>
+      <button class="button button-quiet room-icon-button" type="submit" formaction="{{ url_for('private.integrations.test') }}" data-integration-test aria-label="Test connection" title="Test connection" data-tooltip="Test connection">{{ icon('discover') }}</button>
+      <button class="button button-quiet room-icon-button" type="button" data-integration-cancel aria-label="Cancel" title="Cancel" data-tooltip="Cancel">{{ icon('close') }}</button>
+    </div>
+  </form>
+</div>

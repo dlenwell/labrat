@@ -1,0 +1,409 @@
+/*
+ * Copyright 2026 LabRat contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Locations pages (/locations and /locations/<id>). Each page is one view
+ * frame with the room views' compact breadcrumb heading (view-frame.css,
+ * _locations.html locations_header). Each site is drawn as a building with
+ * its rooms nested inside and each room's racks inside the room, using the
+ * shared macro in templates/private/_locations.html.
+ * All colors, type, and spacing come from tokens in main.css.
+ *
+ * Used by: Locations, Location detail, Locations map.
+ */
+
+.locations-page {
+    width: 100%;
+}
+
+.location-buildings {
+    display: grid;
+    gap: var(--space-5);
+}
+
+.locations-notice {
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid color-mix(in srgb, var(--color-status-error) 55%, transparent);
+    border-radius: var(--radius-control);
+    background: var(--color-status-error-surface);
+    color: var(--color-text-primary);
+}
+
+.locations-notice[hidden] {
+    display: none;
+}
+
+
+/* ========================================================================== */
+/* 01. BUILDING (ONE SITE)                                                     */
+/* ========================================================================== */
+
+.location-building {
+    overflow: hidden;
+    border: 1px solid var(--color-console-bezel-edge, var(--color-border));
+    border-radius: var(--radius-card);
+    /* Sunk into the frame like the room views' canvases (owner; room.css
+       .room-canvas-panel). */
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-shadow) 18%, transparent), transparent 40px),
+        color-mix(in srgb, var(--color-panel-background-deep) 82%, var(--color-shade));
+    box-shadow:
+        inset 0 7px 9px -6px var(--color-shadow),
+        inset 0 -1px 0 color-mix(in srgb, var(--color-console-bezel-highlight, var(--color-border)) 55%, transparent);
+}
+
+/* The building's heading: its name and tools, no icon (owner). */
+.location-building-roof {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.location-building-title {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.location-kicker {
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.location-building-title h2 {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-xl);
+}
+
+.location-building-title h2 a {
+    color: var(--color-text-primary);
+    text-decoration: none;
+}
+
+.location-building-title h2 a:hover {
+    color: var(--color-accent);
+}
+
+/* ========================================================================== */
+/* 02. ROOMS INSIDE A BUILDING                                                 */
+/* ========================================================================== */
+
+.location-room-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: var(--space-4);
+    padding: var(--space-5);
+}
+
+/* A room is a solid tile on the building's blueprint grid (owner). */
+.location-room {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    /* Every card the same size; a long list scrolls inside (owner). */
+    height: 15rem;
+    min-height: 0;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background-color: var(--color-panel-background);
+}
+
+/* The area's name, ellipsized when long. */
+.location-room-header {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-3);
+}
+
+.location-room-header h3 {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: var(--text-lg);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.location-room-header h3 a {
+    color: var(--color-text-primary);
+    text-decoration: none;
+}
+
+.location-room-header h3 a:hover {
+    color: var(--color-accent);
+}
+
+.location-room-empty {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+/* View: a button at the card's bottom right (owner). */
+.location-room-open {
+    flex: none;
+    align-self: flex-end;
+    margin-top: auto;
+}
+
+
+/* ========================================================================== */
+/* 03. AN AREA'S CONTENTS                                                      */
+/* ========================================================================== */
+
+/* Ledger rows (STYLEGUIDE "Lists and tables"): the raised tone, every other
+   row faintly striped with the accent. */
+.location-area-list {
+    display: grid;
+    flex: 0 1 auto;
+    align-content: start;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: var(--color-surface-raised);
+    list-style: none;
+}
+
+.location-area-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    padding: 0.2rem 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.location-area-item:last-child {
+    border-bottom: 0;
+}
+
+.location-area-item:nth-child(even) {
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+}
+
+.location-area-glyph {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: var(--color-text-secondary);
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* A tiny front-on rack: a frame with three unit lines, in the furniture teal. */
+.location-rack-glyph {
+    display: grid;
+    align-content: space-evenly;
+    width: 0.8rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    margin: 0 2px;
+    padding: 0 2px;
+    border: 1px solid var(--color-furniture-rack);
+    border-radius: 2px;
+}
+
+.location-rack-glyph i {
+    height: 2px;
+    border-radius: 1px;
+    background: var(--color-furniture-rack);
+}
+
+/* One condensed line (owner): the name, then what it is and holds, muted,
+   at the right; either ellipsizes when the card is narrow. */
+.location-area-text {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: baseline;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.location-area-name {
+    /* The name keeps its width, up to most of the row. */
+    flex: 0 1 auto;
+    max-width: 70%;
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.location-area-meta {
+    /* The details take what is left, right-aligned. */
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: right;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* ========================================================================== */
+/* 04. ADD AN AREA / NEW LOCATION                                               */
+/* ========================================================================== */
+
+/* Dashed outlines read as "space for something new". */
+.location-add {
+    border: 1px dashed var(--color-border-strong);
+    background: transparent;
+    box-shadow: none;
+}
+
+.location-add label {
+    color: var(--color-text-secondary);
+    font-weight: 600;
+}
+
+.location-add-room {
+    justify-content: center;
+}
+
+.location-add-room input {
+    width: 100%;
+}
+
+/* The New location drawer form (_locations.html location_drawer). */
+.locations-drawer-body {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+}
+
+.locations-drawer-body label {
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    font-weight: 650;
+}
+
+.locations-drawer-body .button {
+    justify-self: start;
+    margin-top: var(--space-2);
+}
+
+.location-add-help {
+    margin: 0 0 var(--space-1);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+/* No locations yet: a short note and the way to add the first. */
+.locations-empty {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-card);
+    color: var(--color-text-secondary);
+}
+
+.locations-empty p {
+    margin: 0;
+    max-width: 40rem;
+}
+
+
+/* ========================================================================== */
+/* 04b. RENAME AND DELETE (locations.js)                                      */
+/* ========================================================================== */
+
+/* A pencil and a trash can beside each location (area cards have none,
+   owner). Delete is disabled (its tooltip says why) until it is empty. */
+.location-tools {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 2px;
+}
+
+.location-tools[hidden] {
+    display: none;
+}
+
+.location-tool {
+    display: inline-grid;
+    place-items: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-small);
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.location-tool .page-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Highlight by icon color only, no background (owner). */
+.location-tool:hover:not(:disabled),
+.location-tool:focus-visible {
+    color: var(--color-accent);
+}
+
+/* Destructive, so the orange action color (red stays reserved for alarms). */
+.location-tool-delete:hover:not(:disabled),
+.location-tool-delete:focus-visible {
+    color: var(--color-action);
+}
+
+.location-tool:disabled {
+    color: var(--color-text-faint);
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+/* The inline rename field that replaces a tool pair. */
+.location-rename {
+    display: flex;
+    flex: 1 1 16rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.location-rename input {
+    flex: 1 1 10rem;
+    min-width: 0;
+}
+
+.location-rename .button {
+    min-height: 2rem;
+    padding: var(--space-1) var(--space-3);
+}
+
+/* ========================================================================== */
+/* 05. SMALL SCREENS                                                           */
+/* ========================================================================== */
+
+@media (max-width: 620px) {
+    .location-building-roof,
+    .location-room-grid {
+        padding: var(--space-4);
+    }
+}

@@ -1,0 +1,88 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "docs/base.html" %}
+{% from "docs/_shot.html" import shot %}
+
+{% block title %}LabRat · Tour{% endblock %}
+{% block docs_title %}Tour{% endblock %}
+{% block docs_intro %}Every page, shown with a made-up demo lab.{% endblock %}
+
+{% block docs_content %}
+<section class="docs-prose" aria-labelledby="tour-nav-title">
+  <h2 id="tour-nav-title">Getting around</h2>
+  <p>The header links to Home, Observations, Discovery, Cluster, Networks, and a <strong>Locations</strong> menu that lists each location with its areas beneath it. Your name opens Profile, Settings, and Sign out. Below the header, the <strong>Sources</strong> strip shows internet status and a lamp for each collector source. These docs and the API reference are linked in the footer.</p>
+  <p>Workspace pages share one layout: a framed view with a compact heading, a breadcrumb, icon tools (hover one for its name), and pill tabs on the right that switch between views of the same place. On a phone, the tools fold into a ☰ menu.</p>
+
+  <h2 id="tour-home-title">Home</h2>
+  <p>A summary of the cached inventory: counts, a bar of observed equipment by type, each internet connection and VPN tunnel side by side with recent traffic, and, when a Proxmox or UniFi source can feed it, <strong>Lab health</strong>: live charts of the cluster and the network, with what needs attention. Below are the collector's sources and links back to where you left off.</p>
+</section>
+{{ shot('home', 'Home: inventory counts, equipment by type, two internet connections and a VPN tunnel, and the start of Lab health.') }}
+
+<section class="docs-prose" aria-labelledby="tour-observations-title">
+  <h2 id="tour-observations-title">Observations</h2>
+  <p>A live operations screen for the whole lab or one area (choose it under <strong>Scope</strong>; the URL bookmarks it). Panels show internet history, VPN tunnels, server status, UPS power, a watchlist, collector health, port state, and an activity log that starts when you open the page. It rereads the local cache every 15 seconds and never contacts a controller. Stale or unknown readings stay distinct from a confirmed outage, and an idle tunnel is not a failed one.</p>
+  <p>Select a watchlist condition to see its evidence. Administrators can ignore a condition and bring it back from <strong>Ignored items</strong>; ignoring changes nothing in collection. <strong>Wallboard</strong> fills the screen for a dedicated monitor; Escape exits.</p>
+</section>
+{{ shot('observations', 'Observations: summary counts, uplink telemetry with a 24-hour traffic chart, and tunnel health for a WireGuard tunnel.') }}
+
+<section class="docs-prose" aria-labelledby="tour-discovery-title">
+  <h2 id="tour-discovery-title">Discovery</h2>
+  <p><strong>Infrastructure</strong> draws recognized physical equipment as a tree: routers at the top, switches by hop, and everything else under what it connects to, with cables styled by medium. Select a device to inspect it and place it. <strong>Clients</strong> lists wired and Wi-Fi endpoints reported by UniFi, with search, filters, and sortable columns.</p>
+</section>
+{{ shot('discovery', 'Discovery, Infrastructure view: a gateway above a core switch, which feeds two access points, an office switch with three mini PCs, and a rack switch with three servers.') }}
+
+<section class="docs-prose" aria-labelledby="tour-cluster-title">
+  <h2 id="tour-cluster-title">Cluster</h2>
+  <p>Your Proxmox cluster, read-only. <strong>Summary</strong> opens with an attention list (worn or hot drives, pending reboots and updates, guests without a backup job), then tiles and charts for nodes, guests, CPU, memory, storage, and Ceph. <strong>Compute</strong> lists guests as cards, grouped by node or network; <strong>Networks</strong> shows which nodes carry each bridge and VLAN.</p>
+</section>
+{{ shot('cluster', 'Cluster Summary: an attention list, stat tiles for nodes, guests, CPU, memory, storage, and Ceph, and charts of guest states and memory by node.') }}
+
+<section class="docs-prose" aria-labelledby="tour-storage-title">
+  <p id="tour-storage-title"><strong>Storage</strong> draws every drive as a hot-swap bay, grouped by node and role: a status lamp, a fill bar, temperature, wear, and what it holds (a ZFS pool, a Ceph OSD, or the boot drive), amber only when a drive needs replacing. Switch to a single ZFS pool or Ceph pool for its own shelf, health box, and latency.</p>
+</section>
+{{ shot('cluster-storage', 'Cluster Storage: every drive in the demo cluster as hot-swap bays, grouped by node, with ZFS and Ceph members marked.') }}
+
+<section class="docs-prose" aria-labelledby="tour-node-title">
+  <p id="tour-node-title"><strong>Nodes</strong> gives each node one screen: load, memory, network, a core gauge whose sweep turns once per refresh, a 24-hour CPU clock, services, the boot and data drives, the memory map, accelerators, maintenance, certificates, the day's traces, and its guests. While a node is open, its data reloads every 30 seconds.</p>
+</section>
+{{ shot('cluster-node', 'A node screen: load and memory on the left, the core gauge and 24-hour CPU clock in the centre, maintenance, certificates, data drives, and traces on the right.') }}
+
+<section class="docs-prose" aria-labelledby="tour-networks-title">
+  <h2 id="tour-networks-title">Networks</h2>
+  <p>What UniFi knows about your networks: <strong>Overview</strong> (health, counts, and DNS sinkholes such as Pi-hole), <strong>Zones</strong> (which firewall zones can reach which, with every exception), <strong>Networks</strong> (VLANs, subnets, DHCP, and DNS), <strong>Wi-Fi</strong> (networks, bands, and signal), <strong>Devices</strong> (the uplink tree, ports, and load), and <strong>Clients</strong>.</p>
+</section>
+{{ shot('networks', 'Networks Overview: site health, network and client counts, and charts of clients by network and connection type.') }}
+
+<section class="docs-prose" aria-labelledby="tour-locations-title">
+  <h2 id="tour-locations-title">Locations</h2>
+  <p>Each location is drawn as a building with its areas. An area card lists what sits at its top level (racks, shelves, and loose devices) and <strong>View</strong> opens it. Add a location with the tool at the top right, add an area from the last card, and rename or delete a location from its heading. With only one location, LabRat opens it directly.</p>
+  <p>The <strong>Map</strong> view, beside Areas in the heading, draws every location on one canvas: each building with its areas, their racks and equipment, and the cables between them, which leave each area through a patch panel on its top edge. Drag to pan, zoom with the wheel or the buttons, use the minimap to move around, and double-click an area to zoom to it. <strong>Find</strong> lights the devices that match, and Enter moves to the next one.</p>
+</section>
+{{ shot('locations', 'Location page for Example Home with three area cards: Office, Roof, and Server closet, plus an Add area card.') }}
+
+<section class="docs-prose" aria-labelledby="tour-area-title">
+  <h2 id="tour-area-title">An area: Floor plan, Equipment, Diagram</h2>
+  <p>An area opens on Equipment when it has racks, otherwise Diagram; the pill tabs switch between all three. The heading's tools edit the area itself (rename or delete), add equipment, and refresh.</p>
+  <p><strong>Floor plan</strong> is a top-down layout without real dimensions. Drag racks and equipment footprints around the room, against a wall, or onto a shelf. The build-out drawer adds racks, shelves, and surfaces.</p>
+</section>
+{{ shot('floor-plan', 'Floor plan of the Server closet: Rack A with six devices listed by rack unit, and the Gateway on the floor.') }}
+
+<section class="docs-prose" aria-labelledby="tour-equipment-title">
+  <p id="tour-equipment-title"><strong>Equipment</strong> shows every rack in the area with front and rear elevations, plus the shelves, floor, walls, and ceiling around it. Each device is a faceplate with its port lamps, and cables run between the ports they really use. A server that is a Proxmox node shows its drives on its front as hot-swap bays with health lamps, and its details drawer lists them one per row. Side panels show the area's internet uplinks and UPS power. Arrange mode moves rack equipment by drag and drop or arrow keys and saves every move together.</p>
+</section>
+{{ shot('equipment', 'Equipment view of Rack A: front and rear elevations with switches and servers cabled together, beside internet and power panels.') }}
+
+<section class="docs-prose" aria-labelledby="tour-mini-title">
+  <p id="tour-mini-title">Racks can be 10 or 19 inches wide, with or without rear access, and every rack is drawn to the same scale. A front-only rack shows one face.</p>
+</section>
+{{ shot('mini-rack', 'Equipment view of the Office mini rack: a 12U, 10-inch, front-only rack with a patch panel, switch, three mini PCs, a NAS, and a power strip.', height=2289) }}
+
+<section class="docs-prose" aria-labelledby="tour-diagram-title">
+  <p id="tour-diagram-title"><strong>Diagram</strong> reads left to right: internet, routers, switches, then what hangs from them, showing only wired ports. Cables leaving the area end on a patch panel along the top; hover a socket for where it goes. Select a device to light its routes to the gateway. Zoom with the wheel or the +/− and Fit buttons, and drag the background to pan.</p>
+</section>
+{{ shot('diagram', 'Diagram of the Server closet: Gateway, Core Switch, Rack Switch, three servers, and the UPS, with an external patch panel at the top.') }}
+
+<section class="docs-prose" aria-labelledby="tour-settings-title">
+  <h2 id="tour-settings-title">Settings</h2>
+  <p><strong>Appearance</strong> picks a theme for this browser: Disco (the default control-room look), Dark, Light, or Match my system, with an accent color for the calmer themes. Administrators also see <strong>Integrations</strong>, <strong>Discovery</strong>, and <strong>Backup and restore</strong>, covered step by step in <a href="{{ url_for('docs.setup') }}#setup-integrations-title">Setup</a>.</p>
+</section>
+{% endblock %}

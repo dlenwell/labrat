@@ -1,0 +1,335 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Rack positions come from inventory placements; observations remain separate. #}
+{% extends "base.html" %}
+{% from "private/_wire_style.html" import wire_style_button %}
+{% from "private/_room_header.html" import room_header, area_editor_panel %}
+{% from "private/_widgets.html" import widget_styles, widget_scripts %}
+{% from "private/_device_drawer.html" import device_drawer, device_details_panel, device_rename_panel, device_neighbor_panel, device_placement_panel, device_place_panel %}
+{% from "private/_rack_editor.html" import rack_editor_panel %}
+{% from "private/_equipment_list.html" import equipment_list_panel %}
+
+{% block title %}LabRat · {{ room.name }} · {{ "Diagram" if view == "wiring" else "Equipment" }}{% endblock %}
+{% block body_class %}rack-view-body view-frame-body workspace-body{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-switch.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wire-style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/rack-elevation.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/racks.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/room-wiring.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/device-drawer.css') }}">
+{{ widget_styles() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/device-details.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wan.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="rack-page" id="rack-app" data-csrf-token="{{ csrf_token }}" data-room-id="{{ room.id }}" data-room-view="{{ "wiring" if view == "wiring" else "racks" }}" data-drawer="closed"{% if open_device %} data-open-device="{{ open_device }}"{% endif %}>
+  {#
+    One view frame (view-frame.css) holds the room heading and everything
+    in this view; the device drawer stays outside it (below), so the
+    frame's console skin cannot trap the fixed drawer under the header.
+  #}
+  <div class="view-frame room-frame">
+  {% call room_header(room, site, view, "rack-refresh", "room-wiring-summary" if view == "wiring" else none) %}
+    {# Diagram's tools; racks.js binds them on both views, so Equipment keeps them hidden. #}
+    <span class="room-diagram-tools"{% if view != "wiring" %} hidden{% endif %}>
+    {{ wire_style_button('room-wiring-style') }}
+    <button class="button button-quiet room-icon-button" type="button" aria-label="How to use the diagram" title="How to use the diagram" data-tooltip="How to use" popovertarget="room-diagram-help">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 8a2.5 2.5 0 1 1 4 2c-1.5 1-1.5 1.5-1.5 3M12 17h.01"/></svg>
+    </button>
+    <span class="view-toolbar-divider" aria-hidden="true"></span>
+    </span>
+    {# Port lights: cycles how crowded faceplates draw their lamps
+       (rack-port-lights.js); the Diagram always draws every port. #}
+    <button class="button button-quiet room-icon-button" id="rack-port-lights-tool" type="button" aria-label="Port lights" title="Port lights" data-tooltip="Port lights"{% if view == "wiring" %} hidden{% endif %}>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M6.5 13v-2M9.5 13v-2M12.5 13v-2M15.5 13v-2M18 12h.01"/></svg>
+    </button>
+    {# Arrange (the whole room's racks); racks.js shows it on Equipment when racks exist. #}
+    <button class="button button-quiet room-icon-button" id="rack-arrange-tool" type="button" aria-label="Arrange: drag rack equipment to new positions" title="Arrange: drag rack equipment to new positions" data-tooltip="Arrange" aria-controls="rack-arrange-bar" aria-pressed="false" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg>
+    </button>
+    {# Edit rack: name, size, faces, shelves, and Delete rack. A room with
+       several racks picks one in the editor. Shown when racks exist. #}
+    <button class="button button-quiet room-icon-button" id="rack-edit-tool" type="button" aria-label="Edit rack: name, width, height, faces, or delete it" title="Edit rack: name, width, height, faces, or delete it" data-tooltip="Edit rack" aria-controls="device-drawer" aria-expanded="false" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>
+    </button>
+  {% endcall %}
+
+  {#
+    Annunciator: one tile per alarm condition for this room, computed by
+    racks.js from collector data. Dark when clear, flashing until
+    acknowledged, steady while the condition holds.
+  #}
+  <section class="rack-annunciator" id="rack-annunciator" aria-label="Area alarms"></section>
+
+  {#
+    The scan telemetry strip (clock, each source's collection age and
+    freshness, room counts, event line) is hidden: the owner found it
+    redundant and too busy. racks.js still fills it, since its elements are
+    looked up by ID; delete them only together with that code. Arrange, Edit
+    rack, and Add equipment are in the room heading; the cable key is in the
+    first rack's header.
+  #}
+  <div class="rack-toolbar" hidden>
+    <div class="rack-telemetry" id="rack-telemetry" aria-label="Scan telemetry">
+      <div class="rack-telemetry-cell rack-telemetry-clock">
+        <span class="rack-telemetry-label">Local time</span>
+        <time class="rack-telemetry-value" id="rack-clock">--:--:--</time>
+      </div>
+      <div class="rack-telemetry-sources" id="rack-telemetry-sources"></div>
+      <div class="rack-summary" id="rack-summary" role="status">Loading area equipment…</div>
+    </div>
+  </div>
+  {#
+    Arrange mode (racks.js with rack-arrange.js): drag rack-mounted devices to
+    new units or onto another rack in this room, or focus one and use the
+    arrow keys. Moves stay in the browser until Save arrangement posts them
+    together; Cancel discards them. Shown only while arranging.
+  #}
+  <div class="rack-arrange-bar" id="rack-arrange-bar" hidden>
+    <p class="rack-arrange-help">
+      <strong>Arranging</strong>
+      Drag a rack device to new units, or focus one and use the up and down arrow keys;
+      same-height devices swap places. Reorder equipment on top of a rack by dragging it
+      sideways or with the left and right arrow keys. Nothing is saved until you choose
+      Save arrangement.
+    </p>
+    <p class="rack-arrange-status readout" id="rack-arrange-status" role="status" aria-live="polite">No changes yet.</p>
+    <div class="rack-arrange-actions">
+      <button class="button button-quiet" id="rack-arrange-cancel" type="button">Cancel</button>
+      <button class="button" id="rack-arrange-save" type="button" disabled>Save arrangement</button>
+    </div>
+  </div>
+  <p class="rack-notice" id="rack-notice" role="alert" aria-live="polite" hidden></p>
+
+  <div class="rack-workspace">
+    <div class="rack-main-column">
+      {#
+        racks.js draws one panel per rack in this room (front and rear
+        elevations, anything on top), using the shared rack-elevation.css.
+      #}
+      <section class="rack-main-panel" aria-label="Equipment in this area">
+        <section class="room-wiring" id="room-wiring" aria-label="Area diagram" hidden>
+          <div id="room-diagram-help" class="room-diagram-help" popover aria-labelledby="room-diagram-help-title">
+            <h3 id="room-diagram-help-title">Using the diagram</h3>
+            <dl>
+              <dt>Reading it</dt>
+              <dd><ul>
+                <li>The area reads left to right: internet connections, then routers, then switches, then the devices on them.</li>
+                <li>A UPS sits under the server that reads it.</li>
+                <li>The layout is automatic.</li>
+              </ul></dd>
+              <dt>Wires</dt>
+              <dd><ul>
+                <li>A port shows only when a cable is drawn to it, on the side its cable leaves from.</li>
+                <li>Colors and line styles are in the <strong>Key</strong>, bottom left.</li>
+                <li>Cables to devices that are offline, unplaced, or on a port reported down are not drawn.</li>
+              </ul></dd>
+              <dt>Patch panel</dt>
+              <dd><ul>
+                <li>The row at the top holds one socket per cable leaving the area.</li>
+                <li>Hover, focus, or tap a socket to see where it goes, with a link to that area.</li>
+              </ul></dd>
+              <dt>Details</dt>
+              <dd><ul>
+                <li>Click a device for its details. Its own cables and every route to the gateway light up; the rest dim.</li>
+              </ul></dd>
+              <dt>Moving around</dt>
+              <dd><ul>
+                <li>Drag the background to pan, or scroll on a touch screen.</li>
+                <li>Zoom with the mouse wheel or <strong>+</strong> and <strong>−</strong>; <strong>Fit</strong> shows the whole area.</li>
+                <li><strong>Wire style</strong> switches between curves and 90° bends.</li>
+              </ul></dd>
+            </dl>
+            <p class="room-diagram-help-note">Nothing here changes where equipment is placed.</p>
+            <button class="button button-quiet" type="button" popovertarget="room-diagram-help" popovertargetaction="hide">Close help</button>
+          </div>
+          <p class="room-wiring-status" id="room-wiring-status" role="status" aria-live="polite"></p>
+          <div class="room-wiring-diagram" id="room-wiring-diagram">
+            <div class="room-wiring-canvas" id="room-wiring-canvas" role="region" aria-label="Area devices and observed wiring" tabindex="0"></div>
+            {#
+              Floating cable key, styled like Discovery's map key (owner):
+              left side, above the zoom controls, two columns. racks.js
+              moves the shared #rack-cable-key into its panel on Diagram; the
+              arrow slides it out to the left and leaves a "Key" tab glued to
+              the canvas's left wall (room-wiring.js remembers the choice).
+            #}
+            <aside class="room-wiring-key" id="room-wiring-key" data-open="true" aria-label="Cable key" hidden>
+              <div class="room-wiring-key-panel" id="room-wiring-key-panel">
+                <button class="room-wiring-key-toggle" id="room-wiring-key-hide" type="button" aria-controls="room-wiring-key-panel" aria-expanded="true" aria-label="Hide cable key" title="Hide key">‹</button>
+              </div>
+              <button class="room-wiring-key-tab" id="room-wiring-key-show" type="button" aria-controls="room-wiring-key-panel" aria-expanded="false" title="Show key">Key ›</button>
+            </aside>
+            <div class="room-wiring-zoom" role="group" aria-label="Diagram zoom">
+              <button class="button button-quiet" id="room-wiring-zoom-out" type="button" aria-label="Zoom out" title="Zoom out">−</button>
+              <output id="room-wiring-zoom-value" aria-live="polite" aria-label="Zoom level">100%</output>
+              <button class="button button-quiet" id="room-wiring-zoom-in" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+              <button class="button button-quiet" id="room-wiring-zoom-fit" type="button" title="Fit entire diagram">Fit</button>
+            </div>
+          </div>
+        </section>
+        <div class="rack-empty" id="rack-empty" hidden>
+          <strong>{{ "No equipment placed in this area." if view == "wiring" else "No racks in this area." }}</strong>
+          <p>Add discovered equipment or choose a place from the floor plan.</p>
+          <a href="{{ url_for('private.room_view', room_id=room.id) }}">Open the floor plan</a>
+        </div>
+        <div class="rack-room-racks" id="rack-room-racks"></div>
+        {#
+          Key for drawn cables, two rows: wired media by color, then the other
+          line styles (Wi-Fi, UPS USB, relayed UPS, unconfirmed). racks.js moves it into the first rack's header, right of
+          the name; without racks (Diagram, surfaces only) it stays here.
+        #}
+        <div class="rack-cable-key" id="rack-cable-key" role="group" aria-label="Cable key" hidden>
+          <ul class="rack-cable-legend">
+              <li data-medium="copper"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>Copper</li>
+              <li data-medium="dac"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>DAC</li>
+              <li data-medium="fiber"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>Fiber</li>
+              <li data-medium="fiber_multimode"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>MM fiber</li>
+              <li data-medium="fiber_singlemode"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>SM fiber</li>
+              <li data-medium="unknown"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>Unknown</li>
+          </ul>
+          <ul class="rack-cable-legend">
+              <li data-medium="wifi"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>Wi-Fi</li>
+              <li data-medium="usb"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>USB to UPS</li>
+              <li data-medium="relay"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>Reports via NUT</li>
+              <li data-medium="tentative"><svg class="rack-cable-swatch" viewBox="0 0 22 6" aria-hidden="true" focusable="false"><line x1="1" y1="3" x2="21" y2="3"/></svg>Unconfirmed</li>
+          </ul>
+        </div>
+      </section>
+
+      {# Right column. Uplinks, Power, and Around the room (data-panel-order)
+         reorder by the grip in their heading, saved in this browser
+         (rack-panel-order.js); the patch panel stays first. #}
+      <div class="rack-side-column">
+        {#
+          The room's patch panel (RoomPatchPanel in room-wiring.js, shared
+          with the Diagram): one socket per cable leaving this room. Always
+          the first panel; hidden when no cable leaves.
+        #}
+        <section class="rack-patch-box" id="rack-patch" aria-labelledby="rack-patch-title" hidden>
+          <h2 class="eyebrow" id="rack-patch-title">Patch panel</h2>
+          {# Framed like an "Around the room" panel, heading outside. #}
+          <div class="rack-room-group rack-patch-face" id="rack-patch-face"></div>
+        </section>
+
+        {#
+          WAN instrument cluster for a gateway in this room (wan.js). racks.js
+          sets data-nodes to the room's devices; hidden when none is a gateway.
+        #}
+        <section class="rack-wan-panel" id="rack-wan" data-panel-order data-wan-widget="panel" data-nodes="[]" aria-labelledby="rack-wan-title" hidden>
+          <h2 class="eyebrow" id="rack-wan-title">Internet</h2>
+          <div data-wan-body></div>
+        </section>
+
+        {# Live NUT readings for UPS equipment placed in this room. #}
+        <section class="rack-power-panel" id="rack-power" data-panel-order aria-labelledby="rack-power-title" hidden>
+          <h2 class="eyebrow" id="rack-power-title">Power</h2>
+          <div class="rack-power-items" id="rack-power-items"></div>
+        </section>
+
+        {# Shelves, floor, walls, and ceiling, as grouped panels (see racks.js). #}
+        <section class="rack-room-other-panel" id="rack-room-other-panel" data-panel-order aria-labelledby="rack-other-title">
+          <h2 class="eyebrow" id="rack-other-title">Around the area</h2>
+          <div class="rack-room-other" id="rack-room-other"></div>
+        </section>
+      </div>
+    </div>
+
+  </div>
+  </div>
+
+    {#
+      The shared device drawer (private/_device_drawer.html): closed until
+      something is selected or "Add equipment" is pressed. Its bar (back,
+      title, close) serves every panel, and each panel's actions sit in a
+      footer pinned to the bottom.
+    #}
+    {% call device_drawer("Add equipment") %}
+        {# Details, rename, and neighbor match are shared with Discovery. #}
+        {{ device_details_panel() }}
+        {{ device_rename_panel() }}
+        {{ device_neighbor_panel() }}
+
+        {# Placement and "Add new place" are shared with Discovery. #}
+        {{ device_placement_panel() }}
+        {{ device_place_panel() }}
+
+        {# The shared Add equipment list (_equipment_list.html, equipment-list.js). #}
+        {{ equipment_list_panel("shelf") }}
+        {# The shared rack editor (_rack_editor.html, rack-editor.js). #}
+        {{ rack_editor_panel() }}
+    {{ area_editor_panel(room, site) }}
+        <section class="rack-panel device-drawer-view rack-inline-editor" data-view="manual" id="rack-manual-view" aria-labelledby="rack-manual-title" aria-describedby="rack-manual-description" aria-hidden="true" inert>
+          <h2 class="device-drawer-panel-title" id="rack-manual-title">New equipment</h2>
+          <form id="rack-manual-form" class="rack-placement-form">
+            <p class="rack-field-help" id="rack-manual-description">For UPS, WAN, or other equipment discovery does not find. This creates an inventory device and its rack placement.</p>
+            <label for="rack-manual-name">Name</label>
+            <input id="rack-manual-name" name="name" type="text" maxlength="120" required>
+            <label for="rack-manual-class">Equipment class</label>
+            <input id="rack-manual-class" name="class_name" type="text" maxlength="80" placeholder="e.g. UPS">
+            <label for="rack-manual-place">Location</label>
+            <select id="rack-manual-place" name="placement_mode">
+              <option value="rack">Place in selected rack</option>
+              <option value="rack_shelf">Place on a shared 1U shelf</option>
+              <option value="on_top">Place on top of selected rack</option>
+              <option value="unplaced">Keep outside the rack for now</option>
+            </select>
+            <div id="rack-manual-position-fields" class="rack-manual-position-fields">
+              <label id="rack-manual-u-label" for="rack-manual-u">Bottom rack unit</label>
+              <input id="rack-manual-u" name="rack_u" type="number" min="1" step="1" required>
+              <div id="rack-manual-height-field">
+              <label for="rack-manual-height">Height (U)</label>
+              <input id="rack-manual-height" name="height_u" type="number" min="1" max="128" step="1" value="1" required>
+              </div>
+              <label for="rack-manual-face">Rack face</label>
+              <select id="rack-manual-face" name="face">
+                <option value="front">Front</option>
+                <option value="rear">Back</option>
+                <option value="full_depth">Full depth (front and back)</option>
+              </select>
+            </div>
+            <p class="rack-field-help" id="rack-manual-shared-shelf-help" hidden>Uses one rack U and packs devices side by side.</p>
+            <label for="rack-manual-port-facing">Network ports face</label>
+            <select id="rack-manual-port-facing" name="port_facing">
+              <option value="">Not set</option>
+              <option value="front">Front</option>
+              <option value="rear">Back</option>
+            </select>
+            <div class="rack-placement-actions device-drawer-footer">
+              <button class="button" type="submit">Add equipment</button>
+              <button class="button button-quiet" id="rack-manual-cancel" type="button">Cancel</button>
+            </div>
+            <p id="rack-manual-feedback" class="rack-form-feedback" role="status" aria-live="polite" hidden></p>
+          </form>
+        </section>
+    {% endcall %}
+</section>
+<script src="{{ url_for('static', filename='js/device-drawer.js') }}" defer></script>
+{{ widget_scripts() }}
+<script src="{{ url_for('static', filename='js/cluster-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/shelf-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/device-cluster.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/device-details.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/device-placement.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rack-arrange.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rack-panel-order.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/remove-dialog.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rack-editor.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/area-editor.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/equipment-list.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/wan.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/ups.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/wiring.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/wire-style.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/topology-layout.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/room-wiring.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/view-frame.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rack-port-lights.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/racks.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rack-cables.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rack-arrange-mode.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rack-live.js') }}" defer></script>
+{% endblock %}

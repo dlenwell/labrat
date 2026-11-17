@@ -1,0 +1,165 @@
+<!doctype html>
+<!-- Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  The labrat.foo landing page. Plain HTML: scripts/build_site.py copies it
+  next to the app's static files and rendered docs, and replaces
+  {{ repo_url }} with the public repository's address.
+-->
+<html lang="en" data-theme="disco">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="LabRat: a self-hosted, read-only discovery and physical inventory app for home labs.">
+    <title>LabRat · Know what's lurking in your lab</title>
+    <link rel="icon" type="image/svg+xml" href="static/img/labrat-mark.svg">
+    <link rel="stylesheet" href="static/css/main.css">
+    <link rel="stylesheet" href="static/css/rack-elevation.css">
+    <link rel="stylesheet" href="static/css/widget-shelf.css">
+    <link rel="stylesheet" href="static/css/landing.css">
+    <link rel="stylesheet" href="site.css">
+    <script src="site.js" defer></script>
+    <script src="static/js/main.js" defer></script>
+    <script src="static/js/wiring.js" defer></script>
+    <script src="static/js/landing.js" defer></script>
+  </head>
+  <body class="landing-body workspace-body site-body">
+    <header class="site-header">
+      <!-- A plain logo, as on the app's landing page: the rat is behind the rack. -->
+      <a class="brand" href="./" aria-label="LabRat home"><span class="brand-name"><span class="brand-name-lab">Lab</span><span class="brand-name-rat">Rat</span></span></a>
+      <nav class="site-navigation" aria-label="Site">
+        <span class="header-note">Your homelab, mapped.</span>
+        <a class="navigation-link" href="docs/">Docs</a>
+        <a class="navigation-link" href="{{ repo_url }}">Source</a>
+      </nav>
+    </header>
+
+    <main class="page-content site-main" id="main-content">
+      <!-- The app's own animated landing hero (rack, cables, and the rat),
+           rendered from templates/public/index.html by the build. -->
+      <!-- app:landing-hero -->
+
+      <section class="site-section site-shots" aria-labelledby="shots-title">
+        <h2 id="shots-title">See your lab the way it is cabled</h2>
+        <div class="site-shot-grid">
+          <figure class="site-shot site-shot-wide">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/equipment-drawer.webp" alt="A rack in the Equipment view with a switch's port list open" loading="lazy"></button>
+            <figcaption><strong>Racks to scale.</strong> Front and rear, real port lamps, and the cables between the ports they use.</figcaption>
+          </figure>
+          <figure class="site-shot">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/diagram-route.webp" alt="A diagram with a server's route to the gateway lit" loading="lazy"></button>
+            <figcaption><strong>Wiring you can read.</strong> Each area left to right from the internet; select a server to light its route.</figcaption>
+          </figure>
+          <figure class="site-shot">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/cluster-storage.webp" alt="The cluster's storage view: every drive as hot-swap bays" loading="lazy"></button>
+            <figcaption><strong>Your cluster, drive by drive.</strong> Proxmox nodes, guests, storage, and Ceph.</figcaption>
+          </figure>
+          <figure class="site-shot">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/observations.webp" alt="The Observations wallboard" loading="lazy"></button>
+            <figcaption><strong>A wallboard for the closet.</strong> Internet, UPS power, ports, and what needs a look.</figcaption>
+          </figure>
+          <figure class="site-shot">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/clients.webp" alt="Discovery's list of wired and Wi-Fi clients" loading="lazy"></button>
+            <figcaption><strong>Every client, and where it connects.</strong> Wired and Wi-Fi, port by port.</figcaption>
+          </figure>
+          <figure class="site-shot">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/mini-rack.webp" alt="A 10-inch mini rack" loading="lazy"></button>
+            <figcaption><strong>Mini racks too.</strong> A 10-inch rack at the same scale as its neighbors.</figcaption>
+          </figure>
+          <figure class="site-shot">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/discovery.webp" alt="Discovery's infrastructure tree: a gateway above a core switch feeding access points and switches" loading="lazy"></button>
+            <figcaption><strong>Discovery, as a tree.</strong> Routers, switches by hop, and what hangs from them; place anything in a click.</figcaption>
+          </figure>
+          <figure class="site-shot">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/cluster.webp" alt="The cluster summary: an attention list, stat tiles, and charts by node" loading="lazy"></button>
+            <figcaption><strong>The cluster at a glance.</strong> Nodes, guests, CPU, memory, storage, and Ceph, with what needs attention.</figcaption>
+          </figure>
+          <figure class="site-shot">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/networks.webp" alt="The networks overview: site health and charts of clients by network" loading="lazy"></button>
+            <figcaption><strong>Networks, from UniFi.</strong> Site health, VLANs, Wi-Fi, firewall zones, and who can reach whom.</figcaption>
+          </figure>
+          <figure class="site-shot">
+            <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/floor-plan.webp" alt="A floor plan: a rack with its devices by rack unit, and a gateway on the floor" loading="lazy"></button>
+            <figcaption><strong>Floor plans.</strong> Racks, shelves, walls, and floor, top down, for every room.</figcaption>
+          </figure>
+        </div>
+        <p class="site-note">Every screenshot is from an invented demo lab.</p>
+      </section>
+
+      <section class="site-section site-promises" aria-labelledby="promises-title">
+        <h2 id="promises-title">Read-only by design</h2>
+        <div class="site-cards">
+          <article class="site-card" data-hue="network">
+            <h3>It only reads</h3>
+            <p>The collector never changes a controller's settings, logs in to a device to change it, or sends a UPS a command.</p>
+          </article>
+          <article class="site-card" data-hue="internet">
+            <h3>It stays in bounds</h3>
+            <p>It contacts the controllers you connect and, beyond them, only the networks you allow in Settings.</p>
+          </article>
+          <article class="site-card" data-hue="compute">
+            <h3>Secrets stay put</h3>
+            <p>Credentials live in a local config file, never in the database or in inventory backups.</p>
+          </article>
+          <article class="site-card" data-hue="power">
+            <h3>You decide where things go</h3>
+            <p>What a scan finds stays separate from your inventory until you place it or link it.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="site-section site-sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">What it reads</h2>
+        <div class="site-table-wrap">
+          <table class="site-table">
+            <thead>
+              <tr><th scope="col">Source</th><th scope="col">What LabRat gets</th><th scope="col">What it needs</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">UniFi Network</th><td>Switches, gateways, access points; ports, PoE, link state, and cables; clients, networks, Wi-Fi, firewall zones; WAN and VPN status</td><td>A read-only API key</td></tr>
+              <tr><th scope="row">Proxmox VE</th><td>Nodes, NICs, bonds, bridges, VLANs; guests; storage, drives, and Ceph; live load and memory</td><td>A read-only API token</td></tr>
+              <tr><th scope="row">Pi-hole</th><td>Queries, blocking state, history, and top domains and clients</td><td>An application password</td></tr>
+              <tr><th scope="row">Network UPS Tools</th><td>UPS status, load, battery, and runtime</td><td>Permission to scan their networks</td></tr>
+              <tr><th scope="row">SNMPv3</th><td>NIC link state for Proxmox nodes</td><td>A read-only SNMPv3 user</td></tr>
+              <tr><th scope="row">MikroTik MNDP</th><td>MikroTik devices on the local segment</td><td>Nothing: it only listens</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="site-section site-start" id="quick-start" aria-labelledby="start-title">
+        <h2 id="start-title">Quick start</h2>
+        <p>With Docker and Compose:</p>
+<pre class="site-code"><code>git clone {{ repo_url }} labrat &amp;&amp; cd labrat
+mkdir -p deploy/data deploy/config
+export LABRAT_UID=$(id -u) LABRAT_GID=$(id -g)
+LABRAT_ALLOWED_HOSTS=labrat.example.lan \
+  docker compose -f deploy/compose.yaml up -d --build
+docker compose -f deploy/compose.yaml logs web | grep "setup code"</code></pre>
+        <p>Open <code>http://&lt;host&gt;:8000</code>, choose <strong>First-time setup</strong>, enter the code from the log, then connect your controllers under <strong>Settings → Integrations</strong>. The <a href="docs/setup/">setup guide</a> covers running from a checkout, HTTPS, and upgrades.</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>LabRat · Apache License 2.0</span>
+      <span aria-hidden="true">·</span>
+      <a href="docs/">Docs</a>
+      <span aria-hidden="true">·</span>
+      <a href="docs/api/">API reference</a>
+      <span aria-hidden="true">·</span>
+      <a href="{{ repo_url }}">Source</a>
+    </footer>
+
+    <!-- Screenshot viewer (site.js): opens a screenshot full size and steps
+         through the rest with buttons, arrow keys, or a swipe. -->
+    <dialog class="site-viewer" aria-label="Screenshot viewer">
+      <figure class="site-viewer-figure">
+        <img class="site-viewer-image" src="" alt="">
+        <figcaption class="site-viewer-caption"></figcaption>
+      </figure>
+      <p class="site-viewer-count readout" aria-live="polite"></p>
+      <button class="site-viewer-button site-viewer-prev" type="button" aria-label="Previous screenshot">‹</button>
+      <button class="site-viewer-button site-viewer-next" type="button" aria-label="Next screenshot">›</button>
+      <button class="site-viewer-button site-viewer-close" type="button" aria-label="Close">×</button>
+    </dialog>
+  </body>
+</html>

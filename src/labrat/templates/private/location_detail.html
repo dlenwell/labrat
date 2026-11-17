@@ -1,0 +1,31 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# One site, drawn with the same building block as the Locations page. #}
+{% extends "base.html" %}
+{% from "private/_locations.html" import building, locations_header, location_drawer %}
+
+{% block title %}LabRat · {{ site.name }}{% endblock %}
+{% block body_class %}locations-body view-frame-body workspace-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-switch.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/device-drawer.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/locations.css') }}">
+{% endblock %}
+
+{% block content %}
+{# The Locations list's frame and heading, "Locations / location" (owner). #}
+<section class="locations-page view-frame room-frame" data-csrf-token="{{ csrf_token }}" data-drawer="closed">
+  {{ locations_header(all_sites, site) }}
+
+  <p class="locations-notice" id="locations-notice" role="alert" aria-live="polite" hidden></p>
+
+  <div class="location-buildings">
+    {{ building(site, 1, link_title=false) }}
+  </div>
+  {{ location_drawer() }}
+</section>
+<script src="{{ url_for('static', filename='js/device-drawer.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/view-frame.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/remove-dialog.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/locations.js') }}" defer></script>
+{% endblock %}

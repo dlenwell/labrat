@@ -1,0 +1,115 @@
+# Copyright 2026 LabRat contributors
+# SPDX-License-Identifier: Apache-2.0
+# Public method/form definitions. Settings and secrets remain in private TOML.
+version = 1
+
+[methods.network]
+label = "Network scanning"
+icon = "discovery"
+description = "Allowed subnets for service discovery"
+
+[methods.nut]
+label = "NUT discovery"
+icon = "discover"
+description = "Find UPS servers in allowed subnets"
+[[methods.nut.fields]]
+key = "port"
+label = "NUT port"
+type = "number"
+default = 3493
+min = 1
+max = 65535
+required = true
+[[methods.nut.fields]]
+key = "rescan_interval_seconds"
+label = "Discovery interval (seconds)"
+type = "number"
+default = 3600
+min = 300
+max = 86400
+required = true
+[[methods.nut.fields]]
+key = "ups_interval_seconds"
+label = "UPS reading interval (seconds)"
+type = "number"
+default = 30
+min = 10
+max = 300
+allow_zero = true
+required = true
+help = "Use 10–300 seconds, or 0 to read UPS status only during full collection."
+
+[methods.snmp]
+label = "SNMP interface lookups"
+icon = "equipment"
+description = "Enrich selected Proxmox hosts with SNMPv3"
+[[methods.snmp.fields]]
+key = "nodes"
+label = "Proxmox node names"
+type = "lines"
+required = true
+help = "One exact node name per line. Only these known hosts are queried."
+[[methods.snmp.fields]]
+key = "username"
+label = "SNMPv3 username"
+type = "text"
+required = true
+[[methods.snmp.fields]]
+key = "auth_passphrase"
+label = "Authentication passphrase"
+type = "password"
+required = true
+min_length = 8
+[[methods.snmp.fields]]
+key = "priv_passphrase"
+label = "Privacy passphrase"
+type = "password"
+required = true
+min_length = 8
+[[methods.snmp.fields]]
+key = "auth_protocol"
+label = "Authentication protocol"
+type = "select"
+default = "sha"
+help = "As the agent's user was created (Net-SNMP createUser names)."
+choices = [
+  { value = "sha", label = "SHA (SHA-1)" },
+  { value = "sha224", label = "SHA-224" },
+  { value = "sha256", label = "SHA-256" },
+  { value = "sha384", label = "SHA-384" },
+  { value = "sha512", label = "SHA-512" },
+]
+[[methods.snmp.fields]]
+key = "priv_protocol"
+label = "Privacy protocol"
+type = "select"
+default = "aes"
+help = "AES-192/256 come in two key-extension styles: Net-SNMP's, or the C variant many network vendors use."
+choices = [
+  { value = "aes", label = "AES (AES-128)" },
+  { value = "aes192", label = "AES-192" },
+  { value = "aes256", label = "AES-256" },
+  { value = "aes192c", label = "AES-192 (C variant)" },
+  { value = "aes256c", label = "AES-256 (C variant)" },
+]
+[[methods.snmp.fields]]
+key = "port"
+label = "SNMP port"
+type = "number"
+default = 161
+min = 1
+max = 65535
+
+[methods.mndp]
+label = "MikroTik discovery"
+icon = "discovery"
+description = "Listen for local MNDP announcements"
+[[methods.mndp.fields]]
+key = "listen_seconds"
+label = "Listening duration (seconds)"
+type = "number"
+default = 65
+min = 5
+max = 300
+required = true
+help = "Passive listening only. Broadcasts do not cross routed networks."

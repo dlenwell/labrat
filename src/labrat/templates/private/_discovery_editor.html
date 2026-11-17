@@ -1,0 +1,76 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% from "_icons.html" import icon %}
+{% from "private/_settings_fields.html" import settings_fields %}
+{% set editor = discovery_editor %}
+<div data-discovery-editor data-view-name="{{ editor.view }}" data-title="{{ editor.label }}">
+{% if discovery_error %}<p class="form-error" role="alert">{{ discovery_error }}</p>{% endif %}
+{% if editor.view == 'menu' %}
+  <p class="integration-note">Choose the connection to configure.</p>
+  <div class="integration-menu">
+  {% for choice in editor.choices %}
+    <a class="integration-menu-item" href="{{ url_for('private.settings', panel='discovery', method=editor.method, target=choice.name) }}" data-discovery-open>{{ icon('equipment') }}<span>{{ choice.label }}</span>{{ icon('chevron') }}</a>
+  {% else %}
+    <p class="integration-note">Add a Proxmox connection in Integrations first.</p>
+    <a class="button button-secondary" href="{{ url_for('private.settings', panel='integrations') }}">Integrations</a>
+  {% endfor %}
+  </div>
+{% elif editor.view == 'detail' %}
+  {% set subnet = editor.subnet %}
+  <p class="discovery-cidr">{{ subnet.cidr or 'CIDR unavailable' }}</p>
+  <p class="integration-note">{{ subnet.connection }} · {% if subnet.fresh %}Current cached evidence{% else %}Evidence unavailable or stale{% endif %}</p>
+  <dl class="discovery-evidence">
+    <dt>Routability</dt><dd>Unknown. A local route does not prove end-to-end reachability.</dd>
+    {% if subnet.route %}<dt>Local route</dt><dd>{{ subnet.route.reason }}</dd>{% endif %}
+    {% if subnet.route_target %}<dt>Route sample</dt><dd>{{ subnet.route_target }}</dd>{% endif %}
+    {% if subnet.observed_at %}<dt>Evidence collected</dt><dd><time datetime="{{ subnet.observed_at }}">{{ subnet.observed_at[:19]|replace('T', ' ') }} UTC</time></dd>{% endif %}
+  </dl>
+  {% for key, label in [('nut', 'NUT · TCP 3493'), ('snmp', 'SNMP · UDP 161')] %}
+  {% set profile = subnet.profiles.get(key, {}) %}
+  <section class="integration-health">
+    <h3>{{ label }} <span class="discovery-access discovery-access-{{ profile.get('access', 'unknown') }}">{{ profile.get('access', 'unknown')|capitalize }}</span></h3>
+    <p>{{ profile.get('reason', 'No current policy assessment is available.') }}</p>
+    {% if profile.get('rule_reference') %}<p class="discovery-rule">Policy {{ profile.rule_reference }}</p>{% endif %}
+  </section>
+  {% endfor %}
+  <p class="integration-note">These are configured gateway-policy results, not service tests. Partial subnet exceptions and unsupported conditions remain unknown.</p>
+{% else %}
+  <form class="settings-form integration-form" method="post" action="{{ url_for('private.discovery_settings.save') }}">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="revision" value="{{ discovery_revision }}">
+    <input type="hidden" name="operation" value="configure">
+    <input type="hidden" name="method" value="{{ editor.method }}">
+    <input type="hidden" name="target" value="{{ editor.target }}">
+    {% if editor.method == 'network' %}
+      <p class="integration-note">Choose subnets LabRat may scan. UniFi suggestions start off; access indicators do not grant permission.</p>
+      <label class="visually-hidden" for="discovery-network-filter">Filter subnets</label>
+      <input id="discovery-network-filter" type="search" placeholder="Filter subnets…" data-subnet-filter autocomplete="off">
+      <div class="discovery-subnets">
+      {% for subnet in editor.networks %}
+        <article class="discovery-subnet" data-subnet-row="{{ subnet.name }} {{ subnet.cidr }} {{ subnet.connection }}">
+          <label class="discovery-subnet-choice">
+            <input type="checkbox" name="allowed_cidrs" value="{{ subnet.cidr or '' }}" {% if subnet.checked %}checked{% endif %} {% if not subnet.cidr or subnet.covered %}disabled{% endif %} aria-label="Allow scanning {{ subnet.name or subnet.cidr }}">
+            <span><strong>{{ subnet.name or 'Unnamed network' }}</strong><small class="discovery-cidr">{{ subnet.cidr or 'CIDR unavailable' }}</small><small>{{ subnet.connection }}{% if subnet.covered %} · Covered by a manual range{% endif %}</small></span>
+          </label>
+          <a class="button button-quiet room-icon-button discovery-access discovery-access-{{ subnet.status }}" href="{{ url_for('private.settings', panel='discovery', method='network', subnet=subnet.key) }}" data-discovery-open aria-label="{{ subnet.name or 'Subnet' }} access: {{ subnet.status }}. Details" title="{{ subnet.status|capitalize }} access · details" data-tooltip="{{ subnet.status|capitalize }} access · details">{% if subnet.status == 'blocked' %}<span aria-hidden="true">×</span>{% elif subnet.status == 'allowed' %}<span aria-hidden="true">✓</span>{% else %}<span aria-hidden="true">{{ '±' if subnet.status == 'mixed' else '?' }}</span>{% endif %}</a>
+        </article>
+      {% else %}
+        <p class="integration-note">No subnet suggestions yet. Enable a UniFi connection and allow the collector to refresh, or enter networks below.</p>
+      {% endfor %}
+      </div>
+      <div class="integration-field discovery-manual">
+        <label for="discovery-manual-ranges">Additional networks or addresses</label>
+        <textarea id="discovery-manual-ranges" name="manual_ranges" rows="4" maxlength="16384" spellcheck="false" placeholder="192.0.2.0/24&#10;198.51.100.10">{{ editor.manual_ranges }}</textarea>
+        <small>One CIDR or address per line. All selections share the 4096-address scan limit.</small>
+      </div>
+      <p class="integration-note">Access: ✓ allowed, × blocked, ± mixed, ? unknown. Open an indicator for NUT and SNMP results. A blocked indicator may apply only to one protocol.</p>
+    {% else %}
+      {% if editor.method == 'snmp' %}<p class="integration-note">Connection: {{ editor.target }}. SNMPv3 uses authPriv with the protocols below. Addresses come from Proxmox; these lookups do not scan subnets.</p>{% endif %}
+      {{ settings_fields(editor.fields, 'discovery-' ~ editor.method, 'A secret is saved. Leave blank to keep it.') }}
+    {% endif %}
+    <div class="device-drawer-footer integration-form-actions">
+      <button class="button room-icon-button" type="submit" aria-label="Save discovery settings" title="Save discovery settings" data-tooltip="Save discovery settings">{{ icon('save') }}</button>
+      <button class="button button-quiet room-icon-button" type="button" data-discovery-cancel aria-label="Cancel" title="Cancel" data-tooltip="Cancel">{{ icon('close') }}</button>
+    </div>
+  </form>
+{% endif %}
+</div>

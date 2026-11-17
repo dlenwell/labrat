@@ -1,0 +1,34 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Used by: Observations, Discovery, Equipment and Diagram, Discovery clients, Cluster, Networks, Floor plan, Locations, Location detail, Locations map. #}
+{#
+  Shared view frame heading parts. Discovery's views and the room views
+  each use one frame (view-frame.css), so switching views reads as
+  changing tabs; the room heading is in _room_header.html.
+
+  discovery_switch(current): the view switch, always the rightmost control on
+  wide screens. Pass "clients" for Clients; anything else marks
+  Infrastructure current. Phones show the short labels.
+
+  view_menu(id, label): wraps a view's tool buttons. Wide screens show
+  them inline (the wrapper is layout-free); phones fold them behind a ☰
+  button at the far right of the tool row that drops them down as a panel
+  (view-frame.js). A view may unhide the dot to flag changed settings.
+#}
+{% macro discovery_switch(current) -%}
+<nav class="room-view-switch" aria-label="Discovery views">
+  <a class="room-view-tab" href="{{ url_for('private.topology') }}"{% if current != 'clients' %} aria-current="page"{% endif %} aria-label="Infrastructure"><span class="view-tab-long">Infrastructure</span><span class="view-tab-short">Infra</span></a>
+  <a class="room-view-tab" href="{{ url_for('private.discovery_clients') }}"{% if current == 'clients' %} aria-current="page"{% endif %} >Clients</a>
+</nav>
+{%- endmacro %}
+
+{% macro view_menu(id, label) -%}
+<div class="view-menu" data-view-menu>
+  <button class="button button-quiet room-icon-button view-menu-toggle" type="button" aria-expanded="false" aria-controls="{{ id }}" aria-label="{{ label }}" title="{{ label }}" data-tooltip="{{ label }}">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <span class="view-menu-dot" hidden></span>
+  </button>
+  <div class="view-menu-panel" id="{{ id }}">
+    {{ caller() }}
+  </div>
+</div>
+{%- endmacro %}

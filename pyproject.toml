@@ -1,0 +1,54 @@
+# Copyright 2026 LabRat contributors
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "labrat"
+version = "0.5.1"
+description = "LabRat — know what's lurking in your lab."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "Flask>=3.1,<4",
+    "gunicorn>=23,<27",
+    "SQLAlchemy>=2.0,<3",
+    "alembic>=1.13,<2",
+    "argon2-cffi>=23.1,<26",
+    "cryptography>=50,<51",
+    "pysnmp>=7,<8",
+    "requests>=2.31,<3",
+    "tomlkit>=0.13,<1",
+]
+
+[project.optional-dependencies]
+test = ["coverage>=7.6,<8"]
+
+[tool.coverage.run]
+branch = true
+source = ["labrat"]
+
+[tool.coverage.report]
+fail_under = 90
+precision = 1
+show_missing = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+labrat = [
+    "*.toml",
+    "templates/*.html",
+    "templates/public/*.html",
+    "templates/private/*.html",
+    "templates/docs/*.html",
+    "static/css/*.css",
+    "static/js/*.js",
+    "static/img/*",
+    "static/img/docs/*",
+    "static/fonts/*",
+    "collector/profiles/*.json",
+]

@@ -1,0 +1,191 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "base.html" %}
+{% from "private/_room_header.html" import room_header, area_editor_panel %}
+{% from "private/_widgets.html" import widget_styles, widget_scripts %}
+{% from "private/_device_drawer.html" import device_drawer, device_details_panel, device_rename_panel, device_neighbor_panel, device_placement_panel, device_place_panel %}
+{% from "private/_rack_editor.html" import rack_editor_panel %}
+{% from "private/_equipment_list.html" import equipment_list_panel %}
+
+{% block title %}LabRat · {{ room.name }}{% endblock %}
+{% block body_class %}room-view-body view-frame-body workspace-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-switch.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/room.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/device-drawer.css') }}">
+{{ widget_styles() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/device-details.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="room-page view-frame room-frame" id="room-app" data-room-id="{{ room.id }}" data-csrf-token="{{ csrf_token }}" data-drawer="closed"{% if open_device %} data-open-device="{{ open_device }}"{% endif %}>
+  {# The page is one view frame (view-frame.css), its heading shared with
+     Equipment and Diagram. Unplaced equipment and Build out are drawer
+     panels opened by icon tools beside Refresh (owner). #}
+  {% call room_header(room, site, view, "room-refresh", help={"id": "room-help", "label": "How to use the floor plan"}) %}
+    {# A save shows as a green "Saved" here, fading after five seconds,
+       rather than a message above the room (owner). #}
+    <span class="room-saved" id="room-saved" role="status" aria-live="polite"></span>
+    <button class="button button-quiet room-icon-button" id="room-unplaced-tool" type="button" aria-label="Add equipment" title="Add equipment" data-tooltip="Add equipment" aria-controls="device-drawer" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="7" width="13" height="13" rx="1.5"/><path d="M2 13h13M5 10h2M5 16h2M19 2v8M15 6h8"/></svg>
+    </button>
+    <button class="button button-quiet room-icon-button" id="room-buildout-tool" type="button" aria-label="Build out: add a rack or a shelf" title="Build out: add a rack or a shelf" data-tooltip="Build out" aria-controls="device-drawer" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 20h16M6 20V9l6-5 6 5v11M10 20v-6h4v6"/></svg>
+    </button>
+  {% endcall %}
+
+  <p class="room-notice" id="room-notice" role="alert" aria-live="assertive" hidden></p>
+
+  <div class="room-workspace">
+    <section class="room-canvas-panel" aria-label="Floor plan">
+      {# No heading or count line: the room is the page title and the canvas
+         shows what is in it (owner). The Ceiling strip above the room holds
+         overhead equipment like a rack top holds its gear: drop a device on
+         it to mount it overhead, drag it back to the floor to bring it down. #}
+      <div class="room-ceiling-strip room-surface-drop" id="room-ceiling" role="group" aria-label="Ceiling. Drop overhead equipment here." hidden>
+        <span class="room-ceiling-label">Ceiling</span>
+        <div class="room-ceiling-items" id="room-ceiling-items"></div>
+      </div>
+      <div class="room-canvas-scroll">
+        <div class="room-canvas blueprint-grid" id="room-canvas" aria-label="Top-down area equipment layout">
+          <div class="room-wall room-wall-north" data-side="north" aria-label="North wall drop zone"><span>NORTH</span></div>
+          <div class="room-wall room-wall-east" data-side="east" aria-label="East wall drop zone"><span>EAST</span></div>
+          <div class="room-wall room-wall-south" data-side="south" aria-label="South wall drop zone"><span>SOUTH</span></div>
+          <div class="room-wall room-wall-west" data-side="west" aria-label="West wall drop zone"><span>WEST</span></div>
+          <div class="room-floor" id="room-floor" aria-label="Area floor. Drop floor equipment here."></div>
+          <div class="room-layout-items" id="room-layout-items"></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  {# The floor plan's help (owner): grouped, short points, shown from the
+     ? tool in the heading instead of a paragraph under the canvas. #}
+  <div id="room-help" class="room-help" popover aria-labelledby="room-help-title">
+    <h3 id="room-help-title">Using the floor plan</h3>
+    <dl>
+      <dt>Place equipment</dt>
+      <dd><ul>
+        <li>Open <strong>Add equipment</strong> and drag a device onto the floor, a wall, or a shelf. Its toggles show infrastructure, clients, or only unplaced gear.</li>
+        <li>Drop it on a rack to set it on top.</li>
+        <li>Drop it on the <strong>Ceiling</strong> strip to mount it overhead.</li>
+      </ul></dd>
+      <dt>Move or remove</dt>
+      <dd><ul>
+        <li>Drag anything on the plan to move it.</li>
+        <li>Drag a device back onto the Add equipment list to take it out of the area.</li>
+      </ul></dd>
+      <dt>Racks and shelves</dt>
+      <dd><ul>
+        <li>Add them from <strong>Build out</strong>.</li>
+        <li>Drop a rack near a wall to stand it flush against it.</li>
+        <li>Hover a wall shelf and drag its end or front edge to resize it.</li>
+        <li>Use the pencil by a name to rename or delete.</li>
+      </ul></dd>
+      <dt>Details</dt>
+      <dd><ul>
+        <li>Click a device, or a row in a rack, to see its details.</li>
+      </ul></dd>
+    </dl>
+    <p class="room-help-note">Positions are relative, not to scale.</p>
+  </div>
+
+  {% call device_drawer("Add equipment") %}
+    <section class="device-drawer-view" data-view="shelf" aria-hidden="true" inert hidden></section>
+    {# The shared Add equipment list (_equipment_list.html, equipment-list.js),
+       the same as Equipment's. Rows drag onto the plan, and dropping a device
+       from the plan on it takes it out of the room. #}
+    {{ equipment_list_panel("unplaced") }}
+    <section class="device-drawer-view room-drawer-panel" data-view="buildout" aria-labelledby="room-add-title" aria-hidden="true" inert>
+      <h2 class="device-drawer-panel-title" id="room-add-title">Add to this area</h2>
+      <div class="room-drawer-body">
+        {# An accordion (owner): the shared name keeps one section open.
+           Closing the drawer adds the open section if it was filled in
+           (room.js commitBuildout); the others are left alone. #}
+        <details class="room-add" id="room-rack-details" name="room-add">
+          <summary><span class="room-add-title">Rack</span><span class="room-add-hint">Cabinet or open frame</span></summary>
+          <form id="room-rack-form" class="room-form">
+            <label for="room-rack-name">Rack name</label>
+            <input id="room-rack-name" name="name" maxlength="120" placeholder="Network rack" required>
+            <label for="room-rack-height">Height (U)</label>
+            <input id="room-rack-height" name="height_u" type="number" min="1" max="128" step="1" value="42" required>
+            <label for="room-rack-width">Rail width</label>
+            <select id="room-rack-width" name="width_inches">
+              <option value="19">19 inch (standard)</option>
+              <option value="10">10 inch (compact)</option>
+            </select>
+            <label for="room-rack-faces">Faces</label>
+            <select id="room-rack-faces" name="rack_faces">
+              <option value="both">Front and rear</option>
+              <option value="front">Front only</option>
+            </select>
+            <button class="button button-secondary" type="submit">Create rack</button>
+          </form>
+        </details>
+        <details class="room-add" id="room-shelf-details" name="room-add">
+          <summary><span class="room-add-title">Shelf</span><span class="room-add-hint">On a wall or the floor</span></summary>
+          <form id="room-shelf-form" class="room-form">
+            <label for="room-shelf-name">Shelf name</label>
+            <input id="room-shelf-name" name="name" maxlength="120" placeholder="Wall shelf" required>
+            <label for="room-shelf-parent">Attach to</label>
+            <select id="room-shelf-parent" name="parent_id" required></select>
+            <button class="button button-secondary room-create-to-room" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Create shelf</button>
+          </form>
+        </details>
+      </div>
+    </section>
+    {# Equipment discovery cannot see: the Add equipment list's footer opens
+       it, with Back to the list (owner: not a Build out section). #}
+    <section class="device-drawer-view room-drawer-panel" data-view="manual" aria-labelledby="room-manual-title" aria-hidden="true" inert>
+      <h2 class="device-drawer-panel-title" id="room-manual-title">New equipment</h2>
+      <form id="room-manual-form" class="room-drawer-body room-form">
+        <p class="room-field-help">For gear no collector reports. It joins inventory unplaced; drag it into the area from Add equipment.</p>
+        <label for="room-device-name">Name</label>
+        <input id="room-device-name" name="name" maxlength="120" required>
+        <label for="room-device-class">Equipment type</label>
+        <input id="room-device-class" name="class_name" maxlength="80" placeholder="e.g. UPS">
+        <button class="button button-secondary" type="submit">Add to inventory</button>
+      </form>
+    </section>
+    {# A rack's pencil opens the shared rack editor, the same as Equipment's
+       (owner). #}
+    {{ rack_editor_panel() }}
+    {{ area_editor_panel(room, site) }}
+    {# A shelf's pencil: its name; saves when the panel closes, and Delete is
+       a tool in the drawer bar (owner). #}
+    <section class="device-drawer-view room-drawer-panel" data-view="furniture" aria-labelledby="room-furniture-title" aria-hidden="true" inert>
+      <h2 class="device-drawer-panel-title" id="room-furniture-title">Edit</h2>
+      <form id="room-furniture-form" class="room-drawer-body room-form">
+        <label for="room-furniture-name">Name</label>
+        <input id="room-furniture-name" name="name" maxlength="120" required>
+        <p class="room-field-help" id="room-furniture-help"></p>
+      </form>
+      <div class="device-drawer-panel-tools" data-tools-for="furniture" role="group" aria-label="Edit tools" hidden>
+        <button class="button button-quiet room-icon-button room-danger-tool" id="room-furniture-delete" type="button" aria-label="Delete" title="Delete" data-tooltip="Delete">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/></svg>
+        </button>
+      </div>
+    </section>
+    {{ device_details_panel() }}
+    {{ device_rename_panel() }}
+    {{ device_neighbor_panel() }}
+    {{ device_placement_panel() }}
+    {{ device_place_panel() }}
+  {% endcall %}
+</section>
+<script src="{{ url_for('static', filename='js/device-drawer.js') }}" defer></script>
+{{ widget_scripts() }}
+<script src="{{ url_for('static', filename='js/cluster-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/shelf-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/device-cluster.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/device-details.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/device-placement.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/ups.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/remove-dialog.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rack-editor.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/area-editor.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/equipment-list.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/view-frame.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/room.js') }}" defer></script>
+{% endblock %}

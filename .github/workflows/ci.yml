@@ -1,0 +1,107 @@
+# Copyright 2026 LabRat contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Continuous integration: the validation gate on the oldest and newest
+# supported Python, and the sample container built and started the way
+# the README's "Run in containers" section describes.
+#
+# Actions are pinned to release commits (the tag is in the comment); to
+# update one, find the new release's commit with
+# `git ls-remote --tags https://github.com/actions/<name>`.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Gate (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest version pyproject.toml allows, and the one the image uses.
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: "22"
+      - name: Install
+        run: |
+          python -m venv .venv
+          # A new virtualenv carries the pip and setuptools bundled with its
+          # Python, which can be old enough to fail the audit below.
+          .venv/bin/python -m pip install --upgrade pip setuptools
+          .venv/bin/python -m pip install -e '.[test]'
+      - name: Gate
+        # Each test migrates a fresh SQLite database in a temporary folder;
+        # on a runner whose disk syncs are slow that alone takes minutes, so
+        # keep test databases in memory (they use about 1 MB at most).
+        env:
+          TMPDIR: /dev/shm
+        run: .venv/bin/python scripts/gate.py
+      - name: Audit dependencies
+        # Fails on any published advisory against an installed dependency.
+        # LabRat itself is installed from this checkout, so it is skipped.
+        run: |
+          .venv/bin/python -m pip install 'pip-audit>=2.9,<3'
+          .venv/bin/pip-audit --skip-editable
+
+  container:
+    name: Container sample
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE_FILE: deploy/compose.yaml
+      # A project of its own and a random host port, so runs sharing a
+      # Docker host (a runner that drives the host's Docker) never collide.
+      COMPOSE_PROJECT_NAME: labrat-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      LABRAT_PORT: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and start
+        run: |
+          mkdir -p deploy/data deploy/config
+          export LABRAT_UID="$(id -u)" LABRAT_GID="$(id -g)"
+          docker compose up -d --build --wait --wait-timeout 120
+      - name: Check the web app
+        # From inside the web container: a runner whose jobs run in their
+        # own container cannot reach ports published on the Docker host.
+        run: |
+          docker compose exec -T web python -c "
+          import urllib.request
+          print(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5).read().decode())
+          assert urllib.request.urlopen('http://localhost:8000/', timeout=5).status == 200
+          "
+      - name: Run one collector cycle
+        run: |
+          export LABRAT_UID="$(id -u)" LABRAT_GID="$(id -g)"
+          docker compose run --rm collector collector --once
+      - name: Logs
+        if: always()
+        run: docker compose logs --no-color
+      - name: Stop
+        if: always()
+        run: docker compose down --volumes

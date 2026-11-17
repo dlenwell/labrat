@@ -1,0 +1,52 @@
+# Copyright 2026 LabRat contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# A sample Compose setup: the web app and the read-only collector from one
+# image, sharing the database and config. From the repository root:
+#
+#   mkdir -p deploy/data deploy/config
+#   export LABRAT_UID=$(id -u) LABRAT_GID=$(id -g)
+#   LABRAT_ALLOWED_HOSTS=labrat.example.lan docker compose -f deploy/compose.yaml up -d --build
+#
+# Then open http://<host>:8000 (or LABRAT_PORT) and choose First-time
+# setup; its one-time code is in `docker compose logs web`. Both containers run as LABRAT_UID:LABRAT_GID (default 1000:1000),
+# which must be able to write the data and config folders.
+
+name: labrat
+
+x-labrat: &labrat
+  image: labrat:local
+  build:
+    context: ..
+  restart: unless-stopped
+  # Run as the owner of the mounted folders, so no chown is needed.
+  user: "${LABRAT_UID:-1000}:${LABRAT_GID:-1000}"
+  environment:
+    # Used only when the config is first written; edit the config afterwards.
+    # Loopback names are always added for the health check.
+    LABRAT_ALLOWED_HOSTS: ${LABRAT_ALLOWED_HOSTS:-}
+  volumes:
+    - ./data:/srv/labrat/data
+    # Settings > Integrations saves connections here, so keep it writable.
+    - ./config:/srv/labrat/config
+
+services:
+  web:
+    <<: *labrat
+    command: ["web"]
+    ports:
+      # LABRAT_PORT picks the host port when 8000 is taken.
+      - "${LABRAT_PORT:-8000}:8000"
+
+  collector:
+    <<: *labrat
+    command: ["collector", "--interval", "300"]
+    # The collector needs the migrated database the web service creates.
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    # MikroTik discovery (MNDP) hears broadcasts only on the host's own
+    # network segment; uncomment to share the host's network for it.
+    # network_mode: host

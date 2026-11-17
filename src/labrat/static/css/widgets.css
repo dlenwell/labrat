@@ -1,0 +1,921 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/* Used by: Home, Discovery, Equipment and Diagram, Discovery clients, Cluster, Networks, Floor plan, Widgets. */
+/*
+ * LabRat widgets (js/widgets.js): charts, bars, tiles, and panels any page
+ * can stitch in. Each widget draws in one hue, --hue, from the nearest
+ * data-hue (main.css), so a panel's hue colours everything inside it.
+ * Panels pick up the sunk console look inside a view frame (console.css);
+ * elsewhere they are plain raised surfaces.
+ *
+ * Contents
+ *   01. Palette
+ *   02. Panels, tiles, and layout
+ *   03. Lamps, meters, keys, and the tooltip
+ *   04. Time series
+ *   05. Donuts, pies, sunbursts, the clock
+ *   06. Bars, columns, segments
+ *   07. Treemap, timeline, Attention
+ *   08. Cards and DNS sinkholes
+ *   09. Phones
+ */
+
+/* ========================================================================== */
+/* 01. PALETTE                                                                 */
+/* ========================================================================== */
+
+/*
+ * Categorical slots in a fixed order, validated for colour-blind separation
+ * on the dark and light surfaces (dataviz validator): blue, orange, aqua,
+ * violet, magenta, with a grey "Other". Status tones keep the status
+ * colours. Slices are data, so they keep their hues in every theme, like
+ * device types.
+ */
+:root {
+    --chart-1: light-dark(#2a78d6, #3987e5);
+    --chart-2: light-dark(#eb6834, #d95926);
+    --chart-3: light-dark(#1baf7a, #199e70);
+    --chart-4: light-dark(#7a5cc8, #8b6fd6);
+    --chart-5: light-dark(#e87ba4, #d55181);
+    --chart-other: light-dark(#9aa5b1, #5f6c78);
+}
+
+.widget-slot-1 { fill: var(--chart-1); background: var(--chart-1); }
+.widget-slot-2 { fill: var(--chart-2); background: var(--chart-2); }
+.widget-slot-3 { fill: var(--chart-3); background: var(--chart-3); }
+.widget-slot-4 { fill: var(--chart-4); background: var(--chart-4); }
+.widget-slot-5 { fill: var(--chart-5); background: var(--chart-5); }
+.widget-slot-other,
+.widget-slot-muted { fill: var(--chart-other); background: var(--chart-other); }
+.widget-slot-ok { fill: var(--color-lamp-on); background: var(--color-lamp-on); }
+.widget-slot-warning { fill: var(--color-status-warning); background: var(--color-status-warning); }
+.widget-slot-alarm { fill: var(--color-status-error); background: var(--color-status-error); }
+
+/* ========================================================================== */
+/* 02. PANELS, TILES, AND LAYOUT                                               */
+/* ========================================================================== */
+
+/* Outside a view frame a panel is a raised surface; console.css sinks it in one. */
+.widget-panel {
+    position: relative;
+    min-width: 0;
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+}
+
+.widget-panel-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.widget-panel-heading h2 {
+    margin: 0;
+    font: 700 var(--text-sm) var(--font-mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+}
+
+.widget-panel-aside,
+.widget-muted {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.widget-none {
+    margin: 0;
+}
+
+/* A row of panels or charts: as many columns as fit, one on phones. */
+.widget-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.widget-row.is-wide {
+    grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
+}
+
+.widget-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: var(--space-2);
+}
+
+/* Stat tiles follow Home's: a hue top rule, a lit figure, and a meter. */
+.widget-stat {
+    display: grid;
+    align-content: start;
+    min-width: 0;
+    gap: 0.2rem;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-top: 2px solid var(--hue, var(--color-accent));
+    border-radius: var(--radius-control);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--hue, var(--color-accent)) 9%, transparent), transparent 70%),
+        var(--color-surface-raised);
+}
+
+.widget-stat-label {
+    margin: 0;
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-sans);
+}
+
+.widget-stat-value {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-primary);
+    font: 650 var(--text-xl) var(--font-display);
+}
+
+.widget-stat-caption {
+    min-height: 1.1em;
+    overflow-wrap: anywhere;
+    margin: 0 0 var(--space-1);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+/* ========================================================================== */
+/* 03. LAMPS, METERS, KEYS, AND THE TOOLTIP                                    */
+/* ========================================================================== */
+
+/* Lamps: on is the shared "fine" lamp, never the accent (style guide). */
+.widget-led-on { --led-color: var(--color-lamp-on); }
+.widget-led-warn { --led-color: var(--color-console-warning); }
+.widget-led-alarm { --led-color: var(--color-status-error); }
+.widget-led-off {
+    --led-color: var(--color-led-off);
+    box-shadow: 0 0 0 1px var(--color-led-off-edge);
+}
+
+/*
+ * Meters: one hue in three steps: the used fill, a lighter "reserved"
+ * step (memory allocated but not in use), and a faint track. Warning and
+ * alarm recolour only the used fill.
+ */
+.widget-meter {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 3rem;
+    height: 8px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--hue, var(--color-accent)) 14%, var(--color-console-recess));
+}
+
+.widget-meter-reserved,
+.widget-meter-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: var(--radius-pill);
+}
+
+.widget-meter-reserved {
+    background: color-mix(in srgb, var(--hue, var(--color-accent)) 42%, var(--color-console-recess));
+}
+
+/* A 2px surface gap separates the used fill from the reserved step. */
+.widget-meter-fill {
+    background: var(--hue, var(--color-accent));
+    box-shadow: 2px 0 0 var(--color-console-recess);
+}
+
+.widget-meter.is-warning .widget-meter-fill { background: var(--color-status-warning); }
+.widget-meter.is-alarm .widget-meter-fill { background: var(--color-status-error); }
+
+/* A key: swatches and labels in a line under a chart. */
+.widget-key {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem var(--space-3);
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.widget-key-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.widget-swatch {
+    width: 0.7rem;
+    height: 0.7rem;
+    flex: 0 0 auto;
+    border-radius: 3px;
+}
+
+.widget-tooltip {
+    position: fixed;
+    z-index: 60;
+    max-width: 22rem;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-small);
+    background: var(--color-surface-raised);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--color-shadow) 35%, transparent);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    pointer-events: none;
+}
+
+.widget-tooltip[hidden] {
+    display: none;
+}
+
+.widget-tooltip-title {
+    margin-bottom: 0.15rem;
+    color: var(--color-text-primary);
+    font-weight: 650;
+}
+
+/* ========================================================================== */
+/* 04. TIME SERIES                                                             */
+/* ========================================================================== */
+
+.widget-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.widget-grid {
+    stroke: var(--color-border-subtle);
+    stroke-width: 1;
+}
+
+.widget-grid-warn {
+    stroke: color-mix(in srgb, var(--color-status-warning) 55%, transparent);
+}
+
+.widget-axis {
+    fill: var(--color-text-muted);
+    font: 11px var(--font-mono);
+}
+
+.widget-area {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 12%, transparent);
+}
+
+.widget-line {
+    fill: none;
+    stroke: var(--hue, var(--color-accent));
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
+
+/* Mirrored chart: the "out" side in a lighter step of the hue. */
+.widget-area.is-down {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 7%, transparent);
+}
+
+.widget-line.is-down {
+    stroke: color-mix(in srgb, var(--hue, var(--color-accent)) 55%, var(--color-text-muted));
+}
+
+.widget-dot {
+    fill: var(--hue, var(--color-accent));
+    stroke: var(--color-panel-background);
+    stroke-width: 2;
+}
+
+.widget-cross {
+    stroke: var(--color-border-bright);
+    stroke-width: 1;
+}
+
+.widget-hit {
+    fill: transparent;
+    cursor: crosshair;
+}
+
+.widget-hit:focus-visible {
+    outline: 2px solid var(--color-accent);
+}
+
+.widget-spark .widget-muted {
+    margin: 0;
+}
+
+/* Small multiples: one sparkline per item on one shared scale. */
+.widget-multiples {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: var(--space-2) var(--space-3);
+}
+
+.widget-multiple-name {
+    margin: 0 0 0.15rem;
+    overflow: hidden;
+    font: var(--text-xs) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ========================================================================== */
+/* 05. DONUTS, PIES, SUNBURSTS, THE CLOCK                                      */
+/* ========================================================================== */
+
+/* The chart beside its legend; when the widget's own box is too narrow
+   for both, the legend wraps under the chart and takes the full width. */
+.widget-donut {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.widget-donut > .widget-round-svg {
+    flex: 0 1 9.5rem;
+    min-width: 6.5rem;
+}
+
+.widget-donut > .widget-legend {
+    flex: 1 1 13rem;
+    min-width: 0;
+}
+
+.widget-round-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+/* Slices are separated by a 2px surface gap. */
+.widget-slice {
+    stroke: var(--color-panel-background);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    outline: none;
+    transition: opacity 120ms ease;
+}
+
+/* Sunburst members: alternating lighter and darker steps of the group hue. */
+.widget-slice-outer.step-0 { fill-opacity: 0.72; }
+.widget-slice-outer.step-1 { fill-opacity: 0.5; }
+
+.widget-round-svg.is-focused .widget-slice:not(.is-lit) {
+    opacity: 0.35;
+}
+
+.widget-slice:focus-visible {
+    stroke: var(--color-accent);
+}
+
+.widget-round-empty {
+    fill: none;
+    stroke: color-mix(in srgb, var(--color-text-muted) 20%, transparent);
+}
+
+.widget-round-centre {
+    fill: var(--color-text-primary);
+    font: 650 26px var(--font-display);
+}
+
+.widget-round-centre.is-small {
+    font-size: 20px;
+}
+
+.widget-round-caption {
+    fill: var(--color-text-muted);
+    font: 10px var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.widget-legend {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font: var(--text-xs) var(--font-mono);
+}
+
+.widget-legend-row {
+    display: grid;
+    grid-template-columns: 0.7rem minmax(0, 1fr) auto 2.6rem;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    outline: none;
+}
+
+.widget-legend-row.is-lit {
+    background: var(--color-surface-hover);
+}
+
+.widget-legend-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--color-text-secondary);
+    line-height: 1.25;
+}
+
+.widget-legend-value {
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.widget-legend-share {
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.widget-clock-ring {
+    fill: none;
+    stroke: var(--color-border-subtle);
+}
+
+.widget-clock-hour {
+    fill: var(--color-text-muted);
+    font: 10px var(--font-mono);
+}
+
+.widget-clock-petal {
+    fill: var(--hue, var(--color-accent));
+    opacity: 0.85;
+}
+
+.widget-clock-now {
+    stroke: var(--color-text-primary);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+}
+
+.widget-clock-wrap {
+    max-width: 16rem;
+    margin: 0 auto;
+    outline: none;
+}
+
+/* ========================================================================== */
+/* 06. BARS, COLUMNS, SEGMENTS                                                 */
+/* ========================================================================== */
+
+/* A bar list: name, bar, figure on one line (two on phones). */
+.widget-bars {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.widget-bar-row {
+    display: grid;
+    grid-template-columns: minmax(6rem, 12rem) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0.3rem 0;
+    outline: none;
+}
+
+.widget-bar-row:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-accent);
+    border-radius: 4px;
+}
+
+.widget-bar-name {
+    min-width: 0;
+    overflow: hidden;
+    font: var(--text-xs) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.widget-bar-figure {
+    color: var(--color-text-secondary);
+    font: var(--text-xs) var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* Allocation: one scale for every row, a tick at each row's capacity. */
+.widget-alloc {
+    position: relative;
+    display: block;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--hue, var(--color-accent)) 8%, var(--color-console-recess));
+}
+
+.widget-alloc-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: var(--radius-pill);
+    background: var(--hue, var(--color-accent));
+}
+
+.widget-alloc.is-over .widget-alloc-fill {
+    background: var(--color-status-warning);
+}
+
+.widget-alloc-cap {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--color-text-secondary);
+}
+
+/* Split bars: parts laid end to end, a 2px surface gap between. */
+.widget-split {
+    display: flex;
+    gap: 2px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--hue, var(--color-accent)) 8%, var(--color-console-recess));
+}
+
+.widget-split-part {
+    border-radius: var(--radius-pill);
+}
+
+.widget-split-part.step-0 { background: var(--hue, var(--color-accent)); }
+.widget-split-part.step-1 { background: color-mix(in srgb, var(--hue, var(--color-accent)) 45%, var(--color-console-recess)); }
+.widget-split-part.step-2 { background: color-mix(in srgb, var(--hue, var(--color-accent)) 22%, var(--color-console-recess)); }
+
+.widget-key .widget-split-part {
+    width: 0.9rem;
+    height: 0.6rem;
+}
+
+/* Columns: the hue, recoloured by tone. */
+.widget-col {
+    fill: var(--hue, var(--color-accent));
+}
+
+.widget-col.is-warning {
+    fill: var(--color-status-warning);
+}
+
+.widget-col.is-alarm {
+    fill: var(--color-status-error);
+}
+
+.widget-col.is-muted {
+    fill: var(--chart-other);
+}
+
+.widget-col:hover,
+.widget-col:focus-visible {
+    opacity: 0.8;
+    outline: none;
+}
+
+/* Marked columns (such as your own Wi-Fi channels) take the full hue; the
+   rest dim toward the recess. */
+.has-marks .widget-col:not(.is-marked):not(.is-warning):not(.is-alarm) {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 40%, var(--color-console-recess, var(--color-panel-background)));
+}
+
+/* Column groups: small charts on one scale, each only as wide as its
+   columns (set through the CSSOM). */
+.widget-column-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: var(--space-3);
+}
+
+.widget-column-group {
+    min-width: 0;
+}
+
+.widget-group-title {
+    margin: 0 0 var(--space-2);
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.widget-note {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+/* Segments: one bar split into parts, a 2px surface gap between. */
+.widget-segments {
+    display: flex;
+    gap: 2px;
+    height: 12px;
+}
+
+.widget-segment {
+    min-width: 4px;
+    border-radius: 4px;
+    outline: none;
+}
+
+.widget-segment:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+/* ========================================================================== */
+/* 07. TREEMAP, TIMELINE, ATTENTION                                            */
+/* ========================================================================== */
+
+.widget-treemap {
+    position: relative;
+    overflow-x: auto;
+}
+
+.widget-treemap-svg {
+    display: block;
+    width: 100%;
+    min-width: 36rem;
+    height: auto;
+}
+
+.widget-treemap-group {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 6%, transparent);
+    stroke: var(--color-border);
+}
+
+.widget-treemap-group-label {
+    fill: var(--color-text-secondary);
+    font: 600 11px var(--font-mono);
+}
+
+.widget-treemap-tile {
+    outline: none;
+}
+
+.widget-treemap-tile rect:first-child {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 30%, var(--color-console-recess));
+    stroke: var(--color-panel-background);
+    stroke-width: 2;
+}
+
+.widget-treemap-tile.is-dim rect:first-child {
+    fill: color-mix(in srgb, var(--color-text-muted) 14%, var(--color-console-recess));
+}
+
+.widget-treemap-tile:hover rect:first-child,
+.widget-treemap-tile:focus-visible rect:first-child {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 48%, var(--color-console-recess));
+}
+
+.widget-treemap-use {
+    fill: var(--hue, var(--color-accent));
+}
+
+.widget-treemap-label {
+    fill: var(--color-text-primary);
+    font: 650 11px var(--font-mono);
+    pointer-events: none;
+}
+
+.widget-treemap-detail {
+    fill: var(--color-text-secondary);
+    font: 10px var(--font-mono);
+    pointer-events: none;
+}
+
+/* Timeline marks share the slot and status colours. */
+.widget-event {
+    stroke: var(--color-panel-background);
+    stroke-width: 2;
+    outline: none;
+}
+
+.widget-event:hover,
+.widget-event:focus-visible {
+    stroke: var(--color-text-primary);
+}
+
+/* Attention: a lamp and a linked sentence per item, worst first. */
+.widget-attention {
+    display: grid;
+    gap: 0.2rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-sm);
+}
+
+.widget-attention li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+}
+
+.widget-attention li:nth-child(even) {
+    background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+}
+
+.widget-attention a,
+.widget-attention span:not(.led) {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+}
+
+.widget-attention .is-alarm a,
+.widget-attention .is-alarm span:not(.led) {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+.widget-attention a:hover,
+.widget-attention a:focus-visible {
+    color: var(--color-accent);
+}
+
+/* The last line of a capped list: how many more, linked when it can be. */
+.widget-attention li.widget-attention-more {
+    padding-left: 1.6rem;
+    background: none;
+    font-size: var(--text-xs);
+}
+
+.widget-attention-clear {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+/* ========================================================================== */
+/* 08. CARDS AND DNS SINKHOLES                                                 */
+/* ========================================================================== */
+
+/* A card inside a panel: one bordered step deeper. */
+.widget-card {
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-small);
+}
+
+.widget-pill {
+    padding: 0.05rem 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    font: 10px var(--font-mono);
+    white-space: nowrap;
+}
+
+/* Label and value pairs. */
+.widget-facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.2rem var(--space-3);
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-xs);
+}
+
+.widget-facts dt {
+    color: var(--color-text-muted);
+}
+
+.widget-facts dd {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+}
+
+.widget-sinkholes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: var(--space-2);
+}
+
+.widget-sinkhole-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.widget-sinkhole-heading > div {
+    min-width: 0;
+}
+
+.widget-sinkhole-heading h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font: 650 var(--text-sm) var(--font-mono);
+    overflow-wrap: anywhere;
+}
+
+.widget-sinkhole-heading p {
+    margin: 0;
+}
+
+.widget-sinkhole-heading .widget-pill {
+    margin-left: auto;
+}
+
+/* A drawn Pi-hole mark: a disc with a hole, in the hue. */
+.widget-pihole-mark {
+    flex: 0 0 auto;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--color-panel-background) 0 28%, var(--hue, var(--color-lamp-port)) 30% 100%);
+    opacity: 0.55;
+}
+
+.is-pihole .widget-pihole-mark {
+    opacity: 1;
+}
+
+.widget-pill.is-pihole {
+    border-color: var(--hue, var(--color-lamp-port));
+    color: var(--color-text-primary);
+}
+
+.widget-evidence {
+    margin: var(--space-2) 0;
+    padding-left: 1.1rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+}
+
+.widget-sinkhole-foot {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+/* Pi-hole statistics inside a sinkhole card. */
+.widget-pihole-stats {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.widget-pihole-history {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.widget-top-blocked {
+    margin: 0;
+    padding-left: 1.2rem;
+    font: var(--text-xs) var(--font-mono);
+    overflow-wrap: anywhere;
+}
+
+/* ========================================================================== */
+/* 09. PHONES                                                                  */
+/* ========================================================================== */
+
+@media (max-width: 640px) {
+    .widget-panel {
+        padding: var(--space-3);
+    }
+
+    .widget-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .widget-row,
+    .widget-row.is-wide {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Bars: name and figure on one line, the bar under them. */
+    .widget-bar-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.2rem var(--space-2);
+    }
+
+    .widget-bar-row > :nth-child(2) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}

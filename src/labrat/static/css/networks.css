@@ -1,0 +1,382 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/*
+ * The Networks page (templates/private/networks.html, js/networks.js). It
+ * borrows panels, tiles, meters, donuts, lists, and the tooltip from
+ * cluster.css, and draws in the network hue. This file owns the health
+ * strip, the zone graph and matrix, network and Wi-Fi cards, the uplink
+ * tree, and port lamps. DNS sinkhole cards and the Wi-Fi channel charts
+ * are widgets (widgets.css).
+ *
+ * Contents
+ *   01. Health
+ *   02. Zone graph, detail, and matrix
+ *   03. Network, Wi-Fi, and device cards
+ *   04. Phones and reduced motion
+ */
+
+/* ========================================================================== */
+/* 01. HEALTH                                                                  */
+/* ========================================================================== */
+
+.net-health {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.net-health-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-raised);
+    font: var(--text-xs) var(--font-mono);
+    outline: none;
+}
+
+.net-health-chip.is-warn { border-color: color-mix(in srgb, var(--color-status-warning) 55%, transparent); }
+.net-health-chip.is-alarm { border-color: color-mix(in srgb, var(--color-status-error) 65%, transparent); }
+
+/* ========================================================================== */
+/* 02. ZONE GRAPH, DETAIL, AND MATRIX                                          */
+/* ========================================================================== */
+
+.net-zone-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 1fr);
+    gap: var(--space-3);
+    align-items: start;
+}
+
+.net-zone-wrap {
+    position: relative;
+    overflow-x: auto;
+}
+
+.net-zone-svg {
+    display: block;
+    width: 100%;
+    min-width: 34rem;
+    height: auto;
+}
+
+.net-zone rect {
+    fill: var(--color-surface-raised);
+    stroke: var(--color-border-strong);
+    stroke-width: 1;
+}
+
+.net-zone.is-user rect {
+    stroke: color-mix(in srgb, var(--hue, var(--color-accent)) 55%, var(--color-border-strong));
+}
+
+.net-zone.is-selected rect {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 16%, var(--color-surface-raised));
+    stroke: var(--hue, var(--color-accent));
+    stroke-width: 2;
+}
+
+.net-zone {
+    cursor: pointer;
+    outline: none;
+}
+
+.net-zone:hover rect,
+.net-zone:focus-visible rect {
+    stroke: var(--color-accent);
+}
+
+.net-zone-name {
+    fill: var(--color-text-primary);
+    font: 650 13px var(--font-mono);
+}
+
+.net-zone-networks {
+    fill: var(--color-text-muted);
+    font: 10px var(--font-mono);
+}
+
+.net-edge {
+    fill: none;
+    stroke-width: 2.5;
+    outline: none;
+}
+
+.net-edge.is-allow { stroke: var(--hue, var(--color-lamp-port)); }
+.net-edge.is-block { stroke: var(--color-status-error); stroke-dasharray: 7 5; }
+.net-edge.is-unknown,
+.net-edge.is-none { stroke: var(--color-text-faint); stroke-dasharray: 2 4; }
+.net-edge:hover,
+.net-edge:focus-visible { stroke-width: 4; }
+
+.net-arrow.is-allow { fill: var(--hue, var(--color-lamp-port)); }
+.net-arrow.is-block { fill: var(--color-status-error); }
+.net-arrow.is-unknown { fill: var(--color-text-faint); }
+
+.net-badge circle {
+    fill: var(--color-panel-background);
+    stroke: var(--color-border-strong);
+    stroke-width: 1.5;
+}
+
+.net-badge.is-flip circle {
+    stroke: var(--color-status-warning);
+    stroke-width: 2.5;
+}
+
+.net-badge text {
+    fill: var(--color-text-primary);
+    font: 600 11px var(--font-mono);
+}
+
+.net-self.is-allow { fill: var(--hue, var(--color-lamp-port)); }
+.net-self.is-block { fill: var(--color-status-error); }
+.net-self.has-exceptions { stroke: var(--color-status-warning); stroke-width: 2; }
+
+.net-direction {
+    margin-bottom: var(--space-2);
+    font-size: var(--text-xs);
+}
+
+.net-legend {
+    flex-wrap: wrap;
+}
+
+.net-key {
+    width: 1.4rem;
+    height: 0;
+    border-top: 3px solid var(--hue, var(--color-lamp-port));
+}
+
+.net-key.is-block {
+    border-top: 3px dashed var(--color-status-error);
+}
+
+.net-key-badge {
+    width: 0.8rem;
+    height: 0.8rem;
+    border: 2px solid var(--color-status-warning);
+    border-radius: 50%;
+}
+
+.net-routes,
+.net-exceptions {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.net-route {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-small);
+}
+
+.net-route-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--text-sm);
+}
+
+.net-exceptions {
+    margin: 0.35rem 0 0 1.2rem;
+    font-size: var(--text-xs);
+}
+
+.net-exceptions li {
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, auto) minmax(0, 1fr);
+    gap: 0.4rem;
+}
+
+.net-exception-action {
+    font: 600 10px var(--font-mono);
+    text-transform: uppercase;
+}
+
+.net-exceptions .is-allow .net-exception-action { color: var(--hue, var(--color-lamp-port)); }
+.net-exceptions .is-block .net-exception-action { color: var(--color-status-error); }
+
+.net-exception-name {
+    color: var(--color-text-secondary);
+}
+
+.net-matrix .net-cell {
+    text-align: center;
+}
+
+.net-cell.is-allow { background: color-mix(in srgb, var(--hue, var(--color-lamp-port)) 16%, transparent); }
+.net-cell.is-block { background: color-mix(in srgb, var(--color-status-error) 14%, transparent); }
+.net-cell.has-exceptions { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-status-warning) 70%, transparent); }
+
+.net-cell-mark {
+    font-weight: 700;
+}
+
+.net-cell-count {
+    margin-left: 0.3rem;
+    color: var(--color-text-muted);
+    font-size: 10px;
+}
+
+.net-rule-match {
+    max-width: 28rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ========================================================================== */
+/* 03. NETWORK, WI-FI, AND DEVICE CARDS                                        */
+/* ========================================================================== */
+
+.net-network-grid,
+.net-ssids {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: var(--space-2);
+}
+
+.net-network-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.net-network-heading h3 {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font: 650 var(--text-sm) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.net-vlan {
+    padding: 0.05rem 0.4rem;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--hue, var(--color-lamp-port)) 22%, transparent);
+    color: var(--color-text-primary);
+    font: 600 10px var(--font-mono);
+    white-space: nowrap;
+}
+
+.net-cidr {
+    margin: 0.3rem 0;
+    color: var(--color-text-primary);
+    font: 600 var(--text-md) var(--font-mono);
+}
+
+.net-capacity {
+    display: grid;
+    grid-template-columns: 3.4rem minmax(0, 1fr) 4rem;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.net-dns {
+    display: inline-block;
+    margin-right: 0.4rem;
+}
+
+.net-dns.is-pihole {
+    color: var(--color-text-primary);
+    text-decoration: underline;
+    text-decoration-color: var(--hue, var(--color-lamp-port));
+    text-underline-offset: 3px;
+}
+
+.net-flags,
+.net-bands {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: var(--space-2) 0 0;
+}
+
+.net-band {
+    padding: 0.05rem 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    font: 10px var(--font-mono);
+}
+
+.net-ssid.is-stopped,
+.net-device.is-stopped {
+    opacity: 0.6;
+}
+
+.net-tree {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-xs);
+}
+
+.net-tree-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.15rem 0.3rem;
+    border-radius: 4px;
+    outline: none;
+}
+
+.net-tree-row:hover,
+.net-tree-row:focus-visible {
+    background: var(--color-surface-hover);
+}
+
+.net-tree-row.depth-1 { padding-left: 1.4rem; }
+.net-tree-row.depth-2 { padding-left: 2.8rem; }
+.net-tree-row.depth-3 { padding-left: 4.2rem; }
+.net-tree-row.depth-4,
+.net-tree-row.depth-5 { padding-left: 5.6rem; }
+
+.net-tree-clients {
+    margin-left: auto;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+}
+
+/* Port lamps: brighter with link speed; dark when down. */
+.net-ports {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(0.8rem, 1fr));
+    gap: 3px;
+    margin: var(--space-2) 0;
+}
+
+.net-port {
+    height: 0.8rem;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--color-led-off) 60%, var(--color-console-recess));
+    outline: none;
+}
+
+.net-port.is-up.speed-slow { background: color-mix(in srgb, var(--color-lamp-port) 35%, var(--color-console-recess)); }
+.net-port.is-up.speed-1g { background: color-mix(in srgb, var(--color-lamp-port) 60%, var(--color-console-recess)); }
+.net-port.is-up.speed-2g { background: color-mix(in srgb, var(--color-lamp-port) 80%, var(--color-console-recess)); }
+.net-port.is-up.speed-10g { background: var(--color-lamp-port); }
+.net-port:focus-visible { box-shadow: 0 0 0 2px var(--color-accent); }
+
+/* ========================================================================== */
+/* 04. PHONES AND REDUCED MOTION                                               */
+/* ========================================================================== */
+
+@media (max-width: 1100px) {
+    .net-zone-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

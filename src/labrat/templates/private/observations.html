@@ -1,0 +1,66 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "base.html" %}
+{% from "private/_view_frame.html" import view_menu %}
+{% block title %}LabRat · Observations{% endblock %}
+{% block body_class %}workspace-body view-frame-body observations-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wan.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/observations.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
+<script src="{{ url_for('static', filename='js/wan.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/ups.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/view-frame.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/observations.js') }}" defer></script>
+{% endblock %}
+{% block content %}
+{# One view frame with the room views' compact heading (owner): the title,
+   then Scope and icon tools; the metrics and sunk panels below (owner: no
+   live bar, the source heartbeat panel covers the cache's health). #}
+<div id="observations-app" class="noc view-frame room-frame" data-csrf="{{ csrf_token }}" data-admin="{{ 'true' if viewer.is_admin else 'false' }}">
+  <header class="noc-header view-heading room-heading">
+    <div class="view-heading-readouts">
+      <div class="room-heading-path"><h1 id="noc-title">Observations</h1></div>
+    </div>
+    <div class="view-heading-actions room-heading-actions noc-controls" role="group" aria-label="Observation controls">
+      <label class="noc-scope" for="noc-room"><span>Scope</span> <select id="noc-room"><option value="">Whole lab</option>{% for room in rooms %}<option value="{{ room.id }}">{{ room.site_name }} / {{ room.name }}</option>{% endfor %}</select></label>
+      {% call view_menu("noc-tools", "Observation tools") %}
+        <button type="button" class="button button-quiet room-icon-button" id="noc-refresh" aria-label="Refresh" title="Refresh" data-tooltip="Refresh">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/></svg>
+        </button>
+        <button type="button" class="button button-quiet room-icon-button" id="noc-ignored" aria-label="Ignored items" title="Ignored items" data-tooltip="Ignored items">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c5 0 9 6 9 6a17 17 0 0 1-2.4 3M6.6 6.6C4.3 8.2 3 12 3 12s4 6 9 6a9 9 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+        </button>
+        {# Shown once panels have been rearranged; the layout is saved in this browser only. #}
+        <button type="button" class="button button-quiet room-icon-button" id="noc-layout-reset" aria-label="Reset layout: restore the default panel order" title="Restore the default panel order" data-tooltip="Reset layout" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 4v6h6M4 10a8 8 0 1 1 0 5"/></svg>
+        </button>
+        <button type="button" class="button button-quiet room-icon-button noc-wallboard-toggle" id="noc-wallboard" aria-label="Enter wallboard view" aria-pressed="false" title="Fill the browser window" data-tooltip="Wallboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg>
+          <span class="visually-hidden">Wallboard</span>
+        </button>
+      {% endcall %}
+    </div>
+  </header>
+  <p id="noc-error" class="noc-error" role="alert" hidden></p>
+  <section class="noc-metrics" id="noc-metrics" aria-label="Lab status"></section>
+  {# Announces keyboard panel moves to screen readers. #}
+  <p id="noc-arrange-status" class="noc-sr-only" role="status" aria-live="polite"></p>
+  <div class="noc-grid">
+    <section class="noc-panel noc-wan" data-signal="internet" aria-labelledby="noc-wan-title"><header><div><p class="eyebrow">01 / Internet</p><h2 id="noc-wan-title">Uplink telemetry</h2></div><span class="noc-tag">24 h history</span></header><div id="noc-wan-body"><p class="noc-empty">Waiting for WAN readings…</p></div></section>
+    <section class="noc-panel" data-signal="vpn" aria-labelledby="noc-vpn-title"><header><div><p class="eyebrow">02 / VPN</p><h2 id="noc-vpn-title">Tunnel health</h2></div><span class="noc-tag">UniFi</span></header><p class="noc-note">Connection state, uptime, and measured traffic. An idle tunnel is not a failed tunnel.</p><div id="noc-vpn-body"><p class="noc-empty">Waiting for VPN readings…</p></div></section>
+    <section class="noc-panel" data-signal="compute" aria-labelledby="noc-servers-title"><header><div><p class="eyebrow">03 / Compute</p><h2 id="noc-servers-title">Server fleet</h2></div></header><div class="noc-servers" id="noc-servers"></div></section>
+    <section class="noc-panel noc-power" data-signal="power" aria-labelledby="noc-power-title"><header><div><p class="eyebrow">04 / Power</p><h2 id="noc-power-title">UPS power</h2></div><span class="noc-tag">NUT</span></header><div class="noc-power-grid" id="noc-power"></div></section>
+    <section class="noc-panel noc-watch" data-signal="attention" aria-labelledby="noc-watch-title"><header><div><p class="eyebrow">05 / Attention</p><h2 id="noc-watch-title">Watchlist</h2></div><span id="noc-warning-count" class="noc-tag">—</span></header><p class="noc-note">Observed conditions; a down cabled port can also mean a moved cable.</p><div id="noc-warnings"></div></section>
+    <section class="noc-panel" data-signal="collection" aria-labelledby="noc-sources-title"><header><div><p class="eyebrow">06 / Collection</p><h2 id="noc-sources-title">Source heartbeat</h2></div><span class="noc-tag">Lab-wide</span></header><p class="noc-note">Collector health applies to every area.</p><div id="noc-sources"></div></section>
+    <section class="noc-panel" data-signal="network" aria-labelledby="noc-ports-title"><header><div><p class="eyebrow">07 / Physical network</p><h2 id="noc-ports-title">Port state</h2></div><span class="noc-tag">Physical NICs only</span></header><div id="noc-port-mix" class="noc-port-mix"></div><p class="noc-note">Lit: link up · grey: down · outlined: unknown. Hover a port for its name and speed.</p><div id="noc-ports"></div></section>
+    <section class="noc-panel" data-signal="log" aria-labelledby="noc-events-title"><header><div><p class="eyebrow">08 / Live log</p><h2 id="noc-events-title">Watch activity</h2></div><span class="noc-tag">This session</span></header><p class="noc-note">Changes observed since this page opened. Refreshes every 15 seconds.</p><ol id="noc-events" class="noc-events" aria-label="Recent observed changes"></ol></section>
+  </div>
+  <dialog id="noc-drawer" class="noc-drawer" aria-labelledby="noc-drawer-title">
+    <header class="noc-drawer-header"><h2 id="noc-drawer-title">Observation details</h2><button type="button" class="button button-quiet" id="noc-drawer-close" aria-label="Close details">×</button></header>
+    <div id="noc-drawer-body" class="noc-drawer-body"></div>
+    <p id="noc-drawer-error" class="noc-error" role="alert" hidden></p>
+    <footer id="noc-drawer-actions" class="noc-drawer-actions"></footer>
+  </dialog>
+</div>
+{% endblock %}

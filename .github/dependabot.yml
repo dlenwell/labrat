@@ -1,0 +1,21 @@
+# Copyright 2026 LabRat contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Weekly update pull requests for Python dependencies (pyproject.toml), the
+# pinned GitHub Actions, and the container's base image. GitHub also sends
+# security updates as soon as an advisory affects one of them.
+
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

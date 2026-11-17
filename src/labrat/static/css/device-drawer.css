@@ -1,0 +1,251 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+
+/* Used by: Discovery, Equipment and Diagram, Discovery clients, Floor plan, Locations, Location detail, Settings. */
+
+/*
+ * Shared slide-out drawer shell (Equipment, Discovery, and Settings).
+ *
+ * Markup: templates/private/_device_drawer.html. Behavior:
+ * static/js/device-drawer.js. The console finish (bezel, scanlines, title
+ * glow) is in console.css. Page stylesheets style what goes inside panels,
+ * never the shell, so a fix here applies to every page with a drawer.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Drawer                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/* Off screen until the page opens it (data-drawer="open" on the page root),
+   then it slides over the page from the right. */
+.device-drawer {
+    position: fixed;
+    z-index: 60;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    width: min(440px, 100vw);
+    flex-direction: column;
+    overflow: clip;
+    border-left: 1px solid var(--color-border-strong);
+    background: var(--color-panel-background-deep);
+    box-shadow: var(--shadow-overlay);
+    transform: translateX(105%);
+    transition: transform 240ms ease;
+}
+
+[data-drawer="open"] .device-drawer {
+    transform: translateX(0);
+}
+
+/* On phones the drawer covers the whole screen. */
+@media (max-width: 600px) {
+    .device-drawer {
+        width: 100%;
+        border-left: 0;
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Title bar: Back (when there is somewhere to go), title, tools, Close      */
+/* -------------------------------------------------------------------------- */
+
+.device-drawer-bar {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 3.5rem;
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-raised);
+}
+
+.device-drawer-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: var(--text-lg);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.device-drawer-title:focus {
+    outline: none;
+}
+
+.device-drawer-icon {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    background: var(--color-console-panel);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.device-drawer-icon:hover,
+.device-drawer-icon:focus-visible {
+    border-color: var(--color-phosphor-dim);
+    color: var(--color-phosphor-soft);
+}
+
+.device-drawer-icon[hidden] {
+    display: none;
+}
+
+/* The active panel's icon tools, right-aligned before Close (owner). */
+.device-drawer-tools {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+}
+
+.device-drawer-panel-tools {
+    display: flex;
+    gap: 2px;
+}
+
+.device-drawer-panel-tools[hidden],
+.device-drawer-panel-tools .room-icon-button[hidden] {
+    display: none;
+}
+
+/* Close only where the drawer fills the screen (phones); elsewhere a click
+   outside or Escape closes it (owner). */
+@media (min-width: 601px) {
+    .device-drawer-close {
+        display: none;
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Panels                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/* Panels share the space under the bar. Entering and exiting panels move
+   together; other panels stay hidden instead of flashing past. */
+.device-drawer-track {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+}
+
+/* Inside the drawer, panels are flat: no card border, radius, or fill. */
+.device-drawer-view {
+    position: absolute;
+    inset: 0;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    visibility: hidden;
+    transform: translateX(100%);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.device-drawer-view.is-active {
+    visibility: visible;
+    transform: translateX(0);
+    transition: transform 280ms ease;
+}
+
+.device-drawer-view.is-entering-right,
+.device-drawer-view.is-exiting-right {
+    visibility: visible;
+    transform: translateX(100%);
+}
+
+.device-drawer-view.is-entering-left,
+.device-drawer-view.is-exiting-left {
+    visibility: visible;
+    transform: translateX(-100%);
+}
+
+.device-drawer-view.is-exiting-left,
+.device-drawer-view.is-exiting-right {
+    transition: transform 280ms ease;
+}
+
+/* Each panel's own title is shown in the bar; keep it for screen readers
+   (panels are labelled by it) but hide it visually. */
+.device-drawer-panel-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* Footer: the panel's actions, pinned to the bottom of the drawer. */
+.device-drawer-footer {
+    position: sticky;
+    z-index: 2;
+    bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-4) calc(-1 * var(--space-5)) 0;
+    padding: var(--space-3) var(--space-5);
+    border-top: 1px solid var(--color-console-bezel-edge);
+    background: linear-gradient(0deg, var(--color-console-bezel), var(--color-console-panel));
+}
+
+.device-drawer-footer .button {
+    margin: 0;
+}
+
+/*
+ * A destructive action (Unplace, Delete rack): red, outlined, and faintly
+ * red-filled, at the far end of the footer, so it reads as "don't press me
+ * by accident" (owner).
+ */
+.device-drawer-footer .device-drawer-danger {
+    margin-left: auto;
+    border: 1px solid color-mix(in srgb, var(--color-status-error) 70%, transparent);
+    background: var(--color-error-background);
+    color: var(--color-status-error);
+}
+
+.device-drawer-footer .device-drawer-danger:hover,
+.device-drawer-footer .device-drawer-danger:focus-visible {
+    border-color: var(--color-status-error);
+    background: color-mix(in srgb, var(--color-status-error) 22%, var(--color-error-background));
+    color: var(--color-status-error);
+}
+
+/* Form fields: dark glass with a phosphor focus glow. */
+.device-drawer input,
+.device-drawer select {
+    border-color: var(--color-console-bezel-edge);
+    background: var(--color-console-recess);
+    font-family: var(--font-mono);
+}
+
+.device-drawer input:focus,
+.device-drawer select:focus {
+    border-color: var(--color-phosphor-dim);
+    box-shadow: 0 0 0 1px var(--color-phosphor-dim), 0 0 12px color-mix(in srgb, var(--color-phosphor) 20%, transparent);
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .device-drawer,
+    .device-drawer-view.is-active,
+    .device-drawer-view.is-exiting-left,
+    .device-drawer-view.is-exiting-right {
+        transition: none;
+    }
+}

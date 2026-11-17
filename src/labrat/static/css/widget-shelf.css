@@ -1,0 +1,781 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/* Used by: Landing, Home, Discovery, Equipment and Diagram, Discovery clients, Cluster, Networks, Floor plan, Widgets. */
+/*
+ * The disk shelf widget (js/widget-shelf.js, part of the widget kit):
+ * drives as 3.5" hot-swap bays in rack chassis, beside a health box.
+ * Chassis and sleds use the console tokens, so they read as equipment in
+ * every theme; lamps use the lamp and status colours. Widths, gauge
+ * levels, and blink timings come from the script through the CSSOM (the
+ * CSP forbids style attributes).
+ *
+ * Contents
+ *   01. Pool layout and the health box
+ *   02. Chassis
+ *   03. Sleds
+ *   04. Lamps and the readout
+ *   04b. Bay strip (a server's faceplate)
+ *   05. Phones and reduced motion
+ */
+
+/* ========================================================================== */
+/* 01. POOL LAYOUT AND THE HEALTH BOX                                          */
+/* ========================================================================== */
+
+.shelf-pools,
+.shelf-stack {
+    display: grid;
+    gap: var(--space-4);
+}
+
+/* Ceph: one chassis per host, stacked like a rack in every style. */
+.shelf-stack {
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+/* The health box on the left, the shelf taking the rest. */
+.shelf-pool {
+    display: grid;
+    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-3);
+}
+
+/* A shelf without a health box takes the full width. */
+.shelf-pool.is-bare {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* Masonry: chassis packed into columns as wide as two bays, each keeping
+   its own height, so short and tall chassis interlock (owner). */
+.shelf-stack.is-masonry {
+    display: block;
+    columns: 32rem;
+    column-gap: var(--space-3);
+}
+
+.shelf-stack.is-masonry > .shelf-chassis {
+    margin-bottom: var(--space-3);
+    break-inside: avoid;
+}
+
+/* Bays may get a little smaller in masonry, so three fit across a
+   chassis on a laptop screen (owner: a whole cluster on one screen). */
+.shelf-stack.is-masonry .shelf-chassis.is-shelf .shelf-bays {
+    --bay-min: 13rem;
+}
+
+.shelf-health {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-left: 3px solid var(--color-lamp-on);
+    border-radius: var(--radius-small);
+    background: color-mix(in srgb, var(--color-panel-background) 80%, var(--color-shade));
+}
+
+.shelf-health.is-warn { border-left-color: var(--color-status-warning); }
+.shelf-health.is-alarm { border-left-color: var(--color-status-error); }
+
+.shelf-health-heading h3 {
+    margin: var(--space-1) 0 0;
+    color: var(--color-text-primary);
+    font: 650 var(--text-lg) var(--font-mono);
+    overflow-wrap: anywhere;
+}
+
+.shelf-health-heading p {
+    margin: 0;
+}
+
+.shelf-health-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font: 650 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.06em;
+}
+
+.shelf-health-state.is-on { color: var(--color-lamp-on); }
+.shelf-health-state.is-warn { color: var(--color-status-warning); }
+.shelf-health-state.is-alarm { color: var(--color-status-error); }
+
+.shelf-health .widget-facts {
+    margin: 0;
+}
+
+.shelf-health-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+}
+
+.shelf-health-subheading {
+    margin: var(--space-1) 0 0;
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.shelf-warnings {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-xs);
+}
+
+.shelf-warnings li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    color: var(--color-text-secondary);
+}
+
+.shelf-warnings li.is-alarm {
+    color: var(--color-text-primary);
+}
+
+.shelf-warnings li.is-info {
+    color: var(--color-text-muted);
+}
+
+.shelf-readout-note {
+    color: var(--color-text-muted);
+}
+
+.shelf-health-note {
+    margin: 0;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--color-border-subtle);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+/* ========================================================================== */
+/* 02. CHASSIS                                                                 */
+/* ========================================================================== */
+
+/* A rack-mount enclosure: ears with screw holes either side of the body. */
+.shelf-chassis {
+    display: grid;
+    grid-template-columns: 1.1rem minmax(0, 1fr) 1.1rem;
+    min-width: 0;
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    background: var(--color-console-bezel);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--color-console-bezel-highlight) 60%, transparent),
+        0 6px 14px -8px var(--color-shadow);
+}
+
+.shelf-ear {
+    position: relative;
+    border-right: 1px solid color-mix(in srgb, var(--color-console-bezel-edge) 70%, transparent);
+}
+
+.shelf-ear.is-right {
+    border-right: 0;
+    border-left: 1px solid color-mix(in srgb, var(--color-console-bezel-edge) 70%, transparent);
+}
+
+/* Two screw holes per ear. */
+.shelf-ear::before,
+.shelf-ear::after {
+    position: absolute;
+    left: 50%;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--color-console-recess);
+    box-shadow: inset 0 1px 1px var(--color-shadow);
+    content: "";
+    transform: translateX(-50%);
+}
+
+.shelf-ear::before { top: 0.6rem; }
+.shelf-ear::after { bottom: 0.6rem; }
+
+.shelf-chassis-body {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    padding: var(--space-2);
+    background: var(--color-console-recess);
+}
+
+.shelf-chassis-label {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+    color: var(--color-text-muted);
+    font: 600 10px var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.shelf-chassis-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* min-width: 0 lets a bay grid shrink with the window, so narrowing
+   the page re-lays the bays out instead of leaving them overflowing. */
+.shelf-group {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.shelf-group-name {
+    margin: 0;
+    color: var(--hue, var(--color-accent));
+    font: 600 10px var(--font-mono);
+    letter-spacing: 0.06em;
+}
+
+/* ========================================================================== */
+/* 03. SLEDS                                                                   */
+/* ========================================================================== */
+
+/*
+ * Bays keep real sled proportions at a fixed width (owner: stretched
+ * sleds stopped looking like hot-swap bays). widget-shelf.js picks the
+ * columns to balance rows and columns (8 drives make two rows of 4); no
+ * empty slots are drawn (owner).
+ */
+.shelf-bays {
+    --bay-width: 14rem;
+    --bay-min: 14rem;
+    display: grid;
+    min-width: 0;
+    grid-template-columns: repeat(auto-fill, var(--bay-width));
+    gap: 4px;
+}
+
+/* Shelf: horizontal 3.5" sleds. A 3.5" caddy's face is about four
+   times as wide as it is tall (owner: keep that proportion); sleds scale
+   between 14rem and 18rem wide so a balanced layout fits. */
+.shelf-chassis.is-shelf .shelf-bays {
+    --bay-width: 18rem;
+    --bay-min: 14rem;
+}
+
+.shelf-sled {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    border: 1px solid color-mix(in srgb, var(--color-console-bezel-edge) 80%, transparent);
+    border-radius: 4px;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-console-panel-raised) 92%, var(--color-lift)), var(--color-console-panel));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-console-bezel-highlight) 50%, transparent);
+    outline: none;
+    transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.shelf-sled:hover,
+.shelf-sled:focus-visible {
+    border-color: var(--hue, var(--color-accent));
+}
+
+.shelf-sled.is-warn { border-color: color-mix(in srgb, var(--color-status-warning) 70%, transparent); }
+.shelf-sled.is-alarm { border-color: var(--color-status-error); }
+.shelf-sled.is-down { opacity: 0.6; }
+
+.shelf-chassis.is-shelf .shelf-sled {
+    container-type: inline-size;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.35rem;
+    aspect-ratio: 4 / 1;
+    overflow: hidden;
+    padding: 0.3rem 0.4rem 0.3rem 0.5rem;
+}
+
+/* A 4:1 sled under 16rem (64px tall) is too short for four readout lines:
+   the second data line (temperature and age, or fill and temperature)
+   moves to the tooltip, keeping the label, size, and verdict. */
+@container (max-width: 16rem) {
+    .shelf-readout-line:nth-child(3) {
+        display: none;
+    }
+}
+
+/* Narrower still, a warning or failing bay shows just its verdict
+   (REPLACE, FAIL); the count and each issue stay in the tooltip. */
+@container (max-width: 15rem) {
+    .shelf-readout-state:not(.is-on) .shelf-readout-count {
+        display: none;
+    }
+}
+
+/* The readout fits the caddy's height: tighter lines on the shelf. */
+.shelf-chassis.is-shelf .shelf-readout {
+    gap: 0;
+    padding: 0.15rem 0.4rem;
+    line-height: 1.2;
+}
+
+.shelf-chassis.is-shelf .shelf-readout-state {
+    margin: 0 -0.4rem -0.15rem;
+    padding: 0 0.4rem;
+}
+
+.shelf-sled-lamps {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.shelf-chassis.is-shelf .shelf-sled-lamps {
+    flex-direction: column;
+}
+
+/* Fill gauge, where the vent grille was (owner): a recessed slot that
+   fills from the bottom. --fill (0..1)
+   comes from widget-shelf.js through the CSSOM. */
+.shelf-gauge {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--color-console-bezel-edge) 80%, transparent);
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--color-console-recess) 65%, var(--color-shade));
+    outline: none;
+}
+
+.shelf-gauge-fill {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: calc(var(--fill, 0) * 100%);
+    background: var(--color-lamp-on);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-lamp-on) 50%, transparent);
+}
+
+.shelf-gauge-fill.is-warn {
+    background: var(--color-status-warning);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-status-warning) 50%, transparent);
+}
+
+.shelf-gauge-fill.is-alarm {
+    background: var(--color-status-error);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-status-error) 50%, transparent);
+}
+
+.shelf-gauge-fill.is-off {
+    display: none;
+}
+
+/* Gauges side by side: fill, then (on Ceph) the latency dial. */
+.shelf-gauges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* The latency dial: a half-circle speed gauge (owner). */
+.shelf-dial {
+    display: block;
+    width: 2.3rem;
+    height: auto;
+    overflow: visible;
+    outline: none;
+}
+
+.shelf-dial path {
+    fill: none;
+    stroke-linecap: round;
+}
+
+.shelf-dial-track {
+    stroke: color-mix(in srgb, var(--color-console-recess) 65%, var(--color-shade));
+    stroke-width: 5;
+}
+
+.shelf-dial-zone {
+    stroke-width: 5;
+    opacity: 0.35;
+}
+
+.shelf-dial-zone.is-warn { stroke: var(--color-status-warning); }
+.shelf-dial-zone.is-alarm { stroke: var(--color-status-error); }
+
+.shelf-dial-value {
+    stroke-width: 3;
+}
+
+.shelf-dial-value.is-on { stroke: var(--color-lamp-on); }
+.shelf-dial-value.is-warn { stroke: var(--color-status-warning); }
+.shelf-dial-value.is-alarm { stroke: var(--color-status-error); }
+
+.shelf-dial-needle {
+    stroke: var(--color-text-primary);
+    stroke-width: 1.4;
+    stroke-linecap: round;
+}
+
+.shelf-dial-hub {
+    fill: var(--color-text-primary);
+}
+
+.shelf-dial-text {
+    fill: var(--color-text-secondary);
+    font: 600 7px var(--font-mono);
+}
+
+.shelf-chassis.is-shelf .shelf-gauge {
+    width: 0.65rem;
+    height: 2.6rem;
+}
+
+/*
+ * NVMe bays are drawn as an M.2 board (owner): the sled is the circuit
+ * board itself, with faint traces, gold edge contacts (with the key notch's gap) where the latch
+ * would be, and a half-moon screw notch on the opposite edge. Board and
+ * contact colours match the Nodes tab's drive art (nodes.css).
+ */
+.shelf-sled.is-m2,
+.shelf-mini-bay.is-m2 {
+    --board: color-mix(in srgb, var(--hue, var(--color-accent)) 16%, var(--color-console-recess));
+    --trace: color-mix(in srgb, var(--hue, var(--color-accent)) 30%, var(--color-console-recess));
+    --gold: color-mix(in srgb, var(--color-status-warning) 60%, var(--color-console-recess));
+    border-color: color-mix(in srgb, var(--hue, var(--color-accent)) 45%, var(--color-border));
+    background:
+        repeating-linear-gradient(90deg, transparent 0 14px, color-mix(in srgb, var(--trace) 55%, transparent) 14px 15px),
+        repeating-linear-gradient(0deg, transparent 0 11px, color-mix(in srgb, var(--trace) 35%, transparent) 11px 12px),
+        var(--board);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--trace) 40%, transparent);
+}
+
+.shelf-sled.is-m2.is-warn,
+.shelf-mini-bay.is-m2.is-warn { border-color: color-mix(in srgb, var(--color-status-warning) 70%, transparent); }
+.shelf-sled.is-m2.is-alarm,
+.shelf-mini-bay.is-m2.is-alarm { border-color: var(--color-status-error); }
+
+/* The screw notch: a half-moon cut into the board's far edge. */
+.shelf-sled.is-m2::after {
+    position: absolute;
+    width: 0.7rem;
+    height: 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--gold) 70%, transparent);
+    border-radius: 50%;
+    background: var(--color-console-recess);
+    content: "";
+}
+
+.shelf-chassis.is-shelf .shelf-sled.is-m2::after {
+    top: 50%;
+    left: -0.35rem;
+    transform: translateY(-50%);
+}
+
+.shelf-chassis.is-shelf .shelf-sled.is-m2.has-pools::after {
+    left: calc(5px - 0.35rem);
+}
+
+/* Gold edge contacts, flush with the board's edge like a real M.2
+   stick (owner), with the key notch's gap. */
+.shelf-m2-contacts {
+    position: absolute;
+    background: repeating-linear-gradient(var(--contact-direction, 0deg), var(--gold) 0 3px, transparent 3px 5px);
+}
+
+.shelf-chassis.is-shelf .shelf-m2-contacts {
+    --contact-direction: 0deg;
+    top: 3px;
+    right: 0;
+    bottom: 3px;
+    width: 0.55rem;
+    mask-image: linear-gradient(0deg, black 0 30%, transparent 30% 38%, black 38%);
+}
+
+/* The contacts sit on the edge, so the readout takes their column. */
+.shelf-chassis.is-shelf .shelf-sled.is-m2 {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    padding-right: 0.85rem;
+}
+
+/* The Ceph pool stripe: one segment per pool, down the left edge. */
+.shelf-pool-stripe {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 5px;
+    background: var(--color-console-bezel);
+}
+
+.shelf-pool-stripe > span {
+    flex: 1;
+}
+
+.shelf-chassis.is-shelf .shelf-sled.has-pools {
+    padding-left: 0.75rem;
+}
+
+/* Release latch: a raised bar along the sled's handle edge. */
+.shelf-latch {
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--color-console-bezel-highlight), var(--color-console-bezel-edge));
+}
+
+.shelf-chassis.is-shelf .shelf-latch {
+    width: 0.45rem;
+    height: 80%;
+}
+
+/* ========================================================================== */
+/* 04. LAMPS AND THE READOUT                                                   */
+/* ========================================================================== */
+
+.shelf-led {
+    display: block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-console-recess);
+    box-shadow: inset 0 1px 1px var(--color-shadow);
+}
+
+.shelf-led-status.is-on {
+    background: var(--color-lamp-on);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-lamp-on) 70%, transparent);
+}
+
+.shelf-led-status.is-warn {
+    background: var(--color-status-warning);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-status-warning) 70%, transparent);
+}
+
+.shelf-led-status.is-alarm {
+    background: var(--color-status-error);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-status-error) 80%, transparent);
+    animation: shelf-alarm 1.2s steps(2, jump-none) infinite;
+}
+
+/* Activity: short flickers in the port teal, timing set per bay. */
+.shelf-led-activity:not(.is-dark) {
+    background: var(--color-lamp-port);
+    animation: shelf-activity 3s linear infinite;
+}
+
+/* Mostly dark with a burst of flickers, so bays never blink in step. */
+@keyframes shelf-activity {
+    0%, 52%, 100% { opacity: 0.14; box-shadow: none; }
+    54%, 60%, 70% { opacity: 1; box-shadow: 0 0 6px var(--color-lamp-port); }
+    57%, 64%, 74% { opacity: 0.3; box-shadow: none; }
+}
+
+@keyframes shelf-alarm {
+    0% { opacity: 1; }
+    100% { opacity: 0.35; }
+}
+
+/* The readout: a small dark display with monospaced lines. */
+.shelf-readout {
+    display: grid;
+    gap: 0.05rem;
+    min-width: 0;
+    padding: 0.25rem 0.4rem;
+    border: 1px solid color-mix(in srgb, var(--color-console-bezel-edge) 60%, transparent);
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--color-console-recess) 80%, var(--color-shade));
+    color: var(--color-text-secondary);
+    font: 10px/1.35 var(--font-mono);
+}
+
+.shelf-readout-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.4rem;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.shelf-readout-line > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shelf-readout-line b {
+    color: var(--color-text-primary);
+    font-weight: 650;
+}
+
+/* Readout cells toned by the data (temperature, fill). */
+.shelf-cell.is-warn { color: var(--color-status-warning); }
+.shelf-cell.is-alarm { color: var(--color-status-error); }
+.shelf-cell.is-off { color: var(--color-text-muted); }
+
+.shelf-readout-state.is-on { color: var(--color-lamp-on); }
+.shelf-readout-state.is-warn { color: var(--color-status-warning); }
+.shelf-readout-state.is-alarm { color: var(--color-status-error); }
+
+/* The verdict line is a tinted band in its tone, readable at a glance. */
+.shelf-readout-state {
+    margin: 0.1rem -0.4rem -0.25rem;
+    padding: 0.1rem 0.4rem;
+    border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    font-weight: 650;
+}
+
+/* ========================================================================== */
+/* 04b. BAY STRIP (a server's faceplate)                                       */
+/* ========================================================================== */
+
+/* Small bays in rows that share the height they are given (a rack
+   faceplate's room under its name); columns balance like the shelf's. */
+.shelf-mini {
+    --bay-width: 7.5rem;
+    --bay-min: 5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--bay-min), 1fr));
+    grid-auto-rows: minmax(0, 1.35rem);
+    align-content: start;
+    gap: 3px;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.shelf-mini-bay {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    min-height: 0;
+    padding: 0 6px 0 4px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--color-console-bezel-edge) 80%, transparent);
+    border-radius: 3px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-console-panel-raised) 92%, var(--color-lift)), var(--color-console-panel));
+    outline: none;
+}
+
+.shelf-mini-bay.is-warn { border-color: color-mix(in srgb, var(--color-status-warning) 70%, transparent); }
+.shelf-mini-bay.is-alarm { border-color: var(--color-status-error); }
+.shelf-mini-bay.is-down { opacity: 0.6; }
+.shelf-mini-bay.has-pools { padding-left: 7px; }
+
+.shelf-mini-bay .shelf-pool-stripe {
+    width: 3px;
+}
+
+.shelf-mini-lamps {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.shelf-mini-lamps .shelf-led {
+    width: 0.32rem;
+    height: 0.32rem;
+}
+
+.shelf-mini-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font: 600 9px/1 var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.shelf-mini-bay.is-warn .shelf-mini-name { color: var(--color-status-warning); }
+.shelf-mini-bay.is-alarm .shelf-mini-name { color: var(--color-status-error); }
+
+.shelf-mini-latch {
+    flex: 0 0 auto;
+    width: 3px;
+    height: 70%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--color-console-bezel-highlight), var(--color-console-bezel-edge));
+}
+
+/* An NVMe bay's gold contacts, flush with its edge. */
+.shelf-mini-contacts {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    bottom: 2px;
+    width: 4px;
+    background: repeating-linear-gradient(0deg, var(--gold) 0 2px, transparent 2px 3px);
+}
+
+/* The fill bar along the bay's bottom edge. */
+.shelf-mini-fill {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: color-mix(in srgb, var(--color-console-recess) 70%, transparent);
+}
+
+.shelf-mini-fill::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: calc(var(--fill, 0) * 100%);
+    background: var(--color-lamp-on);
+    content: "";
+}
+
+.shelf-mini-fill.is-warn::before { background: var(--color-status-warning); }
+.shelf-mini-fill.is-off { display: none; }
+
+/* ========================================================================== */
+/* 05. PHONES AND REDUCED MOTION                                               */
+/* ========================================================================== */
+
+/* The health box stacks over the shelf before the shelf gets cramped. */
+@media (max-width: 900px) {
+    .shelf-pool {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .shelf-chassis {
+        grid-template-columns: 0.6rem minmax(0, 1fr) 0.6rem;
+    }
+
+    .shelf-ear::before,
+    .shelf-ear::after {
+        width: 0.3rem;
+        height: 0.3rem;
+    }
+
+    .shelf-chassis.is-shelf .shelf-bays {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Reduced motion: lamps hold steady (activity dimly lit). */
+@media (prefers-reduced-motion: reduce) {
+    .shelf-led-activity:not(.is-dark),
+    .shelf-led-status.is-alarm {
+        animation: none;
+    }
+
+    .shelf-led-activity:not(.is-dark) {
+        opacity: 0.6;
+    }
+}

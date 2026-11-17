@@ -1,0 +1,772 @@
+/*
+ * Copyright 2026 LabRat contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Rack elevation: chassis frame, unit rulers, devices, shared shelves, and
+ * port lights. Rack View (racks.css + racks.js) and the landing page preview
+ * (landing.css) both load this file, so the preview can never drift from the
+ * real page. Change the rack's look here, once.
+ *
+ * --rack-u is the height of one rack unit. racks.js positions devices with
+ * the same value (RACK_UNIT_PIXELS); keep the two in sync.
+ *
+ * Used by: Landing, Equipment and Diagram.
+ */
+
+/* ========================================================================== */
+/* 01. LAYOUT AND RACK FRAME                                                  */
+/* ========================================================================== */
+
+/* Readouts: numbers and identifiers use the mono face (see main.css). */
+.rack-ruler,
+.rack-device-meta {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+}
+
+.rack-elevations {
+    --rack-u: 44px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(400px, 1fr));
+    gap: 1rem;
+    min-width: 816px;
+    align-items: start;
+}
+
+.rack-elevations[hidden] {
+    display: none;
+}
+
+.rack-elevations-single {
+    grid-template-columns: minmax(400px, 1fr);
+    min-width: 400px;
+    justify-content: center;
+}
+
+.rack-frame[hidden] {
+    display: none;
+}
+
+.rack-frame {
+    width: 100%;
+    min-width: 400px;
+    margin: 0 auto;
+    border: 2px solid var(--color-text-faint);
+    border-radius: var(--radius-control);
+    background: var(--color-page-background);
+    box-shadow: 0 18px 48px color-mix(in srgb, var(--color-shadow) 53%, transparent), inset 0 0 0 5px var(--color-panel-background);
+}
+
+.rack-elevations[data-width-inches="10"] .rack-frame {
+    width: min(66%, 400px);
+    min-width: 260px;
+}
+
+.rack-frame-top,
+.rack-frame-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 1rem;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 750;
+    letter-spacing: 0.17em;
+}
+
+.rack-frame-top {
+    border-bottom: 2px solid var(--color-border-strong);
+}
+
+.rack-frame-top span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* An empty bottom rail that closes the chassis. */
+.rack-frame-bottom {
+    min-height: 0.9rem;
+    padding-block: 0;
+    border-top: 2px solid var(--color-border-strong);
+}
+
+.rack-frame-body {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    padding: 5px 0;
+}
+
+.rack-ruler,
+.rack-slots {
+    position: relative;
+}
+
+.rack-ruler {
+    border-right: 2px solid var(--color-border-strong);
+    color: var(--color-text-muted);
+}
+
+.rack-ruler-right {
+    border-right: 0;
+    border-left: 2px solid var(--color-border-strong);
+}
+
+.rack-unit-number {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: var(--rack-u);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.rack-slots {
+    border-left: 5px solid var(--color-border-subtle);
+    border-right: 5px solid var(--color-border-subtle);
+    background: repeating-linear-gradient(
+        to bottom,
+        var(--color-field-background) 0,
+        var(--color-field-background) calc(var(--rack-u) - 1px),
+        var(--color-border) calc(var(--rack-u) - 1px),
+        var(--color-border) var(--rack-u)
+    );
+}
+
+/* ========================================================================== */
+/* 02. DEVICES AND SHARED SHELVES                                             */
+/* ========================================================================== */
+
+.rack-device {
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 4px;
+    width: calc(100% - 14px);
+    padding: 5px 10px;
+    border: 1px solid var(--color-accent-muted);
+    border-left: 5px solid var(--color-accent);
+    border-radius: var(--radius-small);
+    background: linear-gradient(115deg, var(--color-surface-hover), var(--color-panel-background) 80%);
+    color: var(--color-text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.rack-device[data-category="server"] {
+    border-left-color: var(--color-type-server);
+}
+
+.rack-device[data-category="switch"] {
+    border-left-color: var(--color-type-switch);
+}
+
+.rack-device[data-category="access_point"] {
+    border-left-color: var(--color-type-ap);
+}
+
+.rack-device[data-category="router"] {
+    border-left-color: var(--color-type-router);
+}
+
+.rack-device[data-category="firewall"] {
+    border-left-color: var(--color-type-firewall);
+}
+
+.rack-device[data-category="ups"] {
+    border-left-color: var(--color-type-ups);
+}
+.rack-device[data-category="modem"] {
+    border-left-color: var(--color-type-modem);
+}
+
+.rack-device:hover,
+.rack-device[aria-pressed="true"] {
+    border-color: var(--color-accent-strong);
+    background: var(--color-accent-surface);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 27%, transparent);
+}
+
+/*
+ * A shared 1U shelf: a steel tray in the rack chassis finish (like the
+ * Equipment view's rack-top plank) with a thicker lip along the bottom.
+ * Its devices rest on the lip as faceplates with the same device-type
+ * stripe as full rack devices.
+ */
+.rack-shared-shelf {
+    position: absolute;
+    left: 7px;
+    z-index: 2;
+    display: flex;
+    align-items: stretch;
+    gap: 3px;
+    width: calc(100% - 14px);
+    padding: 2px 3px 0;
+    border: 1px solid var(--color-console-bezel-highlight);
+    border-bottom: 3px solid var(--color-console-bezel-highlight);
+    border-radius: 3px;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-shadow) 35%, transparent), transparent 70%),
+        var(--color-console-bezel);
+}
+
+.rack-shared-device {
+    --type-color: var(--color-accent);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 0.25rem;
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid color-mix(in srgb, var(--color-console-bezel-highlight) 70%, transparent);
+    border-bottom: 0;
+    border-left: 3px solid var(--type-color);
+    border-radius: 2px 2px 0 0;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, white 6%, transparent), transparent 45%),
+        linear-gradient(115deg, var(--color-console-bezel), var(--color-console-panel-raised) 85%);
+    color: var(--color-text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: grab;
+    overflow: hidden;
+}
+
+.rack-shared-device[data-category="server"] { --type-color: var(--color-type-server); }
+.rack-shared-device[data-category="switch"] { --type-color: var(--color-type-switch); }
+.rack-shared-device[data-category="access_point"] { --type-color: var(--color-type-ap); }
+.rack-shared-device[data-category="router"] { --type-color: var(--color-type-router); }
+.rack-shared-device[data-category="firewall"] { --type-color: var(--color-type-firewall); }
+.rack-shared-device[data-category="ups"] { --type-color: var(--color-type-ups); }
+.rack-shared-device[data-category="modem"] { --type-color: var(--color-type-modem); }
+
+.rack-shared-device:active {
+    cursor: grabbing;
+}
+
+.rack-shared-device:hover {
+    border-color: color-mix(in srgb, var(--color-phosphor) 60%, transparent);
+    border-left-color: var(--type-color);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-phosphor) 22%, transparent);
+}
+
+/*
+ * Shelf items read like a full faceplate, with the name and lamps scaled to
+ * the drawn rack unit (--rack-u, set by racks.js applyProportions): never
+ * smaller than a faceplate's 0.85rem name and 7 px lamps, larger when a
+ * short rack is drawn tall. Lamps sit on their own row and shrink only when
+ * a narrow item runs out of room. Compact shelves keep their own sizes.
+ */
+.rack-shared-device {
+    --shelf-lamp: clamp(7px, calc(var(--rack-u, 30px) * 0.2), 14px);
+}
+
+.rack-shared-device-name {
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: clamp(0.85rem, calc(var(--rack-u, 30px) * 0.32), 1.35rem);
+    font-weight: 750;
+    letter-spacing: 0.03em;
+    line-height: 1.15;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rack-shared-device .rack-port-lights {
+    grid-auto-columns: minmax(0, calc(var(--shelf-lamp) * 1.3));
+    gap: calc(var(--shelf-lamp) * 0.4);
+    max-width: 100%;
+}
+
+.rack-shared-device .rack-port-light {
+    max-width: none;
+    height: var(--shelf-lamp);
+}
+
+/* ========================================================================== */
+/* 03. LABELS AND PORT LIGHTS                                                 */
+/* ========================================================================== */
+
+/* Names and ports occupy separate rows, including on a one-unit switch. */
+.rack-device-label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 10px;
+    min-width: 0;
+}
+
+.rack-device[data-units="1"] .rack-device-meta {
+    display: none;
+}
+
+.rack-device-name {
+    display: block;
+    min-width: 0;
+    font-size: 0.85rem;
+    line-height: 1.15;
+    font-weight: 750;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rack-device-meta {
+    display: block;
+    color: var(--color-text-secondary);
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+/* A single port row lets cables drop out without passing another socket. */
+.rack-port-lights {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 9px);
+    align-self: flex-end;
+    align-items: center;
+    justify-content: end;
+    gap: 3px;
+    width: 100%;
+    max-width: 285px;
+    flex: 0 0 auto;
+}
+
+.rack-port-light {
+    display: block;
+    width: 100%;
+    max-width: 9px;
+    height: 7px;
+    border: 1px solid var(--color-led-off-edge);
+    border-radius: 2px;
+    background: var(--color-led-off);
+}
+
+.rack-port-light[data-linked="true"] {
+    border-color: var(--color-status-ok);
+    background: var(--color-status-ok);
+}
+
+.rack-port-light.is-bonded {
+    border-radius: 50%;
+}
+
+/* ========================================================================== */
+/* 04. SHORT, COMPACT, AND TINY DEVICES                                       */
+/* ========================================================================== */
+
+/*
+ * Short devices, 30 to 40 px drawn (a 1U device in a mid-size window):
+ * the stacked faceplate (name, type line, lights) needs about 40 px, so its
+ * lights would sink onto the bottom border. Name and full-size lights share
+ * one row instead, the type line drops, and the lights sit at the bottom,
+ * 6 px off the edge like a server's (owner). racks.js marks them is-short.
+ */
+.rack-device.is-short {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+}
+
+.rack-device.is-short > span:first-child {
+    min-width: 0;
+}
+
+.rack-device.is-short .rack-device-meta {
+    display: none;
+}
+
+.rack-device.is-short .rack-port-lights {
+    width: auto;
+    max-width: 50%;
+    align-self: flex-end;
+}
+
+/*
+ * Compact devices (a small rack unit, such as a 10-inch rack drawn to scale):
+ * they keep their name and port lights but drop the second "type · U" line.
+ * racks.js marks each device by its drawn height.
+ */
+.rack-elevations.is-compact .rack-device,
+.rack-device.is-compact {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 0 5px;
+}
+
+/*
+ * Compact lights keep their full size while the row has room (owner: a
+ * short device is no reason to shrink lamps that fit): 7 px tall, up to
+ * 9 px wide, narrowing toward 3 px only when there are more ports than
+ * space. Only tiny devices (below) drop to pinheads.
+ */
+.rack-elevations.is-compact .rack-port-lights,
+.rack-device.is-compact .rack-port-lights,
+.rack-shared-shelf.is-compact .rack-port-lights {
+    grid-auto-columns: minmax(3px, 9px);
+    width: auto;
+    max-width: 60%;
+    align-self: center;
+    gap: 2px;
+}
+
+.rack-elevations.is-compact .rack-device-meta,
+.rack-device.is-compact .rack-device-meta {
+    display: none;
+}
+
+.rack-elevations.is-compact .rack-device-name,
+.rack-device.is-compact .rack-device-name {
+    font-size: 0.68rem;
+    line-height: 1.1;
+}
+
+.rack-elevations.is-compact .rack-device > span:first-child,
+.rack-device.is-compact > span:first-child {
+    min-width: 0;
+}
+
+.rack-elevations.is-compact .rack-unit-number {
+    font-size: 0.6rem;
+}
+
+/*
+ * Lit ports take their cable medium's color (Equipment view; the landing
+ * preview sets no medium and keeps the plain status green). Ports with a
+ * known cable get a ring.
+ */
+.rack-port-light[data-linked="true"][data-medium="copper"] { background: var(--color-cable-copper); border-color: var(--color-cable-copper); }
+.rack-port-light[data-linked="true"][data-medium="dac"] { background: var(--color-cable-dac); border-color: var(--color-cable-dac); }
+.rack-port-light[data-linked="true"][data-medium="fiber_multimode"] { background: var(--color-cable-fiber-mm); border-color: var(--color-cable-fiber-mm); }
+.rack-port-light[data-linked="true"][data-medium="fiber_singlemode"] { background: var(--color-cable-fiber-sm); border-color: var(--color-cable-fiber-sm); }
+.rack-port-light[data-linked="true"][data-medium="fiber"] { background: var(--color-cable-fiber); border-color: var(--color-cable-fiber); }
+
+.rack-port-light.is-cabled {
+    outline: 1px solid var(--color-text-primary);
+    outline-offset: 1px;
+}
+
+/*
+ * Very short devices: a small name and short lamps that still take the row's
+ * width. The lamps stay, since drawn cables attach to them.
+ */
+.rack-device.is-tiny .rack-port-lights,
+.rack-shared-shelf.is-tiny .rack-port-lights {
+    grid-auto-columns: minmax(2px, 9px);
+    gap: 1px;
+}
+
+/* Still as wide as the row allows; only shorter, to fit a tiny device. */
+.rack-device.is-tiny .rack-port-light,
+.rack-shared-shelf.is-tiny .rack-port-light {
+    height: 5px;
+    border-width: 0;
+    border-radius: 1px;
+}
+
+.rack-device.is-tiny .rack-port-light.is-cabled,
+.rack-shared-shelf.is-tiny .rack-port-light.is-cabled {
+    outline-width: 0;
+}
+
+.rack-device.is-tiny .rack-device-name,
+.rack-shared-shelf.is-tiny .rack-shared-device-name {
+    font-size: 0.58rem;
+    line-height: 1;
+}
+
+.rack-shared-shelf.is-compact .rack-shared-device {
+    flex-direction: row;
+    align-items: center;
+    padding-block: 0;
+}
+
+.rack-shared-shelf.is-compact .rack-shared-device-name {
+    font-size: 0.68rem;
+    line-height: 1.1;
+}
+
+/* ========================================================================== */
+/* 05. CONSOLE SKIN                                                           */
+/* ========================================================================== */
+
+/*
+ * Shared by the Equipment view and the landing preview: dark steel chassis,
+ * faceplates with a category stripe, glowing lamps, and the faceplate status
+ * lamp. Colors are the --color-console-* tokens.
+ */
+
+/* The chassis: dark steel with an inner rail shadow. */
+.rack-frame {
+    border: 1px solid var(--color-console-bezel-highlight);
+    border-radius: var(--radius-small);
+    background: var(--color-console-background);
+    box-shadow:
+        inset 0 0 0 3px var(--color-console-bezel),
+        0 0 0 1px color-mix(in srgb, var(--color-shadow) 60%, transparent),
+        0 14px 30px color-mix(in srgb, var(--color-shadow) 60%, transparent);
+}
+
+.rack-frame-top {
+    padding: 0.3rem 0.7rem;
+    border-bottom: 1px solid var(--color-console-bezel-edge);
+    color: var(--color-phosphor-dim);
+    font-size: 0.62rem;
+}
+
+.rack-frame-bottom {
+    min-height: 0.6rem;
+    border-top: 1px solid var(--color-console-bezel-edge);
+}
+
+.rack-frame-body {
+    grid-template-columns: 26px minmax(0, 1fr) 26px;
+    padding: 3px 0;
+}
+
+.rack-ruler {
+    border-color: var(--color-console-bezel-edge);
+    color: var(--color-phosphor-dim);
+}
+
+.rack-unit-number {
+    border-bottom-color: color-mix(in srgb, var(--color-console-bezel-edge) 60%, transparent);
+    font-size: 0.6rem;
+    overflow: hidden;
+}
+
+.rack-slots {
+    --bay: var(--color-rack-bay);
+    --bay-line: color-mix(in srgb, var(--color-console-bezel-edge) 45%, var(--bay));
+    border-left: 3px solid var(--color-console-bezel);
+    border-right: 3px solid var(--color-console-bezel);
+    background: repeating-linear-gradient(
+        to bottom,
+        var(--bay) 0,
+        var(--bay) calc(var(--rack-u) - 1px),
+        var(--bay-line) calc(var(--rack-u) - 1px),
+        var(--bay-line) var(--rack-u)
+    );
+}
+
+/* Faceplates: brushed dark metal, a category stripe, phosphor-white text. */
+.rack-device {
+    left: 4px;
+    right: 4px;
+    width: calc(100% - 8px);
+    border: 1px solid color-mix(in srgb, var(--color-console-bezel-highlight) 70%, transparent);
+    border-left-width: 4px;
+    border-radius: 3px;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, white 6%, transparent), transparent 45%),
+        linear-gradient(115deg, var(--color-console-bezel), var(--color-console-panel-raised) 85%);
+    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--color-shadow) 60%, transparent);
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.rack-device-name {
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.rack-device-meta {
+    color: var(--color-phosphor-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.rack-device:hover {
+    border-color: color-mix(in srgb, var(--color-phosphor) 60%, transparent);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, white 8%, transparent), transparent 45%),
+        linear-gradient(115deg, var(--color-console-bezel), var(--color-console-panel-raised) 85%);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-phosphor) 22%, transparent);
+}
+
+.rack-device[aria-pressed="true"],
+.rack-shared-device[aria-pressed="true"] {
+    z-index: 2;
+    border-color: var(--color-phosphor);
+    border-left-color: var(--type-color, var(--color-phosphor));
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-phosphor) 10%, transparent), transparent 60%),
+        var(--color-console-panel-raised);
+    box-shadow: 0 0 0 1px var(--color-phosphor), 0 0 18px color-mix(in srgb, var(--color-phosphor) 35%, transparent);
+}
+
+.rack-device[aria-pressed="true"] .rack-device-name {
+    color: var(--color-phosphor-soft);
+    text-shadow: var(--console-glow);
+}
+
+/* Indicator lamps: lit ports glow in their cable color. */
+.rack-port-light {
+    border-color: color-mix(in srgb, var(--color-shadow) 40%, var(--color-led-off-edge));
+    background: color-mix(in srgb, var(--color-shadow) 45%, var(--color-led-off));
+}
+
+.rack-port-light[data-linked="true"] {
+    box-shadow: 0 0 5px color-mix(in srgb, var(--color-status-ok) 80%, transparent);
+}
+
+.rack-port-light[data-linked="true"][data-medium="copper"] { box-shadow: 0 0 5px var(--color-cable-copper); }
+.rack-port-light[data-linked="true"][data-medium="dac"] { box-shadow: 0 0 5px var(--color-cable-dac); }
+.rack-port-light[data-linked="true"][data-medium="fiber_multimode"] { box-shadow: 0 0 5px var(--color-cable-fiber-mm); }
+.rack-port-light[data-linked="true"][data-medium="fiber_singlemode"] { box-shadow: 0 0 5px var(--color-cable-fiber-sm); }
+.rack-port-light[data-linked="true"][data-medium="fiber"] { box-shadow: 0 0 5px var(--color-cable-fiber); }
+
+/*
+ * A cabled port reported down is an amber fault lamp with a slow blink:
+ * usually a moved cable, so it is a warning, not an alarm.
+ */
+.rack-port-light[data-state="fault"] {
+    border-color: var(--color-console-warning);
+    background: var(--color-console-warning);
+    box-shadow: 0 0 6px var(--color-console-warning);
+    animation: rack-lamp-blink 2.4s steps(1, end) infinite;
+}
+
+@keyframes rack-lamp-blink {
+    50% {
+        background: var(--color-console-warning-dim);
+        box-shadow: none;
+    }
+}
+
+/*
+ * Live port lamps: a brief flicker on each lamp's own phase, more often on
+ * faster links (racks.js sets --flicker-period and --flicker-delay).
+ */
+.rack-port-light[data-state="up"] {
+    animation: rack-lamp-flicker var(--flicker-period, 4s) linear var(--flicker-delay, 0s) infinite;
+}
+
+@keyframes rack-lamp-flicker {
+    0%, 88%, 100% { opacity: 1; }
+    90% { opacity: 0.35; }
+    92% { opacity: 1; }
+    94% { opacity: 0.55; }
+}
+
+/* ========================================================================== */
+/* 06. STATUS LAMPS                                                           */
+/* ========================================================================== */
+
+/* Faceplate status lamp, before each device name. */
+.rack-status-lamp {
+    display: inline-block;
+    flex: none;
+    width: 6px;
+    height: 6px;
+    margin-right: 0.45em;
+    border-radius: 50%;
+    vertical-align: 0.1em;
+    background: color-mix(in srgb, var(--color-shadow) 45%, var(--color-led-off));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+}
+
+.rack-status-lamp[data-state="online"] {
+    background: var(--color-lamp-on);
+    box-shadow: 0 0 6px var(--color-lamp-on);
+}
+
+.rack-status-lamp[data-state="stale"] {
+    background: var(--color-console-warning);
+    box-shadow: 0 0 6px var(--color-console-warning);
+}
+
+.rack-status-lamp[data-state="offline"] {
+    background: var(--color-console-alarm);
+    box-shadow: 0 0 8px var(--color-console-alarm);
+    animation: rack-status-alarm 0.7s steps(1, end) infinite;
+}
+
+/* Powered off, BMC still answering (racks.js deviceState): a steady
+   advisory lamp, not the flashing alarm. */
+.rack-status-lamp[data-state="standby"] {
+    background: var(--color-console-advisory);
+    box-shadow: 0 0 6px var(--color-console-advisory);
+}
+
+@keyframes rack-status-alarm {
+    50% {
+        background: var(--color-console-alarm-dim);
+        box-shadow: none;
+    }
+}
+
+.rack-device.is-tiny .rack-status-lamp {
+    width: 4px;
+    height: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rack-port-light[data-state="fault"],
+    .rack-port-light[data-state="up"],
+    .rack-status-lamp[data-state="offline"] {
+        animation: none;
+    }
+}
+
+/* ========================================================================== */
+/* 07. DRIVE BAYS                                                             */
+/* ========================================================================== */
+
+/*
+ * A server's drives on its front faceplate (owner: hot-swap bays with
+ * health lamps), between its name row and port lights; the bay strip is
+ * the widget kit's (widget-shelf.css). Faceplates too short for them
+ * (compact, short) leave them out; a device that is no cluster node keeps
+ * an empty holder. Shared with the landing page's sample rack, whose NAS
+ * shows sample drives.
+ */
+.rack-drive-bays {
+    container-type: size;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+}
+
+.rack-drive-bays:empty,
+.rack-device.is-short .rack-drive-bays,
+.rack-device.is-compact .rack-drive-bays,
+.rack-elevations.is-compact .rack-drive-bays {
+    display: none;
+}
+
+.rack-drive-bays > .shelf-mini {
+    flex: 0 1 auto;
+    max-height: 100%;
+}
+
+/* Too little room for one readable row of bays (a phone's 4U face): leave
+   them out rather than clip them to slivers; the drawer has the drives. */
+@container (max-height: 1.5rem) {
+    .rack-drive-bays > .shelf-mini {
+        display: none;
+    }
+}

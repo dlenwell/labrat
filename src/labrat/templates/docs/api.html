@@ -1,0 +1,30 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "docs/base.html" %}
+
+{% block title %}LabRat · API reference{% endblock %}
+{% block docs_title %}API routes{% endblock %}
+{% block docs_intro %}The routes this build serves, read from the running app's route map and view docstrings.{% endblock %}
+
+{% block docs_content %}
+<section class="docs-prose">
+  <h2>Browser session API</h2>
+  <p>Protected routes use the same signed browser session as the HTML app. Writes require an administrator, JSON body, and <code>X-CSRF-Token</code>. The health route is public. This page lists the current code contract rather than private inventory data.</p>
+</section>
+<div class="docs-table-scroll">
+  <table class="docs-route-table">
+    <thead>
+      <tr><th scope="col">Method</th><th scope="col">Path</th><th scope="col">Purpose</th><th scope="col">Access</th></tr>
+    </thead>
+    <tbody>
+      {% for route in routes %}
+      <tr>
+        <td><span class="docs-method">{{ route.method }}</span></td>
+        <td><code>{{ route.path }}</code></td>
+        <td>{{ route.summary }}</td>
+        <td>{{ route.access }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

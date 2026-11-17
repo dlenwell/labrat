@@ -1,0 +1,57 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "base.html" %}
+{% from "private/_view_frame.html" import view_menu %}
+{% from "private/_widgets.html" import widget_styles, widget_scripts %}
+{% block title %}LabRat · Networks{% endblock %}
+{% block body_class %}networks-body view-frame-body workspace-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-switch.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+{{ widget_styles() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cluster.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/networks.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
+{% endblock %}
+{% block content %}
+{#
+  The Networks page (planning/specs/networks-page.md): UniFi networks,
+  firewall zones and the paths between them, Wi-Fi, devices, and clients.
+  networks.js reads /api/v1/network once and draws the tab in data-view.
+  It draws with the widget kit (widgets.js, widgets.css) and the Cluster
+  page's layout (cluster.css).
+#}
+<section id="networks-app" class="cluster-page networks-page" data-view="{{ view }}"
+  data-api="{{ url_for('network_api.network') }}" data-base="{{ url_for('private.networks') }}">
+  <section class="view-frame networks-frame" aria-label="Networks">
+    <header class="view-heading">
+      <div class="view-heading-readouts">
+        <h1 id="networks-title">Networks</h1>
+        <div class="view-summary" id="networks-summary" aria-live="polite">Loading…</div>
+      </div>
+      <div class="view-heading-actions" role="group" aria-label="Network controls">
+        {% call view_menu("networks-tools", "Refresh") %}
+          <button class="button button-quiet room-icon-button" id="networks-refresh" type="button" aria-label="Refresh" title="Refresh" data-tooltip="Refresh">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg>
+          </button>
+        {% endcall %}
+        <nav class="room-view-switch" aria-label="Network views">
+          {% for key, long, short in [('overview', 'Overview', 'Overview'), ('zones', 'Zones', 'Zones'), ('networks', 'Networks', 'Nets'), ('wifi', 'Wi-Fi', 'Wi-Fi'), ('devices', 'Devices', 'Devices'), ('clients', 'Clients', 'Clients')] %}
+          <a class="room-view-tab" data-tab="{{ key }}" href="{{ url_for('private.networks', view=key) if key != 'overview' else url_for('private.networks') }}"{% if view == key %} aria-current="page"{% endif %}><span class="view-tab-long">{{ long }}</span><span class="view-tab-short">{{ short }}</span></a>
+          {% endfor %}
+        </nav>
+      </div>
+    </header>
+    <p id="networks-notice" class="view-notice" role="status" aria-live="polite"></p>
+    <div class="cluster-views">
+      {% for key in views %}
+      <section class="cluster-view" id="networks-view-{{ key }}" data-view-panel="{{ key }}" aria-labelledby="networks-title"{% if view != key %} hidden{% endif %}></section>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+<script src="{{ url_for('static', filename='js/view-frame.js') }}" defer></script>
+{{ widget_scripts() }}
+<script src="{{ url_for('static', filename='js/proxmox-ui.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/network-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/networks.js') }}" defer></script>
+{% endblock %}
