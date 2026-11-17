@@ -1,0 +1,1230 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+
+/* Used by: Discovery, Equipment and Diagram, Discovery clients, Floor plan. */
+
+/*
+ * Shared device details panel, rename and neighbor-match forms (Equipment
+ * and Discovery). Rendered by static/js/device-details.js inside the shared
+ * drawer; panels come from templates/private/_device_drawer.html. Moved
+ * from racks.css; change these here so every page with the drawer matches.
+ */
+
+.device-detail-row dd {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+}
+
+.device-muted {
+    color: var(--color-text-secondary);
+}
+
+.device-details-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.device-details-panel .device-drawer-footer {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+/* The scrollbar's room is kept on both sides, so content sits centered with
+   even margins whether or not it scrolls (owner). */
+.device-details-panel .device-details {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+    padding-inline: var(--space-3);
+}
+
+.device-form input,
+.device-form select {
+    /* Field colors and borders come from main.css. */
+    width: 100%;
+}
+
+/* Physical ports keep their own cards, not ledger rows (owner). */
+.device-detail-port {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    gap: 0.45rem 0.75rem;
+    min-height: 3rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background-deep);
+}
+
+/* Doubled class: .device-detail-items, later in this file, indents lists. */
+.device-port-list.device-detail-items {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.6rem 0;
+    padding: 0;
+    list-style: none;
+}
+
+/*
+ * Ledger rows (owner: the list rules in planning/STYLEGUIDE.md): the
+ * drawer's label/value rows and its lists (on the network, bridges, VLANs)
+ * are compact lines with a faint accent stripe on every other row,
+ * on every page. A list row is a main line (name, then values or tags at
+ * its right) over one muted, ellipsized detail line with the full text in
+ * its tooltip.
+ */
+.device-ledger {
+    margin: 0.4rem 0 0.8rem;
+    padding: 0;
+    border-top: 1px solid var(--color-border);
+    list-style: none;
+}
+
+.device-ledger-row {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+    padding: 0.26rem 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.78rem;
+}
+
+.device-ledger-row:nth-child(even),
+.device-detail-row:nth-child(even) {
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+}
+
+.device-ledger-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.device-ledger-name {
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Traffic direction arrows in a ledger line, in the highlight color. */
+.device-ledger-arrow {
+    color: var(--color-accent);
+    font-weight: 700;
+}
+
+/* A VPN tunnel's kind (device-details.js deviceVpnKind), before its name. */
+.device-vpn-icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--color-lamp-port);
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* An inferred out-of-band management port's tag (deviceManagement). */
+.device-mgmt-label {
+    border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-border));
+    color: var(--color-accent);
+}
+
+/* What a bridge sits on, after its name: dimmer and italic (owner). */
+.device-ledger-on {
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-weight: 400;
+}
+
+.device-ledger-value {
+    margin-left: auto;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.device-ledger-detail {
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* "+N" after a row's first value; every value is in the tooltip. */
+.device-more {
+    margin-left: 0.4rem;
+    padding: 0 0.3rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    cursor: help;
+}
+
+.device-network-tabs-wrap {
+    min-width: 0;
+    margin-block: var(--space-3);
+}
+
+/* Drawer tabs are a pill track like the view switch (view-switch.css),
+   sized to its tabs (owner). */
+.device-network-tabs {
+    display: inline-flex;
+    max-width: 100%;
+    gap: 2px;
+    overflow-x: auto;
+    padding: 3px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-sunken);
+}
+
+.device-network-tab {
+    flex: 0 0 auto;
+    padding: var(--space-1) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.device-network-tab:hover {
+    color: var(--color-text-primary);
+}
+
+.device-network-tab[aria-selected="true"] {
+    background: var(--color-accent-surface);
+    color: var(--color-accent-strong);
+    box-shadow: 0 0 0 1px var(--color-accent-muted) inset;
+}
+
+.device-network-tab:focus-visible {
+    outline: 2px solid var(--color-accent-strong);
+    outline-offset: 1px;
+}
+
+/* The header strip over the well: "Network" left, the pill tabs right,
+   its bottom edge meeting the well's top (owner). */
+.device-network-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    /* The title sits 4 px further in, clear of the rounded corner (owner). */
+    padding: var(--space-1) var(--space-1) var(--space-1) calc(var(--space-3) + 4px);
+    border: 1px solid var(--color-border);
+    border-bottom: 0;
+    /* Rounded on top, concentric with the pill track inside: its half
+       height (about 19 px) plus the 5 px it sits in from this edge. The
+       well below rounds its bottom the same (owner). */
+    border-radius: 24px 24px 0 0;
+    background: var(--color-surface-raised);
+}
+
+.device-details .device-network-head h4 {
+    margin: 0;
+}
+
+/* The selected tab's content: a sunk well, rounded at the bottom where the
+   header strip meets its top (owner). */
+.device-network-panel {
+    min-width: 0;
+    margin-top: 0;
+    padding: var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: 0 0 24px 24px;
+    /* The rack bay's 24 px grid (racks.css .rack-bay), owner. */
+    background-color: var(--color-console-recess);
+    background-image:
+        linear-gradient(var(--color-border-subtle) 1px, transparent 1px),
+        linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px);
+    background-size: 24px 24px;
+    box-shadow:
+        inset 0 6px 8px -6px var(--color-shadow),
+        inset 0 -1px 0 color-mix(in srgb, var(--color-console-bezel-highlight) 40%, transparent);
+}
+
+/* Inside the well the lists sit 8 px in from its edges, opaque, so the grid
+   shows only around them (owner). */
+.device-network-panel {
+    padding: 0;
+}
+
+.device-network-panel .device-ledger,
+.device-network-panel .device-port-list.device-detail-items {
+    margin: 8px;
+}
+
+/* Lists round at the bottom, concentric with the well's 24 px corners
+   from 9 px in (8 px margin and its border), so 15 px (owner). */
+.device-network-panel .device-ledger {
+    overflow: hidden;
+    border-radius: 0 0 15px 15px;
+    background: var(--color-console-panel);
+}
+
+.device-network-panel .device-port-list > .device-detail-port:last-child {
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+}
+
+.device-network-panel .device-ledger-row:nth-child(even) {
+    background: color-mix(in srgb, var(--color-accent) 7%, var(--color-console-panel));
+}
+
+.device-network-panel > .device-muted {
+    margin: 8px;
+}
+
+.device-network-panel[hidden] {
+    display: none;
+}
+
+.device-bond-label {
+    flex: 0 1 auto;
+    max-width: 13rem;
+    overflow: hidden;
+    padding: 0.14rem 0.4rem;
+    border: 1px solid var(--color-accent-muted);
+    border-radius: 999px;
+    color: var(--color-accent-strong);
+    font-size: 0.66rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.device-logical-card {
+    display: grid;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background-deep);
+}
+
+.device-detail-port-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.device-detail-port-name {
+    overflow-wrap: anywhere;
+    color: var(--color-text-primary);
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.device-port-connector {
+    display: inline-flex;
+    flex: 0 0 5.35rem;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--color-text-secondary);
+}
+
+.device-port-connector svg {
+    width: 1.45rem;
+    height: 1.45rem;
+    overflow: visible;
+}
+
+.device-port-glyph-shell {
+    fill: var(--color-surface-hover);
+    stroke: currentColor;
+    stroke-width: 1.6;
+}
+
+.device-port-glyph-shell.is-unknown {
+    fill: none;
+    stroke-dasharray: 3 2.5;
+}
+
+.device-port-glyph-detail {
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.4;
+}
+
+.device-port-connector.is-rj45 {
+    color: var(--color-connector-rj45);
+}
+
+.device-port-connector.is-sfp,
+.device-port-connector.is-sfp_plus,
+.device-port-connector.is-sfp28 {
+    color: var(--color-connector-sfp);
+}
+
+.device-port-connector.is-combo {
+    color: var(--color-connector-combo);
+}
+
+/*
+ * In the drawer's port cards the glyph's color is the port's state (owner):
+ * the lit-port lamp color when up, faint grey when down, whatever the
+ * connector type (its shape says that). A down port's whole card is greyed
+ * out. The speed beside the glyph takes the same color.
+ */
+.device-detail-port .device-port-connector {
+    color: var(--color-lamp-port);
+}
+
+/* A down port is one slim greyed line: no cable line under it (owner). */
+.device-detail-port[data-linked="false"] {
+    min-height: 0;
+    padding-block: 0.15rem;
+}
+
+/* No speed label (a down port, Wi-Fi, USB), so the glyph keeps only its
+   own width (owner). */
+.device-detail-port[data-linked="false"] .device-port-connector,
+.device-detail-port .device-port-connector:not(:has(.device-port-connector-label)) {
+    flex-basis: auto;
+}
+
+/* Dim the contents, not the card, so the well's grid stays hidden. */
+.device-detail-port[data-linked="false"] > * {
+    opacity: 0.5;
+}
+
+.device-detail-port[data-linked="false"] .device-detail-port-cable {
+    display: none;
+}
+
+.device-detail-port[data-linked="false"] .device-port-connector,
+.device-detail-port[data-linked="false"] .device-detail-port-name {
+    color: var(--color-text-faint);
+}
+
+.device-port-connector-label {
+    font-size: 0.58rem;
+    font-weight: 750;
+    letter-spacing: 0.02em;
+}
+
+.device-port-status {
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+}
+
+.device-port-status[data-linked="true"] {
+    color: var(--color-status-ok);
+}
+
+.device-details,
+.device-form {
+    padding: var(--space-4) var(--space-5);
+}
+
+.device-details h3,
+.device-form h3 {
+    margin: 0 0 0.35rem;
+    color: var(--color-text-primary);
+    font-size: 1.05rem;
+}
+
+.device-field-help {
+    margin: 0.25rem 0 0.8rem;
+    color: var(--color-text-secondary);
+    font-size: 0.77rem;
+    line-height: 1.5;
+}
+
+.device-detail-list {
+    margin: 0.4rem 0 0.8rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.device-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.22rem 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.8rem;
+}
+
+.device-detail-row dt {
+    color: var(--color-text-muted);
+}
+
+.device-detail-row dd {
+    margin: 0;
+    color: var(--color-text-primary);
+    text-align: right;
+}
+
+.device-details h4 {
+    margin: 1rem 0 0.4rem;
+    font-size: 0.85rem;
+}
+
+.device-detail-items {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.65;
+}
+
+.device-form {
+    display: grid;
+    gap: 0.35rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.device-form[hidden] {
+    display: none;
+}
+
+.device-form label {
+    margin-top: 0.45rem;
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.device-form button {
+    margin-top: 0.7rem;
+}
+
+.device-form-feedback {
+    margin: 0.35rem 0 0;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-status-error) 55%, transparent);
+    border-radius: var(--radius-control);
+    background: var(--color-status-error-surface);
+    color: var(--color-text-primary);
+    font-size: 0.82rem;
+}
+
+.device-form-feedback[hidden] {
+    display: none;
+}
+
+.device-form-feedback[data-state="success"] {
+    border-color: color-mix(in srgb, var(--color-status-ok) 55%, transparent);
+    background: var(--color-status-ok-surface);
+    color: var(--color-text-primary);
+}
+
+/* Forms that fill a drawer panel need no top rule. */
+.device-drawer .device-form {
+    border-top: 0;
+}
+
+.device-detail-port-cable {
+    display: inline-flex;
+    flex-basis: 100%;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.device-detail-port-cable::before {
+    content: "";
+    width: 0.9rem;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--color-cable-unknown);
+}
+
+.device-detail-port-cable[data-medium="copper"]::before { background: var(--color-cable-copper);
+}
+
+.device-detail-port-cable[data-medium="dac"]::before { background: var(--color-cable-dac);
+}
+
+.device-detail-port-cable[data-medium="fiber_multimode"]::before { background: var(--color-cable-fiber-mm);
+}
+
+.device-detail-port-cable[data-medium="fiber_singlemode"]::before { background: var(--color-cable-fiber-sm);
+}
+
+.device-detail-port-cable[data-medium="fiber"]::before { background: var(--color-cable-fiber);
+}
+
+.device-detail-port-cable[data-medium="wifi"]::before { background: var(--color-cable-wifi);
+}
+
+.device-detail-port-cable[data-medium="usb"]::before { background: var(--color-type-ups);
+}
+
+.device-detail-port-cable[data-medium="relay"]::before {
+    background: repeating-linear-gradient(90deg, var(--color-type-ups) 0 2px, transparent 2px 5px);
+}
+
+.device-detail-port-identity {
+    flex-wrap: wrap;
+    row-gap: 0.1rem;
+}
+
+.device-drawer .device-details h3 {
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+}
+
+.device-drawer .device-details h4,
+.device-drawer .device-form label {
+    color: var(--color-phosphor-dim);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.device-drawer .device-detail-list {
+    border-top-color: var(--color-console-bezel-edge);
+}
+
+.device-drawer .device-detail-row {
+    border-bottom-color: color-mix(in srgb, var(--color-console-bezel-edge) 60%, transparent);
+}
+
+.device-drawer .device-detail-row dt {
+    color: var(--color-phosphor-dim);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.device-drawer .device-detail-row dd {
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+}
+
+
+.device-drawer .device-detail-port {
+    border-color: var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    background: var(--color-console-recess);
+    box-shadow: inset 0 0 10px color-mix(in srgb, var(--color-shadow) 45%, transparent);
+}
+
+.device-drawer .device-detail-port-name {
+    font-family: var(--font-mono);
+}
+
+.device-drawer .device-port-status[data-linked="true"] {
+    color: var(--color-phosphor);
+    text-shadow: var(--console-glow);
+}
+
+.device-drawer .device-network-tabs,
+.device-drawer .device-network-head {
+    border-color: var(--color-console-bezel-edge);
+}
+
+.device-drawer .device-network-head {
+    background: var(--color-console-panel-raised);
+}
+
+.device-drawer .device-network-panel {
+    border-color: var(--color-console-bezel-edge);
+}
+
+.device-drawer .device-logical-card {
+    border-color: var(--color-console-bezel-edge);
+    background: var(--color-console-panel-raised);
+}
+
+.device-ups-details h4 {
+    margin-top: var(--space-4);
+}
+
+.device-ups-details .widget-stat-grid {
+    margin-bottom: var(--space-2);
+}
+
+.device-ups-details[data-level="ok"] .device-detail-row:first-child dd { color: var(--color-lamp-on);
+}
+
+.device-ups-details[data-level="warning"] .device-detail-row:first-child dd { color: var(--color-console-warning);
+}
+
+.device-ups-details[data-level="alarm"] .device-detail-row:first-child dd { color: var(--color-console-alarm);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Proxmox node and guest details (device-cluster.js, drawn with widgets)     */
+/* -------------------------------------------------------------------------- */
+
+.device-cluster-details {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+
+.device-cluster-details[hidden] {
+    display: none;
+}
+
+.device-cluster-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.device-details .device-cluster-heading h4 {
+    margin: 0;
+}
+
+.device-cluster-link {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    text-decoration: none;
+}
+
+.device-cluster-link:hover,
+.device-cluster-link:focus-visible {
+    color: var(--color-accent);
+}
+
+/* Drawer tiles (Proxmox and UPS power): two to a row, tighter than on a page. */
+.device-cluster-details .widget-stat-grid,
+.device-ups-details .widget-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.device-cluster-details .widget-stat,
+.device-ups-details .widget-stat {
+    padding: var(--space-2) var(--space-3);
+}
+
+.device-cluster-details .widget-stat-value,
+.device-ups-details .widget-stat-value {
+    font-size: var(--text-lg);
+}
+
+/* The drawer's own h3 look would otherwise enlarge the tile labels. */
+.device-drawer .device-details .device-cluster-details .widget-stat-label,
+.device-drawer .device-details .device-ups-details .widget-stat-label {
+    margin: 0;
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-sans);
+    letter-spacing: normal;
+}
+
+.device-cluster-block {
+    display: grid;
+    gap: var(--space-1);
+}
+
+.device-cluster-block h5 {
+    margin: 0;
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* A trace: name, sparkline, latest figure on one line. */
+.device-cluster-trace {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) 5.5rem;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.device-cluster-trace-label {
+    color: var(--color-text-secondary);
+    font: var(--text-xs) var(--font-mono);
+}
+
+.device-cluster-trace-figure {
+    color: var(--color-text-primary);
+    font: 600 var(--text-xs) var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* Bars at drawer width: name and figure on one line, the bar under them. */
+.device-cluster-details .widget-bar-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.15rem var(--space-2);
+    padding: 0.2rem 0;
+}
+
+.device-cluster-details .widget-bar-row > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+}
+
+.device-cluster-details .widget-donut > .widget-round-svg {
+    flex-basis: 7.5rem;
+    min-width: 5.5rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Placement editor (device-placement.js): identity, room and place choices   */
+/* -------------------------------------------------------------------------- */
+
+.device-form fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 0;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    border: 0;
+}
+
+.device-form legend {
+    margin-bottom: 0.25rem;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    font-weight: 650;
+}
+
+.device-form fieldset[hidden],
+.device-form [hidden] {
+    display: none;
+}
+
+.device-form .device-identity-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin: 0;
+    padding: 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+}
+
+.device-form .device-identity-choice input {
+    flex: 0 0 auto;
+    width: 1rem;
+    min-height: 1rem;
+    margin-top: 0.15rem;
+    padding: 0;
+    accent-color: var(--color-accent);
+}
+
+.device-identity-choice span {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.device-identity-choice strong {
+    color: var(--color-text-primary);
+    font-size: 0.88rem;
+}
+
+.device-identity-choice small {
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.device-choice-list {
+    display: grid;
+    gap: 0.45rem;
+    max-height: 11rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* (".device-form" raises specificity over ".device-form button".) */
+.device-form .device-choice-button {
+    display: grid;
+    gap: 0.18rem;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-field-background);
+    color: var(--color-text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.device-choice-button:hover,
+.device-choice-button[aria-pressed="true"] {
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 12%, var(--color-field-background));
+}
+
+.device-choice-button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.device-choice-button strong {
+    overflow-wrap: anywhere;
+    font-size: 0.88rem;
+}
+
+.device-choice-button small {
+    color: var(--color-text-secondary);
+    font-size: 0.77rem;
+    text-transform: capitalize;
+}
+
+/* Rack options sit under the chosen rack, separated by a rule. */
+.device-rack-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin: 0 0 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+}
+
+#device-unit-fields,
+#device-height-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+/*
+ * The shared rack editor (templates/private/_rack_editor.html,
+ * rack-editor.js): the drawer's form, then the rack's shared shelves, each a
+ * name field with its unit and a Delete tool.
+ */
+.rack-editor,
+.area-editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.rack-editor-form,
+.area-editor-form {
+    flex: 1 1 auto;
+    /* Rows keep their own height at the top as the form fills the drawer. */
+    align-content: start;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.rack-editor-field[hidden],
+.rack-editor-shelves[hidden] {
+    display: none;
+}
+
+.rack-editor-shelves {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+}
+
+.rack-editor-shelf-list {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rack-editor-shelf {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.rack-editor-shelf-text {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 2px;
+    min-width: 0;
+}
+
+.rack-editor-shelf-meta {
+    color: var(--color-text-muted);
+    font: var(--text-xs) var(--font-mono);
+}
+
+/* Destructive icon tools (Delete rack, Delete shelf): the action color on
+   hover, not the accent (planning/STYLEGUIDE.md, Tool buttons). */
+.button.room-icon-button.device-danger-tool:hover:not(:disabled),
+.button.room-icon-button.device-danger-tool:focus-visible {
+    color: var(--color-action);
+}
+
+/* The editor's shelf rows sit in the form, outside the bar's icon sizing. */
+.rack-editor-shelf .room-icon-button {
+    position: relative;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: var(--space-1);
+}
+
+.rack-editor-shelf .room-icon-button svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* The editors' title lines up with their fields when no Back arrow comes
+   first (the Floor plan opens them directly), owner. */
+.device-drawer[data-view="rack-edit"] #device-drawer-back[hidden] + .device-drawer-title,
+.device-drawer[data-view="area-edit"] #device-drawer-back[hidden] + .device-drawer-title,
+.device-drawer[data-view="furniture"] #device-drawer-back[hidden] + .device-drawer-title {
+    margin-left: 10px;
+}
+
+/* The editors' drawer icon, a pencil left of the title (owner), drawn with
+   a mask so it takes the muted text color in every theme. */
+.device-drawer[data-view="rack-edit"] .device-drawer-title::before,
+.device-drawer[data-view="area-edit"] .device-drawer-title::before,
+.device-drawer[data-view="furniture"] .device-drawer-title::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    vertical-align: -1px;
+    background-color: var(--color-text-muted);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9l-4-4L4 16zM14 6l4 4'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9l-4-4L4 16zM14 6l4 4'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* The Add equipment list's drawer icon, a device with a plus left of the
+   title, its left edge on the list rows' icons and the title on their
+   names (owner). */
+.device-drawer:has(.equipment-list-panel.is-active) #device-drawer-back[hidden] + .device-drawer-title {
+    margin-left: 11px;
+}
+
+.device-drawer:has(.equipment-list-panel.is-active) .device-drawer-title::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin-right: var(--space-2);
+    vertical-align: -3px;
+    background-color: var(--color-text-secondary);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='13' height='13' rx='1.5'/%3E%3Cpath d='M2 13h13M5 10h2M5 16h2M19 2v8M15 6h8'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='13' height='13' rx='1.5'/%3E%3Cpath d='M2 13h13M5 10h2M5 16h2M19 2v8M15 6h8'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* The footer button lines up with the search and the rows (owner): this
+   panel has no padding for the drawer footer's usual margins to undo. */
+.equipment-list-panel .device-drawer-footer {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+}
+
+/*
+ * The shared Add equipment list (templates/private/_equipment_list.html,
+ * equipment-list.js): a search and filter toggles like Discovery clients',
+ * then one row per device with its type icon, name, and where it is.
+ */
+.equipment-list-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.equipment-list-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-height: 0;
+    padding: var(--space-3) var(--space-4);
+}
+
+.equipment-list-tools {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.equipment-list-search {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+    margin-right: var(--space-1);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-sunken);
+    color: var(--color-text-muted);
+}
+
+.equipment-list-search svg {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+}
+
+/* The field is invisible inside its pill: the drawer's own input look and
+   focus glow (device-drawer.css) would draw a second outline inside the
+   pill's, so the pill alone shows focus, with the drawer's glow (owner). */
+.device-drawer .equipment-list-search input,
+.device-drawer .equipment-list-search input:focus {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-1) 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--color-text-primary);
+    font: inherit;
+    outline: none;
+}
+
+.equipment-list-search:focus-within {
+    border-color: var(--color-phosphor-dim);
+    box-shadow: 0 0 0 1px var(--color-phosphor-dim), 0 0 12px color-mix(in srgb, var(--color-phosphor) 20%, transparent);
+}
+
+/* The toggles share the frame heading's icon sizing (main.css). */
+.equipment-list-tools .room-icon-button {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: var(--space-1);
+}
+
+.equipment-list-tools .room-icon-button svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.equipment-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    border-top: 1px solid var(--color-border);
+}
+
+/* Ledger rows, striped like the other drawer lists. */
+.equipment-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-width: 0;
+    padding: 0.3rem 0.5rem;
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.equipment-list-item:nth-child(even) {
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+}
+
+.equipment-list-item:hover,
+.equipment-list-item:focus-visible,
+.equipment-list-item[aria-pressed="true"] {
+    background: var(--color-surface-hover);
+}
+
+.equipment-list-item[draggable="true"] {
+    cursor: grab;
+}
+
+.equipment-list-icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--color-text-secondary);
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.equipment-list-text {
+    display: grid;
+    min-width: 0;
+}
+
+.equipment-list-name {
+    overflow: hidden;
+    font: 600 var(--text-sm) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.equipment-list-where {
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.equipment-list-empty {
+    margin: var(--space-3) 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+}
+
+/* The Floor plan: a device dragged from the plan over the list unplaces it. */
+.equipment-list-panel.is-drop-target {
+    box-shadow: 0 0 0 2px var(--color-accent) inset;
+}
+
+.equipment-list-panel.is-drop-target::after {
+    content: attr(data-drop-hint);
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--color-panel-background-deep) 85%, transparent);
+    color: var(--color-accent-strong);
+    font-weight: 600;
+    pointer-events: none;
+}

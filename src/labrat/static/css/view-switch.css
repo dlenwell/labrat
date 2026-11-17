@@ -1,0 +1,35 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/* Used by: Discovery, Equipment and Diagram, Discovery clients, Cluster, Networks, Floor plan, Locations, Location detail, Locations map, Widgets, Docs. */
+/* One view selector for Discovery and room workspaces; edit both here. */
+.room-view-switch {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-sunken);
+}
+
+.room-view-tab {
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.room-view-tab:hover {
+    color: var(--color-text-primary);
+}
+
+.room-view-tab[aria-current="page"] {
+    background: var(--color-accent-surface);
+    color: var(--color-accent-strong);
+    box-shadow: 0 0 0 1px var(--color-accent-muted) inset;
+}
+
+@media (max-width: 480px) {
+    .room-view-tab {
+        padding-inline: var(--space-2);
+    }
+}

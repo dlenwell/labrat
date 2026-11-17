@@ -1,0 +1,535 @@
+/*
+ * Copyright 2026 LabRat contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Public landing page: hero, decorative mini rack, and feature cards.
+ * All colors, type, and spacing come from tokens in main.css. Color comes
+ * from the signal hues (data-hue, main.css section 07b) and the rack
+ * preview's device-type stripes; status colors stay reserved for status.
+ */
+
+
+/* ========================================================================== */
+/* 01. HERO                                                                    */
+/* ========================================================================== */
+
+.landing-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+    align-items: center;
+    /* Room for the mascot peeking out from behind the rack (02b). */
+    gap: calc(var(--space-7) + 64px);
+    padding: clamp(1.75rem, 5vw, 3.5rem);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-card);
+    background:
+        radial-gradient(circle at 88% 14%, color-mix(in srgb, var(--color-signal-internet) 22%, transparent) 0, transparent 38%),
+        radial-gradient(circle at 62% 100%, color-mix(in srgb, var(--color-signal-vpn) 20%, transparent) 0, transparent 42%),
+        radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--color-signal-network) 14%, transparent) 0, transparent 40%),
+        linear-gradient(135deg, var(--color-surface-raised), var(--color-panel-background-deep) 70%);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
+        var(--shadow-overlay);
+}
+
+.landing-hero h1 {
+    margin-block: 0 var(--space-3);
+    max-width: 14ch;
+}
+
+/* The tagline sits under the headline (owner). */
+.landing-hero .eyebrow {
+    margin: 0 0 var(--space-4);
+}
+
+/* "lurking" in a cyan-to-violet gradient; the text stays real text. */
+.landing-lurking {
+    background: linear-gradient(100deg, var(--color-signal-internet), var(--color-signal-vpn) 85%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/*
+ * The bottom row (owner): the API light and the sources LabRat reads, as
+ * chips of one size that wrap together. The list keeps its own label but
+ * lays its items into the row.
+ */
+.landing-signals {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-6);
+}
+
+/* What the collectors read: one chip per source, dotted in its hue. */
+.landing-sources {
+    display: contents;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.landing-sources li,
+.landing-signals .status-row {
+    box-sizing: border-box;
+    height: 1.9rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+}
+
+.landing-sources li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--hue) 45%, var(--color-border));
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--hue) 9%, transparent);
+    color: var(--color-text-secondary);
+}
+
+.landing-sources li::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--hue);
+    box-shadow: 0 0 6px var(--hue);
+}
+
+.landing-hero .intro {
+    max-width: 38rem;
+    margin: 0;
+}
+
+.landing-hero .button-row {
+    margin-top: var(--space-6);
+}
+
+/* The API light: squared, unlike the round source chips, but their size. */
+.landing-signals .status-row {
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0 0.75rem;
+    border-radius: var(--radius-small);
+}
+
+/* The API light follows the state that main.js writes to #api-status. */
+.status-row:has([data-state="ok"]) .led {
+    --led-color: var(--color-status-ok);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--led-color) 45%, black),
+        0 0 6px color-mix(in srgb, var(--led-color) 55%, transparent);
+}
+
+.status-row:has([data-state="error"]) .led {
+    --led-color: var(--color-status-error);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--led-color) 45%, black),
+        0 0 6px color-mix(in srgb, var(--led-color) 55%, transparent);
+}
+
+
+/* ========================================================================== */
+/* 02. RACK VIEW PREVIEW                                                       */
+/* ========================================================================== */
+
+/*
+ * The preview is built from Rack View's own classes (rack-elevation.css), so
+ * its look always matches the real page. This section only does what
+ * racks.js does with inline styles there: size the rack and place each unit
+ * number and device. Inline styles are blocked by the content security
+ * policy, so positions come from data-u (top unit) and data-span (units).
+ */
+
+.rack-preview {
+    --preview-units: 6;
+    min-width: 0;
+}
+
+/* Let the preview shrink inside the hero instead of forcing Rack View widths. */
+.rack-preview .rack-elevations,
+.rack-preview .rack-frame {
+    min-width: 0;
+}
+
+.rack-preview .rack-elevations-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.rack-preview .rack-ruler,
+.rack-preview .rack-slots {
+    height: calc(var(--preview-units) * var(--rack-u));
+}
+
+/* Row 0 is the top unit. */
+.rack-preview [data-u="6"] { --row: 0; }
+.rack-preview [data-u="5"] { --row: 1; }
+.rack-preview [data-u="4"] { --row: 2; }
+.rack-preview [data-u="3"] { --row: 3; }
+.rack-preview [data-u="2"] { --row: 4; }
+.rack-preview [data-u="1"] { --row: 5; }
+
+.rack-preview [data-span="2"] {
+    --span: 2;
+}
+
+.rack-preview .rack-unit-number {
+    top: calc(var(--row) * var(--rack-u));
+}
+
+/* Same 3px inset racks.js uses between a device and its unit lines. */
+.rack-preview .rack-device {
+    top: calc(var(--row) * var(--rack-u) + 3px);
+    height: calc(var(--span, 1) * var(--rack-u) - 6px);
+    cursor: default;
+}
+
+/*
+ * The NAS's sample drives: the Equipment view's bay strip, with what the
+ * widget's script sets there done here instead (no inline styles): four
+ * bays to a row, each bay's fill, and blink timings that never line up.
+ */
+.rack-preview .landing-bays {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.rack-preview .landing-bays > :nth-child(1) .shelf-mini-fill { --fill: 0.62; }
+.rack-preview .landing-bays > :nth-child(2) .shelf-mini-fill { --fill: 0.58; }
+.rack-preview .landing-bays > :nth-child(3) .shelf-mini-fill { --fill: 0.64; }
+.rack-preview .landing-bays > :nth-child(4) .shelf-mini-fill { --fill: 0.6; }
+.rack-preview .landing-bays > :nth-child(5) .shelf-mini-fill { --fill: 0.41; }
+.rack-preview .landing-bays > :nth-child(6) .shelf-mini-fill { --fill: 0.83; }
+.rack-preview .landing-bays > :nth-child(7) .shelf-mini-fill { --fill: 0.39; }
+.rack-preview .landing-bays > :nth-child(8) .shelf-mini-fill { --fill: 0.44; }
+
+.rack-preview .landing-bays > :nth-child(1) .shelf-led-activity { animation-duration: 2.7s; animation-delay: -0.4s; }
+.rack-preview .landing-bays > :nth-child(2) .shelf-led-activity { animation-duration: 3.3s; animation-delay: -1.9s; }
+.rack-preview .landing-bays > :nth-child(3) .shelf-led-activity { animation-duration: 2.9s; animation-delay: -2.6s; }
+.rack-preview .landing-bays > :nth-child(4) .shelf-led-activity { animation-duration: 3.8s; animation-delay: -0.9s; }
+.rack-preview .landing-bays > :nth-child(5) .shelf-led-activity { animation-duration: 4.4s; animation-delay: -3.1s; }
+.rack-preview .landing-bays > :nth-child(6) .shelf-led-activity { animation-duration: 2.4s; animation-delay: -1.2s; }
+.rack-preview .landing-bays > :nth-child(7) .shelf-led-activity { animation-duration: 5.1s; animation-delay: -4.2s; }
+.rack-preview .landing-bays > :nth-child(8) .shelf-led-activity { animation-duration: 3.6s; animation-delay: -2.2s; }
+
+/*
+ * Sample cables (landing.js), drawn like the Equipment view's rack cables:
+ * out to a channel just past the frame's right edge, glowing faintly, with
+ * bright pulses moving along them (racks.css section 05). The layer covers
+ * the whole preview so the channel can sit outside the frame.
+ */
+.landing-cables {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.landing-cables path {
+    --cable: var(--color-cable-unknown);
+    fill: none;
+    stroke: var(--cable);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.62;
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--cable) 70%, transparent));
+}
+
+/* Pulses: short bright dashes that travel one pattern length per cycle. */
+.landing-cables path.landing-cable-flow {
+    stroke: color-mix(in srgb, var(--cable) 45%, var(--color-lift));
+    stroke-dasharray: 1.5 22.5;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 3px var(--cable));
+    animation: landing-cable-flow 1.5s linear infinite;
+}
+
+@keyframes landing-cable-flow {
+    to { stroke-dashoffset: -24; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-cables path.landing-cable-flow {
+        animation: none;
+    }
+}
+
+.landing-cables path[data-medium="copper"] { --cable: var(--color-cable-copper); }
+.landing-cables path[data-medium="dac"] { --cable: var(--color-cable-dac); }
+.landing-cables path[data-medium="fiber_multimode"] { --cable: var(--color-cable-fiber-mm); }
+.landing-cables path[data-medium="fiber_singlemode"] { --cable: var(--color-cable-fiber-sm); }
+
+/*
+ * Landing-only effect: lit port lights blink at staggered rates so the rack
+ * looks busy. Rack View's lights stay steady. Off for reduced motion.
+ */
+.rack-preview .rack-port-light[data-linked="true"] {
+    box-shadow: 0 0 5px color-mix(in srgb, var(--color-status-ok) 60%, transparent);
+    animation: preview-port-blink 3.2s ease-in-out infinite;
+}
+
+.rack-preview .rack-port-light[data-linked="true"]:nth-child(3n) {
+    animation-delay: -1.1s;
+}
+
+.rack-preview .rack-port-light[data-linked="true"]:nth-child(4n + 1) {
+    animation-delay: -2.3s;
+}
+
+@keyframes preview-port-blink {
+    50% {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rack-preview .rack-port-light[data-linked="true"] {
+        animation: none;
+    }
+}
+
+
+/* ========================================================================== */
+/* 02b. THE MASCOT BEHIND THE RACK                                             */
+/* ========================================================================== */
+
+/*
+ * The rat hides behind the rack preview: his head (rat-peek.svg) and tail
+ * (rat-tail.svg) sit under the rack, so the rack's edges cut them off, and
+ * one paw (rat-paw.svg) grips the left edge in front of it. Positions are
+ * measured from the rack's edges, so they follow it at every width.
+ *
+ * He makes an entrance once per page load (owner): only his tail shows at
+ * first, then his paw reaches round the rack's left edge from behind
+ * (0.9 s), then his head slides out past it (1.6 to 2.6 s) and his
+ * sunglasses glint. From then on he leans out a little further now and
+ * then with the glint, and his tail sways. The 9-second loop starts 3.7 s
+ * into its cycle (a negative delay), so when the entrance ends at 2.6 s
+ * the loop is at 70%, the start of a lean: the glint follows at once and
+ * then every 9 seconds. The entrance is listed last, so it wins while it
+ * runs. Reduced motion skips all of it and shows him peeking.
+ */
+.rack-preview {
+    position: relative;
+}
+
+.rack-preview .rack-elevations {
+    position: relative;
+    z-index: 1;
+}
+
+.landing-rat-peek,
+.landing-rat-tail,
+.landing-rat-paw {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--color-shadow) 45%, transparent));
+}
+
+/* The head: about two thirds of it shows past the left edge. */
+.landing-rat-peek {
+    top: 12%;
+    left: -82px;
+    width: 125px;
+    animation:
+        landing-rat-peek 9s ease-in-out -3.7s infinite,
+        landing-rat-emerge 1s cubic-bezier(0.2, 0.8, 0.3, 1) 1.6s backwards;
+}
+
+/*
+ * The paw is in front of the rack, fingers over its edge. It reaches
+ * round from behind: revealed from its outer side toward its fingertips.
+ */
+.landing-rat-paw {
+    z-index: 2;
+    top: calc(12% + 80px);
+    left: -14px;
+    width: 24px;
+    animation: landing-rat-grab 0.5s ease-out 0.9s backwards;
+}
+
+/*
+ * The tail curls around the rack's bottom-right corner: it leaves from
+ * behind the right edge, curls down, and runs a short way left under the
+ * bottom. Its width follows the rack's, so its base (top right) stays
+ * hidden behind the corner.
+ */
+.landing-rat-tail {
+    right: -22px;
+    bottom: -35px;
+    width: calc(32% + 22px);
+    transform-origin: 80% 8%;
+    animation: landing-rat-tail 5s ease-in-out infinite;
+}
+
+/*
+ * The glimmer: rat-glint.svg lies exactly over the head (it shares the
+ * head's class, so it moves with him) and a moving mask sweeps a bright
+ * band across his sunglasses while he leans out, then it fades.
+ */
+.landing-rat-glint {
+    filter: none;
+    opacity: 0;
+    -webkit-mask-image: linear-gradient(105deg, transparent 46%, #000 49.5%, #000 50.5%, transparent 54%);
+    mask-image: linear-gradient(105deg, transparent 46%, #000 49.5%, #000 50.5%, transparent 54%);
+    -webkit-mask-size: 300% 100%;
+    mask-size: 300% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    animation:
+        landing-rat-peek 9s ease-in-out -3.7s infinite,
+        landing-rat-glint 9s ease-in-out -3.7s infinite,
+        landing-rat-emerge 1s cubic-bezier(0.2, 0.8, 0.3, 1) 1.6s backwards;
+}
+
+/* From fully behind the rack (his head is 82 px past its edge) to peeking. */
+@keyframes landing-rat-emerge {
+    from { transform: translateX(96px); }
+    to { transform: translateX(0); }
+}
+
+@keyframes landing-rat-grab {
+    from { clip-path: inset(0 100% 0 0); transform: translateX(-3px); }
+    to { clip-path: inset(0 0 0 0); transform: translateX(0); }
+}
+
+@keyframes landing-rat-glint {
+    0%, 75% { opacity: 0; -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+    78% { opacity: 1; }
+    85% { opacity: 1; -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+    89%, 100% { opacity: 0; -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+}
+
+@keyframes landing-rat-peek {
+    0%, 70%, 100% { transform: translateX(0); }
+    78%, 88% { transform: translateX(-7px) rotate(-3deg); }
+}
+
+@keyframes landing-rat-tail {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-1.6deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-rat-peek,
+    .landing-rat-paw,
+    .landing-rat-tail {
+        animation: none;
+    }
+
+    .landing-rat-glint {
+        display: none;
+    }
+}
+
+/*
+ * Stacked hero (one column): the rack is inset so the mascot fits inside
+ * the hero instead of pushing the page sideways. Phones draw him smaller.
+ */
+@media (max-width: 860px) {
+    .rack-preview {
+        margin: 0 32px 44px 72px;
+    }
+}
+
+@media (max-width: 600px) {
+    .rack-preview {
+        margin: 0 30px 34px 56px;
+    }
+
+    .landing-rat-peek {
+        left: -58px;
+        width: 88px;
+    }
+
+    .landing-rat-paw {
+        top: calc(12% + 56px);
+        left: -10px;
+        width: 17px;
+    }
+
+    .landing-rat-tail {
+        right: -16px;
+        bottom: -27px;
+        width: calc(32% + 16px);
+    }
+}
+
+
+/* ========================================================================== */
+/* 03. FEATURE CARDS                                                           */
+/* ========================================================================== */
+
+.landing-features {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+}
+
+/* Each card takes its hue: a top rule, an icon, its kicker, a soft wash. */
+.landing-feature {
+    position: relative;
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-top: 2px solid var(--hue, var(--color-accent));
+    border-radius: var(--radius-card);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--hue, var(--color-accent)) 10%, transparent), transparent 60%),
+        var(--color-panel-background-deep);
+}
+
+.landing-feature-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-bottom: var(--space-3);
+    color: var(--hue, var(--color-accent));
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--hue, var(--color-accent)) 45%, transparent));
+}
+
+.landing-feature-kicker {
+    margin: 0;
+    color: var(--hue, var(--color-accent));
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.landing-feature h2 {
+    margin: var(--space-2) 0;
+    font-size: var(--text-xl);
+}
+
+.landing-feature p:last-child {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+}
+
+
+/* ========================================================================== */
+/* 04. SMALL SCREENS                                                           */
+/* ========================================================================== */
+
+@media (max-width: 1100px) {
+    .landing-features {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 860px) {
+    .landing-hero {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+    }
+
+    .landing-features {
+        grid-template-columns: 1fr;
+    }
+}

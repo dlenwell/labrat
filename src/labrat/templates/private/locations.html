@@ -1,0 +1,39 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Locations: every site as a building, with its rooms and racks nested inside. #}
+{% extends "base.html" %}
+{% from "private/_locations.html" import building, locations_header, location_drawer %}
+
+{% block title %}LabRat · Locations{% endblock %}
+{% block body_class %}locations-body view-frame-body workspace-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-switch.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/device-drawer.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/locations.css') }}">
+{% endblock %}
+
+{% block content %}
+{# One view frame with the room views' compact heading (owner); a new
+   location is added from the drawer, opened by the heading's tool. #}
+<section class="locations-page view-frame room-frame" data-csrf-token="{{ csrf_token }}" data-drawer="closed">
+  {{ locations_header(all_sites) }}
+
+  <p class="locations-notice" id="locations-notice" role="alert" aria-live="polite" hidden></p>
+
+  <div class="location-buildings">
+    {% for site in sites %}
+      {{ building(site, loop.index) }}
+    {% else %}
+      <div class="locations-empty">
+        <p>No locations yet. A location is a building or property, such as a home, office, or workshop; areas and racks go inside it.</p>
+        <button class="button" type="button" data-location-add>Add your first location</button>
+      </div>
+    {% endfor %}
+  </div>
+  {{ location_drawer() }}
+</section>
+<script src="{{ url_for('static', filename='js/device-drawer.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/view-frame.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/remove-dialog.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/locations.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 40" aria-hidden="true">
+  <!--
+    The LabRat mascot's tail for the header logo, drawn in the pill's own
+    units (1 unit = 1px at desktop size): the pill's left end is a half
+    circle of radius 20 centred at (42, 6), so its left edge is x = 22 and
+    its bottom y = 26. The tail's base hides behind the pill low on that
+    end, it curves round the end a little outside the border, then wiggles to
+    the right just under the bottom and ends in a small downward curl. The
+    base leaves already heading left and swings round in one easy bend
+    (no corner), so the tail flows into the wiggle.
+    Thick at the base, thin at the tip, with a darker underside for depth.
+    Colors follow the logo's tail.
+  -->
+  <defs>
+    <linearGradient id="tail-wiggle-skin" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b97d92"/>
+      <stop offset="1" stop-color="#eab3c6"/>
+    </linearGradient>
+  </defs>
+  <!-- Underside shadow along the whole tail. -->
+  <path d="M34 12C26 12 21 16 21.5 20.06C22 24.125 28 28.25 42 28.5C48 28.5 51 30.2 57 30C63 29.8 65 28 71 28.4C77 28.8 79 30.2 83 30C87 29.8 88.5 34 85 34.6"
+        fill="none" stroke="#6e4656" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"
+        opacity="0.45" transform="translate(0 1)"/>
+  <!-- The tail, in segments that thin toward the tip. -->
+  <path d="M34 12C26 12 21 16 21.5 20.06" fill="none" stroke="url(#tail-wiggle-skin)" stroke-width="3.8" stroke-linecap="round"/>
+  <path d="M21.5 20.06C22 24.125 28 28.25 42 28.5" fill="none" stroke="url(#tail-wiggle-skin)" stroke-width="3.3" stroke-linecap="round"/>
+  <path d="M42 28.5C48 28.5 51 30.2 57 30" fill="none" stroke="#e6abbf" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M57 30C63 29.8 65 28 71 28.4" fill="none" stroke="#e6abbf" stroke-width="2.3" stroke-linecap="round"/>
+  <path d="M71 28.4C77 28.8 79 30.2 83 30" fill="none" stroke="#eab3c6" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M83 30C87 29.8 88.5 34 85 34.6" fill="none" stroke="#eab3c6" stroke-width="1.3" stroke-linecap="round"/>
+  <!-- Faint ring segments, as on a real rat's tail. -->
+  <path d="M21.4 15.6l2.6 1.8M20 21.4l3.2-.4M25.6 26.6l1.6-2.6M36 29.6l.4-2.6M50 30.6l.2-2.4M64 30.2l-.2-2.2M77 30.2l.2-1.8"
+        stroke="#9a6478" stroke-width="0.6" stroke-linecap="round" opacity="0.45"/>
+</svg>

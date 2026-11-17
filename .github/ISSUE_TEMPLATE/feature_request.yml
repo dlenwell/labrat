@@ -1,0 +1,21 @@
+name: Feature request
+description: An idea for LabRat, such as a new integration or view.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The problem or question in your lab that LabRat does not answer yet.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work
+      description: What LabRat could show or read. Integrations stay read-only.
+  - type: textarea
+    id: equipment
+    attributes:
+      label: Equipment or software involved
+      description: Products and versions, if it depends on them. Leave out names, addresses, and other details of your own network.

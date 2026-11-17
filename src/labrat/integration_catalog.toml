@@ -1,0 +1,121 @@
+# Copyright 2026 LabRat contributors
+# SPDX-License-Identifier: Apache-2.0
+# Public form definitions only. Actual credentials belong in local_config.toml.
+version = 1
+
+[categories.network]
+label = "Network"
+icon = "discovery"
+
+[categories.compute]
+label = "Compute"
+icon = "equipment"
+
+[integrations.unifi]
+label = "UniFi Network"
+category = "network"
+icon = "discovery"
+description = "Controllers, consoles, and their network sites"
+
+[integrations.unifi.test]
+# Relative to the Network application root (see controller_type).
+path = "/integration/v1/sites?offset=0&limit=1"
+auth_header = "X-API-Key"
+auth_template = "{api_key}"
+response_key = "data"
+collection_label = "UniFi sites"
+
+[[integrations.unifi.fields]]
+key = "url"
+label = "Controller address"
+type = "url"
+required = true
+placeholder = "https://controller.example"
+help = "The HTTPS root address of the controller."
+
+[[integrations.unifi.fields]]
+key = "controller_type"
+label = "Controller type"
+type = "select"
+required = false
+help = "A self-hosted Network application (usually port 8443) serves its API without the UniFi OS /proxy/network path."
+choices = [
+  { value = "unifi_os", label = "UniFi OS console or UniFi OS Server" },
+  { value = "network_application", label = "Self-hosted Network application" },
+]
+
+[[integrations.unifi.fields]]
+key = "api_key"
+label = "API key"
+type = "password"
+required = true
+help = "Use a credential with read-only discovery permissions."
+
+[integrations.proxmox]
+label = "Proxmox VE"
+category = "compute"
+icon = "equipment"
+description = "Clusters and standalone virtualization hosts"
+
+[integrations.proxmox.test]
+path = "/api2/json/nodes"
+auth_header = "Authorization"
+auth_template = "PVEAPIToken={token_id}={token_secret}"
+response_key = "data"
+collection_label = "Proxmox nodes"
+
+[[integrations.proxmox.fields]]
+key = "url"
+label = "Controller address"
+type = "url"
+required = true
+placeholder = "https://controller.example:8006"
+help = "The HTTPS root address, including its port when needed."
+
+[[integrations.proxmox.fields]]
+key = "token_id"
+label = "API token ID"
+type = "text"
+required = true
+max_length = 255
+placeholder = "user@realm!token"
+pattern = '[^\s=!]+@[^\s=!]+![^\s=!]+'
+validation_message = "Use a Proxmox token ID in user@realm!token format."
+
+[[integrations.proxmox.fields]]
+key = "token_secret"
+label = "API token secret"
+type = "password"
+required = true
+help = "Use a credential with read-only discovery permissions."
+
+[integrations.pihole]
+label = "Pi-hole"
+category = "network"
+icon = "discovery"
+description = "DNS sinkholes: queries, blocking, and top domains (read-only)"
+
+# Pi-hole v6 signs in with a POST that creates a session, so the generic
+# header test cannot check it; "adapter" hands the test to the adapter.
+[integrations.pihole.test]
+style = "adapter"
+path = "/api/auth"
+auth_header = "X-FTL-SID"
+auth_template = "{password}"
+response_key = "session"
+collection_label = "Pi-hole statistics"
+
+[[integrations.pihole.fields]]
+key = "url"
+label = "Pi-hole address"
+type = "url"
+required = true
+placeholder = "https://pihole.example"
+help = "The Pi-hole's HTTPS address (Pi-hole v6 serves HTTPS on port 443; choose how its certificate is checked below). LabRat must be allowed through the firewall to reach it."
+
+[[integrations.pihole.fields]]
+key = "password"
+label = "Application password"
+type = "password"
+required = true
+help = "A Pi-hole v6 application password (Settings, Web interface / API), or a v5 API token. LabRat only reads statistics."

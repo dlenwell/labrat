@@ -1,0 +1,113 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "private/_view_frame.html" import discovery_switch, view_menu %}
+{% from "private/_widgets.html" import widget_styles, widget_scripts %}
+{% from "private/_device_drawer.html" import device_drawer, device_details_panel, device_rename_panel, device_neighbor_panel, device_placement_panel, device_place_panel %}
+{% block title %}LabRat · Discovery · Clients{% endblock %}
+{% block body_class %}discovery-body view-frame-body workspace-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-switch.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/clients.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/device-drawer.css') }}">
+{{ widget_styles() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/device-details.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
+{% endblock %}
+{% block content %}
+<section id="clients-app" class="clients-page" data-drawer="closed" data-csrf-token="{{ csrf_token }}" data-admin="{{ 'true' if viewer.is_admin else 'false' }}"{% if open_device %} data-open-device="{{ open_device }}"{% endif %}>
+  {# Same frame and heading as the Infrastructure view (view-frame.css). #}
+  <section class="view-frame clients-frame" id="clients-frame" aria-label="Clients">
+    <header class="view-heading">
+      {# Title with one readout beside it; per-kind counts are in the toggles' tooltips. #}
+      <div class="view-heading-readouts clients-readouts">
+        <h1>Clients</h1>
+        <div class="view-summary" id="clients-summary" aria-live="polite">Loading…</div>
+      </div>
+      {#
+        One toolbar, like Infrastructure's: search, filter toggles, Refresh,
+        and the view switch rightmost. Toggles are labelled checkboxes styled
+        as icon buttons (view-frame.css .view-toggle). The three kind
+        toggles start on, matching the full list; turning one off hides that kind.
+      #}
+      <div class="view-heading-actions clients-toolbar" role="group" aria-label="Client device controls">
+        {# Phones hide search behind this button, and the rest behind ☰. #}
+        <button class="button button-quiet room-icon-button clients-compact-only" id="clients-search-toggle" type="button" aria-expanded="false" aria-controls="clients-search-field" aria-label="Search" title="Search" data-tooltip="Search">{{ icon('search') }}</button>
+        <label class="clients-search" id="clients-search-field">{{ icon('search') }}<span class="visually-hidden">Search client devices</span><input id="clients-search" type="search" placeholder="Find…" autocomplete="off"></label>
+        {% call view_menu("clients-tools", "Filters and refresh") %}
+          {% for key, label, glyph in [('vm', 'VMs and containers', 'vm'), ('wireless', 'Wi-Fi', 'wifi'), ('wired', 'Wired', 'wired')] %}
+          <label class="button button-quiet room-icon-button view-toggle" title="Show {{ label }}" data-tooltip="Show {{ label }}" data-kind-label="{{ label }}">
+            <input type="checkbox" role="switch" data-kind="{{ key }}" aria-label="Show {{ label }}" checked>{{ icon(glyph) }}
+          </label>
+          {% endfor %}
+          <span class="view-toolbar-divider" aria-hidden="true"></span>
+          <label class="button button-quiet room-icon-button view-toggle" title="Unplaced only" data-tooltip="Unplaced only">
+            <input id="clients-unplaced" type="checkbox" role="switch" aria-label="Unplaced only">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="2 3"/><path d="M12 18s-4-4-4-7a4 4 0 0 1 8 0c0 3-4 7-4 7z"/><circle cx="12" cy="11" r="1"/></svg>
+          </label>
+          <label class="button button-quiet room-icon-button view-toggle" title="Not connected only" data-tooltip="Not connected only">
+            <input id="clients-attention" type="checkbox" role="switch" aria-label="Not connected only (stale, unavailable, or not seen)">{{ icon('alert') }}
+          </label>
+          <label class="button button-quiet room-icon-button view-toggle" title="Show server interfaces" data-tooltip="Show server interfaces">
+            <input id="clients-show-interfaces" type="checkbox" role="switch" aria-label="Show server interfaces">{{ icon('server') }}
+          </label>
+          <span class="view-toolbar-divider" aria-hidden="true"></span>
+          <button class="button button-quiet room-icon-button" id="clients-refresh" type="button" aria-label="Refresh" title="Refresh" data-tooltip="Refresh">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg>
+          </button>
+        {% endcall %}
+        {{ discovery_switch("clients") }}
+      </div>
+    </header>
+    <p id="clients-notice" class="view-notice" role="status" aria-live="polite"></p>
+    {# Every matching row renders; the list scrolls inside the frame. #}
+    <div class="clients-table-scroll" id="clients-scroll" tabindex="0" aria-label="Scrollable client devices">
+      <table class="clients-table" aria-label="Clients">
+        <thead><tr>
+          {% for key, label in [('type', 'Type'), ('name', 'Device'), ('address', 'Address'), ('connection', 'Connection / host'), ('status', 'Status'), ('placement', 'Placement')] %}
+          {# Address holds a list (a VM has one per card), so it does not sort. #}
+          {% if key == 'address' %}
+          <th scope="col" class="clients-unsorted">{{ label }}</th>
+          {% else %}
+          <th scope="col" data-column="{{ key }}" aria-sort="{{ 'ascending' if key == 'name' else 'none' }}"><button type="button" data-sort="{{ key }}">{{ label }} <span aria-hidden="true">{{ '↑' if key == 'name' else '↕' }}</span></button></th>
+          {% endif %}
+          {% endfor %}
+        </tr></thead>
+        <tbody id="clients-list"></tbody>
+      </table>
+      <div id="clients-empty" class="clients-empty" hidden>{{ icon('discovery') }}<h2>No clients to show</h2><p id="clients-empty-message">The collector will list clients reported by enabled UniFi connections.</p></div>
+    </div>
+  </section>
+  <template id="client-detail-hero"><div class="client-detail-hero"><span class="client-avatar"></span><div><h3></h3><p class="device-muted"></p><span class="client-condition"><span class="led" aria-hidden="true"></span><span></span></span></div></div></template>
+  <template id="client-row-template"><tr class="client-row"><td><span class="client-avatar" title=""></span></td><td><button class="client-open" type="button"><span class="client-identity"><strong></strong><small></small></span></button></td><td class="client-address"></td><td class="client-attachment"></td><td><span class="client-condition"><span class="led" aria-hidden="true"></span><span></span></span></td><td class="client-place"></td></tr></template>
+  {% for kind in ['client', 'computer', 'laptop', 'phone', 'tablet', 'printer', 'camera', 'television', 'speaker', 'iot', 'gamepad', 'server', 'wifi', 'wired', 'vm', 'container'] %}
+  <template id="client-icon-{{ kind }}">{{ icon(kind) }}</template>
+  {% endfor %}
+  {% call device_drawer("Clients") %}
+    <section class="device-drawer-view is-active" data-view="shelf" aria-hidden="true" inert hidden></section>
+    {{ device_details_panel() }}
+    {{ device_rename_panel() }}
+    {{ device_neighbor_panel() }}
+    {{ device_placement_panel() }}
+    {{ device_place_panel() }}
+    {# The Ports tab of a client's details (clients.js moves it there). #}
+    <div class="client-port-check" id="client-port-check" hidden>
+      <p class="device-field-help">A quick, connect-only check of common TCP ports on this device. Other ports and UDP are not checked. Firewall evidence for NUT or SNMP does not establish access to other services.</p>
+      <p id="client-scan-permission" class="device-muted"></p>
+      <div class="client-port-actions"><button class="button" id="client-scan-run" type="button">Check common ports</button><a class="button button-quiet" href="{{ url_for('private.settings', panel='discovery') }}">Scan permissions</a></div>
+      <p id="client-scan-status" role="status" aria-live="polite"></p><div id="client-scan-results" class="client-scan-results"></div>
+    </div>
+  {% endcall %}
+</section>
+<script src="{{ url_for('static', filename='js/device-drawer.js') }}" defer></script>
+{{ widget_scripts() }}
+<script src="{{ url_for('static', filename='js/cluster-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/shelf-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/device-cluster.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/device-details.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/device-placement.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/ups.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/view-frame.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/clients.js') }}" defer></script>
+{% endblock %}

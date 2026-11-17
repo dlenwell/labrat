@@ -1,0 +1,2096 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/* Operations instruments share the console palette and WAN chart primitives. */
+.noc {
+    --noc-grid-line: var(--color-border-subtle);
+    padding-bottom: var(--space-6);
+}
+.noc-header,
+.noc-controls,
+.noc-panel > header,
+.noc-source-title,
+.noc-gateway-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+/* The room views' compact frame heading (view-frame.css, owner): the title
+   on one line, then Scope and the icon tools. */
+.noc-header {
+    flex-wrap: wrap;
+}
+.noc-controls {
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+}
+.noc-scope {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.noc-scope select {
+    width: auto;
+    max-width: 260px;
+    min-height: 2rem;
+    margin: 0;
+    padding-block: 0.2rem;
+    font-size: var(--text-sm);
+    letter-spacing: normal;
+    text-transform: none;
+}
+/* Ignored items' count, a small badge on its icon tool. */
+#noc-ignored {
+    position: relative;
+}
+.noc-tool-count {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    min-width: 1rem;
+    padding: 0 3px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-surface);
+    color: var(--color-accent-strong);
+    font: 600 0.6rem/1rem var(--font-mono);
+    text-align: center;
+}
+.noc-tool-count[hidden] {
+    display: none;
+}
+/*
+ * Status dots follow their text color, except where they mean "live" or
+ * "online": those are lamps and keep the lamp color in every theme (--dot).
+ */
+.noc-status-dot {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: var(--space-2);
+    border-radius: 50%;
+    background: var(--dot, currentColor);
+    box-shadow: 0 0 10px var(--dot, currentColor);
+}
+.noc-server[data-state="online"] {
+    --dot: var(--color-lamp-on);
+}
+.noc-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    margin: var(--space-3) 0 var(--space-5);
+    padding: 4px;
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-control);
+    background: var(--color-console-bezel);
+    box-shadow: inset 0 1px 0 var(--color-console-bezel-highlight), var(--shadow-raised);
+}
+.noc-metric,
+.noc-panel {
+    padding: var(--space-4) var(--space-5) var(--space-5);
+}
+.noc-metric {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 3px;
+    background: var(--color-console-panel);
+    box-shadow: inset 0 0 18px color-mix(in srgb, var(--color-shadow) 65%, transparent);
+}
+.noc-metric strong {
+    color: var(--color-phosphor);
+    font: 700 2rem/1.1 var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+    text-shadow: var(--console-glow);
+}
+.noc-label,
+.noc-tag {
+    font: 500 var(--text-xs)/1.5 var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+}
+.noc-tag {
+    white-space: nowrap;
+}
+.noc-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+}
+.noc-panel {
+    padding: var(--space-5);
+}
+.noc-panel > header {
+    align-items: flex-start;
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-console-bezel-edge);
+}
+.noc-panel .eyebrow {
+    margin: 0 0 var(--space-2);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+}
+.noc-panel h2 {
+    margin: 0;
+}
+.noc-panel h3 {
+    font-size: 1rem;
+    margin: 0;
+}
+.noc-note,
+.noc-empty {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    margin: 0;
+}
+.noc-empty {
+    padding: var(--space-5) 0;
+    font-size: var(--text-sm);
+}
+.noc-watch {
+    max-height: 660px;
+    display: flex;
+    flex-direction: column;
+}
+#noc-warnings {
+    overflow-y: auto;
+    margin-top: var(--space-3);
+    min-height: 0;
+}
+.noc-warning {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-2);
+    border-bottom: 1px solid var(--color-border-subtle);
+    color: var(--color-text-primary);
+    text-decoration: none;
+}
+.noc-warning:hover {
+    background: var(--color-surface-hover);
+}
+.noc-warning-icon {
+    color: var(--color-status-warning);
+    font: 700 1.1rem var(--font-mono);
+    min-width: 20px;
+}
+.noc-warning[data-severity="alarm"] .noc-warning-icon {
+    color: var(--color-status-error);
+}
+.noc-warning[data-severity="advisory"] .noc-warning-icon {
+    color: var(--color-cable-copper);
+}
+.noc-warning strong,
+.noc-warning div > span {
+    display: block;
+    overflow-wrap: anywhere;
+}
+.noc-warning strong {
+    font-size: var(--text-sm);
+}
+.noc-warning div > span {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    margin-top: var(--space-1);
+}
+.noc-source {
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    background: var(--color-annunciator-off);
+    box-shadow: inset 0 0 18px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+}
+.noc-source-title {
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    flex-wrap: wrap;
+}
+.noc-source-title strong {
+    overflow-wrap: anywhere;
+}
+.noc-source-title span {
+    font-size: var(--text-xs);
+    color: var(--color-accent);
+}
+.noc-source[data-state="warning"] .noc-source-title span {
+    color: var(--color-status-warning);
+}
+.noc-progress {
+    height: 4px;
+    margin: var(--space-3) 0;
+    background: var(--color-border-subtle);
+    overflow: hidden;
+}
+.noc-progress span {
+    display: block;
+    height: 100%;
+    background: var(--color-accent);
+    transition: width 1s linear;
+}
+.noc-source[data-state="warning"] .noc-progress span {
+    background: var(--color-status-warning);
+}
+.noc-servers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-3);
+}
+.noc-server {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: var(--color-field-background);
+    text-decoration: none;
+    /* Online is a status, so it takes the lamp color (offline red, stale amber below). */
+    color: var(--color-lamp-on);
+}
+.noc-server strong {
+    color: var(--color-text-primary);
+    overflow-wrap: anywhere;
+}
+.noc-server > span:last-of-type,
+.noc-server small {
+    grid-column: 2;
+    font: 400 var(--text-xs)/1.5 var(--font-mono);
+    text-transform: capitalize;
+}
+.noc-server small {
+    color: var(--color-text-muted);
+    font: 400 var(--text-xs)/1.5 var(--font-sans);
+}
+.noc-server[data-state="offline"] {
+    color: var(--color-status-error);
+    border-color: var(--color-status-error);
+}
+.noc-server[data-state="stale"],
+.noc-server[data-state="unknown"] {
+    color: var(--color-status-warning);
+}
+.noc-port-row {
+    display: grid;
+    grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+.noc-port-row > a {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    overflow-wrap: anywhere;
+}
+.noc-port-row > .readout {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+.noc-port-lamps {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.noc-port {
+    width: 9px;
+    height: 7px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 1px;
+}
+.noc-port[data-state="up"] {
+    background: var(--color-lamp-port);
+    border-color: var(--color-lamp-port);
+    box-shadow: 0 0 5px color-mix(in srgb, var(--color-lamp-port) 30%, transparent);
+}
+.noc-port[data-state="down"] {
+    background: var(--color-led-off);
+}
+.noc-events {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-3) 0 0;
+    max-height: 350px;
+    overflow-y: auto;
+}
+.noc-events li {
+    display: flex;
+    gap: var(--space-3);
+    border-bottom: 1px solid var(--color-border-subtle);
+    padding: var(--space-3) 0;
+    font-size: var(--text-xs);
+}
+.noc-events time {
+    font-family: var(--font-mono);
+    color: var(--color-accent);
+    white-space: nowrap;
+}
+.noc-events span {
+    overflow-wrap: anywhere;
+}
+.noc-gateway + .noc-gateway {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-5);
+    margin-top: var(--space-5);
+}
+.noc-gateway-title {
+    margin-bottom: var(--space-3);
+    flex-wrap: wrap;
+}
+.noc-gateway-title .noc-tag {
+    color: var(--color-accent);
+}
+.noc-gateway[data-state="stale"] .noc-tag,
+.noc-gateway[data-state="degraded"] .noc-tag {
+    color: var(--color-status-warning);
+}
+.noc-gateway[data-state="down"] .noc-tag {
+    color: var(--color-status-error);
+}
+.noc-uplink {
+    padding: var(--space-3);
+    margin-top: var(--space-2);
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    background: var(--color-field-background);
+    box-shadow: inset 0 0 18px color-mix(in srgb, var(--color-shadow) 45%, transparent);
+}
+.noc-uplink > strong {
+    display: block;
+    font: 500 var(--text-xs)/1.6 var(--font-mono);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-2);
+}
+.noc-uplink .wan-meter {
+    margin-block: var(--space-2);
+}
+.noc-history {
+    background: repeating-linear-gradient(to top, transparent 0, transparent calc(25% - 1px), var(--noc-grid-line) 25%), var(--color-field-background);
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    box-shadow: inset 0 0 18px color-mix(in srgb, var(--color-shadow) 65%, transparent);
+    padding: var(--space-3);
+    margin-block: var(--space-4);
+}
+.noc-history svg {
+    height: 150px;
+}
+.noc-error {
+    padding: var(--space-3);
+    border-left: 3px solid var(--color-status-warning);
+    color: var(--color-status-warning);
+    font-size: var(--text-sm);
+}
+@media (max-width: 1000px) {
+    .noc-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .noc-watch {
+        max-height: 460px;
+    }
+}
+@media (max-width: 600px) {
+    .noc-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+    }
+    .noc-metric,
+    .noc-panel {
+        padding: var(--space-4);
+    }
+    .noc-metric strong {
+        font-size: 2rem;
+    }
+    /* Phones: Scope takes the row's room; the tools fold behind ☰. */
+    .noc-controls {
+        width: 100%;
+    }
+    .noc-scope {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .noc-scope select {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: none;
+    }
+    .noc-port-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .noc-port-lamps {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+    .noc-port-row > .readout {
+        grid-column: 2;
+        grid-row: 1;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .noc-progress span {
+        transition: none;
+    }
+}
+
+/* A snapshot chart, not utilization: down sockets may simply be unused. */
+.noc-port-mix {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    margin: var(--space-4) 0;
+}
+.noc-port-ring {
+    flex: 0 0 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: conic-gradient(var(--color-lamp-port) 0 var(--up), var(--color-led-off) var(--up) var(--known), var(--color-border-subtle) var(--known) 100%);
+}
+.noc-port-ring strong {
+    display: grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: var(--color-panel-background-deep);
+    color: var(--color-accent);
+    font: 600 1.5rem var(--font-mono);
+}
+.noc-port-legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+}
+.noc-port-legend span {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+/* Keep the wallboard dense enough to scan; long inventories scroll locally. */
+#noc-ports {
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: var(--space-2);
+    margin-top: var(--space-3);
+}
+.noc-gateway {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-5);
+}
+.noc-gateway-title,
+.noc-gateway > figure,
+.noc-gateway > p {
+    grid-column: 1 / -1;
+}
+@media (max-width: 600px) {
+    .noc-gateway {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .noc-panel > header {
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+}
+
+/* Row spans follow measured panel heights, preserving reading order while
+   closing the gaps a conventional grid leaves below shorter panels. */
+.noc-grid.is-masonry {
+    grid-auto-rows: 4px;
+    row-gap: 0;
+}
+.noc-grid.is-masonry > .noc-panel {
+    align-self: start;
+}
+button.noc-warning {
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+    cursor: pointer;
+}
+button.noc-warning:hover {
+    background: var(--color-surface-hover);
+}
+.noc-wallboard-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+.noc-wallboard .site-header,
+.noc-wallboard .source-strip,
+.noc-wallboard .site-footer {
+    display: none;
+}
+.noc-wallboard .page-content {
+    width: 100%;
+    padding: var(--space-4);
+}
+.noc-wallboard .noc-header {
+    margin-bottom: var(--space-3);
+}
+@media (min-width: 1600px) {
+    .noc-wallboard .noc-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+.noc-drawer {
+    position: fixed;
+    inset: 0 0 0 auto;
+    width: min(480px, 100%);
+    height: 100dvh;
+    max-height: 100dvh;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    color: var(--color-text-primary);
+    background: var(--color-panel-background-deep);
+    border: 0;
+    border-left: 1px solid var(--color-border-strong);
+}
+.noc-drawer[open] {
+    display: flex;
+    flex-direction: column;
+    animation: noc-drawer-in 180ms ease-out;
+}
+.noc-drawer::backdrop {
+    background: transparent;
+}
+@keyframes noc-drawer-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+.noc-drawer[open].is-closing {
+    animation: noc-drawer-out 200ms ease-in forwards;
+}
+@keyframes noc-drawer-out {
+    from { transform: var(--noc-close-start, translateX(0)); }
+    to { transform: translateX(100%); }
+}
+.noc-drawer-header,
+.noc-drawer-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--color-border);
+    flex: 0 0 auto;
+}
+.noc-drawer-header h2 {
+    flex: 1;
+    min-width: 0;
+    font-size: 1.1rem;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.noc-drawer-actions {
+    border-bottom: 0;
+    border-top: 1px solid var(--color-border);
+    flex-wrap: wrap;
+}
+.noc-drawer-actions:empty {
+    display: none;
+}
+.noc-drawer-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-5);
+}
+.noc-drawer-body p,
+.noc-drawer-body dd {
+    overflow-wrap: anywhere;
+}
+.noc-facts {
+    margin: var(--space-4) 0;
+}
+.noc-facts > div {
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+.noc-facts dt {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+.noc-facts dd {
+    margin: var(--space-1) 0 0;
+    font: 400 var(--text-sm)/1.6 var(--font-mono);
+}
+.noc-ignore-row {
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+.noc-ignore-row strong,
+.noc-ignore-row small {
+    display: block;
+    margin-bottom: var(--space-2);
+    overflow-wrap: anywhere;
+}
+.noc-ignore-row small {
+    color: var(--color-text-muted);
+}
+@media (max-width: 600px) {
+    .noc-drawer {
+        width: 100%;
+        border-left: 0;
+    }
+    .noc-controls {
+        gap: var(--space-2);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .noc-drawer[open],
+    .noc-drawer[open].is-closing {
+        animation: none;
+    }
+}
+.noc-uplink-isp {
+    display: block;
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    margin-bottom: var(--space-3);
+}
+
+/* Logical VPN activity uses actual controller state, never physical port lamps. */
+.noc-vpn-group > h3 {
+    margin: var(--space-4) 0 var(--space-3);
+}
+.noc-vpn-connection {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-text-faint);
+    border-radius: var(--radius-small);
+    background: var(--color-field-background);
+    color: var(--color-text-primary);
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+.noc-vpn-connection:hover {
+    background: var(--color-surface-hover);
+}
+.noc-vpn-connection > .noc-note {
+    display: block;
+    overflow-wrap: anywhere;
+}
+.noc-vpn-connection[data-state="connected"] {
+    border-left-color: var(--color-accent);
+}
+.noc-vpn-connection[data-state="disconnected"],
+.noc-vpn-connection[data-state="connecting"],
+.noc-vpn-connection[data-state="stale"] {
+    border-left-color: var(--color-status-warning);
+}
+.noc-vpn-heading {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+.noc-vpn-heading strong {
+    overflow-wrap: anywhere;
+}
+.noc-vpn-connection[data-state="connected"] .noc-tag {
+    color: var(--color-accent);
+}
+.noc-vpn-traffic {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    margin: var(--space-4) 0;
+    font: 500 1.1rem/1.6 var(--font-mono);
+}
+.noc-vpn-traffic small {
+    display: block;
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+.noc-vpn-unavailable {
+    color: var(--color-status-warning);
+    font-size: var(--text-sm);
+}
+
+/* Equipment's control-room language: engraved labels and inset instruments.
+   Chassis, scanlines, panel headings, and drawer bezels live in console.css. */
+.observations-body .page-content {
+    padding-top: var(--space-4);
+}
+.noc-label {
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    color: var(--color-text-secondary);
+}
+.noc-panel > header > .noc-tag {
+    padding: 2px var(--space-2);
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: 3px;
+    background: var(--color-annunciator-off);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+}
+.noc-panel h3,
+.noc-source-title,
+.noc-server strong,
+.noc-vpn-heading strong {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+}
+.noc-gateway-title .noc-tag,
+.noc-vpn-heading .noc-tag {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+}
+.noc-uplink > strong::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: var(--space-2);
+    border: 1px solid var(--color-phosphor-dim);
+    border-radius: 50%;
+    background: var(--color-annunciator-off);
+}
+.noc-uplink[data-state="active"] > strong::before {
+    background: var(--color-lamp-on);
+    box-shadow: var(--console-glow);
+}
+.noc-uplink[data-state="down"] > strong::before {
+    background: var(--color-console-warning);
+    border-color: var(--color-console-warning);
+}
+.noc-uplink-isp {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+}
+.noc-history svg {
+    height: 120px;
+}
+.noc-source-title strong::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: var(--space-2);
+    border-radius: 50%;
+    background: var(--color-lamp-on);
+    box-shadow: var(--console-glow);
+}
+.noc-source[data-state="warning"] .noc-source-title strong::before,
+.noc-source[data-state="unknown"] .noc-source-title strong::before {
+    background: var(--color-console-warning);
+    box-shadow: none;
+}
+.noc-source-title span {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.noc-progress {
+    border: 1px solid var(--color-console-bezel-edge);
+    height: 6px;
+    background: var(--color-field-background);
+}
+.noc-progress span {
+    box-shadow: var(--console-glow);
+}
+.noc-server,
+.noc-vpn-connection {
+    background: var(--color-field-background);
+    border-color: var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-console-bezel-highlight) 30%, transparent), inset 0 -12px 18px color-mix(in srgb, var(--color-shadow) 25%, transparent);
+}
+.noc-server > span:last-of-type {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.noc-vpn-heading .noc-tag::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: var(--space-2);
+    border-radius: 50%;
+    background: currentColor;
+}
+.noc-vpn-connection[data-state="connected"] .noc-vpn-heading .noc-tag::before {
+    background: var(--color-lamp-on);
+    box-shadow: var(--console-glow);
+}
+.noc-vpn-connection[data-state="disconnected"] .noc-tag,
+.noc-vpn-connection[data-state="connecting"] .noc-tag,
+.noc-vpn-connection[data-state="stale"] .noc-tag {
+    color: var(--color-console-warning);
+}
+.noc-vpn-traffic {
+    padding: var(--space-3);
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: 3px;
+    background: var(--color-console-panel);
+    color: var(--color-phosphor);
+    font-variant-numeric: tabular-nums slashed-zero;
+    text-shadow: var(--console-glow);
+}
+.noc-vpn-traffic small {
+    color: var(--color-text-muted);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-shadow: none;
+}
+/* Active watch entries read like Equipment's lit annunciator windows. */
+.noc-watch button.noc-warning {
+    --lamp: var(--color-console-advisory);
+    --lamp-dim: var(--color-console-advisory-dim);
+    margin-bottom: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid color-mix(in srgb, var(--lamp) 45%, var(--color-console-bezel-edge));
+    border-left: 3px solid var(--lamp);
+    border-radius: 3px;
+    background: linear-gradient(100deg, color-mix(in srgb, var(--lamp-dim) 55%, var(--color-console-panel)), var(--color-console-panel));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--lamp) 12%, transparent);
+}
+.noc-watch button.noc-warning[data-severity="warning"] {
+    --lamp: var(--color-console-warning);
+    --lamp-dim: var(--color-console-warning-dim);
+}
+.noc-watch button.noc-warning[data-severity="alarm"] {
+    --lamp: var(--color-console-alarm);
+    --lamp-dim: var(--color-console-alarm-dim);
+}
+.noc-watch button.noc-warning:hover {
+    border-color: var(--lamp);
+    background: color-mix(in srgb, var(--lamp-dim) 75%, var(--color-console-panel));
+}
+.noc-warning .noc-warning-icon {
+    flex: 0 0 8px;
+    min-width: 8px;
+    height: 8px;
+    margin-top: 5px;
+    border-radius: 2px;
+    background: var(--lamp);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--lamp) 55%, transparent);
+    font-size: 0;
+}
+.noc-warning strong {
+    color: color-mix(in srgb, var(--lamp) 25%, var(--color-text-primary));
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.noc-warning div > span {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+}
+.noc-port-row > a,
+.noc-port-legend {
+    font-family: var(--font-mono);
+}
+.noc-port-row > a {
+    color: var(--color-text-secondary);
+    font-size: 0.68rem;
+}
+.noc-drawer-body h3 {
+    color: var(--color-phosphor-soft);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+}
+.noc-facts dt {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+.noc-facts dd {
+    color: var(--color-phosphor-soft);
+    font-size: var(--text-xs);
+}
+@media (max-width: 600px) {
+    .noc-metric .noc-note {
+        font-size: 0.68rem;
+    }
+    .noc-warning div > span,
+    .noc-port-row > a {
+        font-size: var(--text-xs);
+    }
+}
+.noc-drawer-header > button {
+    flex: 0 0 2rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    background: var(--color-console-panel);
+    font-size: 1rem;
+}
+.noc-drawer-actions {
+    border-color: var(--color-console-bezel-edge);
+    background: linear-gradient(0deg, var(--color-console-bezel), var(--color-console-panel));
+}
+
+/* ==========================================================================
+ * Signal colors. Each panel and metric belongs to one signal domain (set by
+ * data-signal) and takes that domain's hue from the --color-signal-* tokens:
+ * internet cyan, VPN violet, compute blue, physical network teal. Green
+ * means healthy, amber a warning, red an alarm, and those status colors are
+ * never used as a domain hue, so problems stand out.
+ * ========================================================================== */
+
+.noc-panel,
+.noc-metric {
+    --signal: var(--color-phosphor);
+}
+
+.noc-panel[data-signal="internet"],
+.noc-metric[data-signal="internet"] { --signal: var(--color-signal-internet); }
+.noc-panel[data-signal="vpn"],
+.noc-metric[data-signal="vpn"] { --signal: var(--color-signal-vpn); }
+.noc-panel[data-signal="compute"],
+.noc-metric[data-signal="compute"] { --signal: var(--color-signal-compute); }
+.noc-panel[data-signal="network"],
+.noc-metric[data-signal="network"] { --signal: var(--color-signal-network); }
+.noc-panel[data-signal="power"] { --signal: var(--color-signal-power); }
+.noc-panel[data-signal="log"],
+.noc-metric[data-signal="neutral"] { --signal: var(--color-signal-neutral); }
+
+/* The watchlist reads its severity: quiet when clear, amber for conditions,
+   red when one is an alarm. */
+.noc-panel[data-signal="attention"] { --signal: var(--color-phosphor-dim); }
+.noc-panel[data-signal="attention"]:has(.noc-warning) { --signal: var(--color-console-warning); }
+.noc-panel[data-signal="attention"]:has(.noc-warning[data-severity="alarm"]) { --signal: var(--color-console-alarm); }
+
+.noc-panel,
+.noc-metric {
+    --signal-soft: color-mix(in srgb, var(--signal) 55%, var(--color-lift));
+    --signal-glow: 0 0 8px color-mix(in srgb, var(--signal) 55%, transparent);
+}
+
+/* A thin rule in the panel's hue along its top edge. */
+.observations-body .noc-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    z-index: 5;
+    height: 2px;
+    border-radius: var(--radius-control) var(--radius-control) 0 0;
+    background: linear-gradient(90deg, var(--signal), color-mix(in srgb, var(--signal) 15%, transparent) 75%);
+    box-shadow: var(--signal-glow);
+    pointer-events: none;
+}
+
+.observations-body .noc-panel[data-signal] > header {
+    border-bottom-color: color-mix(in srgb, var(--signal) 28%, var(--color-console-bezel-edge));
+}
+
+.observations-body .noc-panel[data-signal] .eyebrow {
+    color: var(--signal);
+}
+
+.observations-body .noc-panel[data-signal] > header h2 {
+    color: var(--signal-soft);
+    text-shadow: var(--signal-glow);
+}
+
+/* Internet: download is the signal hue, upload its companion. */
+.noc-wan .wan-meter-fill {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--signal) 30%, var(--color-shade)), var(--signal));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--signal) 60%, transparent);
+}
+
+.noc-wan .wan-meter + .wan-meter .wan-meter-fill {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-signal-internet-tx) 30%, var(--color-shade)), var(--color-signal-internet-tx));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-signal-internet-tx) 60%, transparent);
+}
+
+.noc-wan .wan-meter-value {
+    color: var(--signal-soft);
+    text-shadow: var(--signal-glow);
+}
+
+.noc-wan .wan-meter + .wan-meter .wan-meter-value {
+    color: var(--color-signal-internet-tx);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--color-signal-internet-tx) 55%, transparent);
+}
+
+.noc-wan .wan-spark-rx-area { fill: color-mix(in srgb, var(--signal) 24%, transparent); }
+.noc-wan .wan-spark-rx { stroke: var(--signal); }
+.noc-wan .wan-spark-tx { stroke: var(--color-signal-internet-tx); }
+
+/* VPN: the tunnel card is violet; its state tag keeps the status color. */
+.noc-vpn-connection[data-state="connected"] {
+    border-left-color: var(--signal);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--signal) 9%, transparent), transparent 55%), var(--color-field-background);
+}
+
+.noc-vpn-traffic {
+    color: var(--signal-soft);
+    text-shadow: var(--signal-glow);
+}
+
+/* Each tunnel's one-day traffic (collector vpn_history) in the shared WAN
+   chart: receive in the VPN hue, transmit a lighter violet. */
+.noc-vpn-spark {
+    margin: 0 0 var(--space-3);
+}
+
+.noc-vpn-spark .wan-spark-rx-area { fill: color-mix(in srgb, var(--signal) 22%, transparent); }
+.noc-vpn-spark .wan-spark-rx { stroke: var(--signal); }
+.noc-vpn-spark .wan-spark-tx { stroke: color-mix(in srgb, var(--signal) 55%, var(--color-lift)); }
+
+/* Server fleet: each tile carries the compute hue; its lamp and state word
+   keep the status color. */
+.noc-server {
+    border-left: 3px solid var(--signal);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--signal) 8%, transparent), transparent 60%), var(--color-field-background);
+}
+
+.noc-server[data-state="offline"] { border-left-color: var(--color-status-error); }
+.noc-server[data-state="stale"],
+.noc-server[data-state="unknown"] { border-left-color: var(--color-status-warning); }
+
+/* Physical network: lit ports are lamps, so they keep the lamp color. */
+.noc-port-ring {
+    background: conic-gradient(var(--color-lamp-port) 0 var(--up), var(--color-led-off) var(--up) var(--known), var(--color-border-subtle) var(--known) 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--signal) 25%, transparent);
+}
+
+.noc-port-ring strong {
+    color: var(--signal-soft);
+    text-shadow: var(--signal-glow);
+}
+
+.noc-port[data-state="up"] {
+    background: var(--color-lamp-port);
+    border-color: var(--color-lamp-port);
+    box-shadow: 0 0 5px color-mix(in srgb, var(--color-lamp-port) 70%, transparent);
+}
+
+/* Log: calm and neutral. */
+.noc-events time {
+    color: var(--color-signal-neutral);
+}
+
+/* Metric strip: hue, a gauge of a real ratio, and status overrides. */
+.noc-metric {
+    position: relative;
+    overflow: hidden;
+}
+
+.noc-metric::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: var(--signal);
+    box-shadow: var(--signal-glow);
+}
+
+.noc-metric strong {
+    color: var(--signal-soft);
+    text-shadow: var(--signal-glow);
+}
+
+.noc-metric[data-state="warning"] {
+    --signal: var(--color-console-warning);
+}
+
+.noc-metric[data-state="alarm"] {
+    --signal: var(--color-console-alarm);
+}
+
+.noc-gauge {
+    display: block;
+    height: 3px;
+    margin-top: auto;
+    background: color-mix(in srgb, var(--signal) 14%, transparent);
+}
+
+.noc-gauge-fill {
+    display: block;
+    height: 100%;
+    background: var(--signal);
+    box-shadow: var(--signal-glow);
+    transform-origin: left center;
+}
+
+/* Wallboard: bigger numbers and titles for reading across a room. */
+.noc-wallboard .noc-metric strong {
+    font-size: clamp(2.4rem, 3.2vw, 3.8rem);
+}
+
+.noc-wallboard .noc-metric .noc-label {
+    font-size: var(--text-sm);
+}
+
+.noc-wallboard .noc-panel > header h2 {
+    font-size: var(--text-lg);
+}
+
+/* ==========================================================================
+ * Hero panels: Internet, VPN, and the server fleet. These carry the page at
+ * a glance, so they get larger readouts than the supporting panels.
+ * ========================================================================== */
+
+/* Internet: the state in large type, then three readings. */
+.noc-wan-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-5);
+    margin-bottom: var(--space-2);
+}
+
+.noc-wan-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.noc-wan-lamp {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--color-lamp-on);
+    box-shadow: 0 0 12px var(--color-lamp-on);
+}
+
+.noc-wan-status strong {
+    color: var(--color-phosphor-soft);
+    font: 700 1.35rem/1.1 var(--font-mono);
+    letter-spacing: 0.1em;
+    text-shadow: var(--console-glow);
+    text-transform: uppercase;
+}
+
+.noc-gateway[data-state="degraded"] .noc-wan-lamp,
+.noc-gateway[data-state="stale"] .noc-wan-lamp {
+    background: var(--color-console-warning);
+    box-shadow: 0 0 12px var(--color-console-warning);
+}
+
+.noc-gateway[data-state="degraded"] .noc-wan-status strong,
+.noc-gateway[data-state="stale"] .noc-wan-status strong {
+    color: var(--color-console-warning);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--color-console-warning) 55%, transparent);
+}
+
+.noc-gateway[data-state="down"] .noc-wan-lamp {
+    background: var(--color-console-alarm);
+    box-shadow: 0 0 12px var(--color-console-alarm);
+    animation: noc-lamp-alarm 0.7s steps(1, end) infinite;
+}
+
+.noc-gateway[data-state="down"] .noc-wan-status strong {
+    color: var(--color-console-alarm);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--color-console-alarm) 55%, transparent);
+}
+
+@keyframes noc-lamp-alarm {
+    50% { background: var(--color-console-alarm-dim); box-shadow: none; }
+}
+
+.noc-wan-facts {
+    display: flex;
+    gap: var(--space-5);
+    margin: 0;
+}
+
+.noc-wan-facts dt {
+    color: var(--color-text-muted);
+    font: 500 0.6rem/1.4 var(--font-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.noc-wan-facts dd {
+    margin: 0;
+    color: var(--signal-soft);
+    font: 700 1.1rem/1.3 var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+    text-shadow: var(--signal-glow);
+}
+
+.noc-wan-identity {
+    margin: 0 0 var(--space-3);
+    color: var(--color-text-muted);
+    font: 400 var(--text-xs)/1.5 var(--font-mono);
+}
+
+/* Uplinks: download beside upload, each rate a large readout over its meter. */
+.noc-uplink {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-5);
+    row-gap: 2px;
+}
+
+.noc-uplink > strong,
+.noc-uplink > .noc-uplink-isp {
+    grid-column: 1 / -1;
+}
+
+.noc-uplink > .noc-uplink-isp {
+    margin-bottom: var(--space-2);
+    color: var(--color-text-secondary);
+    font: 400 var(--text-xs)/1.4 var(--font-mono);
+}
+
+.noc-uplink[data-state="active"] {
+    border-color: color-mix(in srgb, var(--signal) 45%, var(--color-console-bezel-edge));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--signal) 8%, transparent), transparent 60%), var(--color-field-background);
+}
+
+.noc-uplink .wan-meter {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "label value" "track track";
+    row-gap: 4px;
+}
+
+.noc-uplink .wan-meter-label { grid-area: label; }
+.noc-uplink .wan-meter-value { grid-area: value; font-size: 1.35rem; }
+.noc-uplink .wan-meter-track { grid-area: track; height: 10px; }
+
+/* History chart: labelled grid, a fading fill, and a marker on the newest sample. */
+.noc-history {
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.noc-history .wan-spark-plot {
+    position: relative;
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    background:
+        repeating-linear-gradient(to top, transparent 0, transparent calc(25% - 1px), color-mix(in srgb, var(--color-console-bezel-edge) 70%, transparent) 25%),
+        repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), color-mix(in srgb, var(--color-console-bezel-edge) 45%, transparent) 25%),
+        var(--color-field-background);
+    box-shadow: inset 0 0 18px color-mix(in srgb, var(--color-shadow) 65%, transparent);
+}
+
+.noc-history .wan-spark-plot svg {
+    display: block;
+    width: 100%;
+    height: 180px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+
+.wan-spark-stop-top { stop-color: var(--signal); stop-opacity: 0.55; }
+.wan-spark-stop-bottom { stop-color: var(--signal); stop-opacity: 0.02; }
+
+.noc-history .wan-spark-rx {
+    stroke-width: 1.6;
+    filter: drop-shadow(0 0 3px var(--signal));
+}
+
+.noc-history .wan-spark-tx { stroke-width: 1.3; }
+
+.wan-spark-ylabel {
+    position: absolute;
+    left: 6px;
+    padding: 0 4px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--color-field-background) 80%, transparent);
+    color: var(--color-text-muted);
+    font: 500 0.6rem/1.4 var(--font-mono);
+    letter-spacing: 0.06em;
+}
+
+.wan-spark-ylabel.is-top { top: 4px; }
+.wan-spark-ylabel.is-middle { top: 50%; transform: translateY(-50%); }
+
+.wan-spark-now {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
+    background: var(--signal);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 25%, transparent), 0 0 10px var(--signal);
+    animation: noc-marker 2.4s ease-in-out infinite;
+}
+
+@keyframes noc-marker {
+    50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--signal) 8%, transparent), 0 0 10px var(--signal); }
+}
+
+.wan-sparkline-caption.is-detailed {
+    margin-top: var(--space-1);
+    font-size: 0.6rem;
+}
+
+.noc-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font: 500 0.6rem/1.4 var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.noc-chart-legend span::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    margin-right: var(--space-2);
+    vertical-align: middle;
+}
+
+.noc-chart-legend .is-rx::before { height: 8px; background: color-mix(in srgb, var(--signal) 55%, transparent); border-top: 2px solid var(--signal); }
+.noc-chart-legend .is-tx::before { background: var(--color-signal-internet-tx); }
+.noc-chart-legend .is-degraded::before { width: 3px; height: 10px; background: var(--color-console-warning); }
+
+/* VPN: larger state and traffic. */
+.noc-vpn-heading strong {
+    font-size: var(--text-md);
+}
+
+.noc-vpn-heading .noc-tag {
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+}
+
+.noc-vpn-connection[data-state="connected"] .noc-vpn-heading .noc-tag {
+    text-shadow: var(--console-glow);
+}
+
+.noc-vpn-traffic {
+    font-size: 1.6rem;
+    font-variant-numeric: tabular-nums slashed-zero;
+}
+
+.noc-vpn-traffic small {
+    margin-bottom: 2px;
+    color: var(--color-text-muted);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-shadow: none;
+}
+
+/* Server fleet: name, state, one lamp per NIC, and the last sighting. */
+.noc-servers {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.noc-server {
+    grid-template-columns: auto 1fr auto;
+    row-gap: 4px;
+    padding: var(--space-4) var(--space-4) var(--space-3);
+}
+
+.noc-server strong {
+    grid-column: 2 / -1;
+    font-size: var(--text-md);
+    letter-spacing: 0.04em;
+}
+
+.noc-server .noc-server-state {
+    grid-column: 2;
+    grid-row: 2;
+    font: 700 var(--text-xs)/1.5 var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.noc-server .noc-server-count {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+    color: var(--color-text-muted);
+    font: 500 0.65rem/1.5 var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.noc-server-nics {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin: var(--space-2) 0 var(--space-1);
+}
+
+.noc-server small {
+    grid-column: 1 / -1;
+    text-transform: none;
+}
+
+/* A NIC lamp is a lit network port, so it keeps the port lamp color. */
+.noc-server-nics .noc-port[data-state="up"] {
+    background: var(--color-lamp-port);
+    border-color: var(--color-lamp-port);
+    box-shadow: 0 0 5px color-mix(in srgb, var(--color-lamp-port) 70%, transparent);
+}
+
+@media (max-width: 600px) {
+    .noc-uplink {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .noc-wan-facts {
+        gap: var(--space-4);
+    }
+}
+
+/* Wallboard: hero readouts sized for a room. */
+.noc-wallboard .noc-wan-status strong { font-size: 2rem; }
+.noc-wallboard .noc-wan-lamp { width: 18px; height: 18px; }
+.noc-wallboard .noc-wan-facts dd { font-size: 1.5rem; }
+.noc-wallboard .noc-uplink .wan-meter-value { font-size: 1.9rem; }
+.noc-wallboard .noc-history .wan-spark-plot svg { height: 220px; }
+.noc-wallboard .noc-vpn-traffic { font-size: 2.1rem; }
+.noc-wallboard .noc-server strong { font-size: var(--text-lg); }
+.noc-wallboard .noc-server .noc-server-state { font-size: var(--text-sm); }
+
+@media (prefers-reduced-motion: reduce) {
+    .wan-spark-now,
+    .noc-gateway[data-state="down"] .noc-wan-lamp {
+        animation: none;
+    }
+}
+
+/* ==========================================================================
+ * Internet panel width. The panel's width varies a lot (a wide window, a
+ * three-column wallboard, a phone), so its layout follows the panel's own
+ * width, not the window's: uplink cards stack when there is not room for two
+ * side by side, which keeps large rates clear of their labels.
+ * Normal text needs about 700 px for two cards; wallboard numbers about 900.
+ * ========================================================================== */
+
+#noc-wan-body {
+    container-type: inline-size;
+}
+
+.noc-gateway {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@container (min-width: 700px) {
+    .noc-gateway {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container (max-width: 899px) {
+    .noc-wallboard .noc-gateway {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* A label and its rate never share a line they cannot both fit in. */
+.noc-uplink .wan-meter-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+ * Layout (phase 3). Panels run heroes first: Internet, VPN, server fleet,
+ * then the watchlist, collection, ports, and the session log.
+ * ========================================================================== */
+
+/* A clear watchlist is one calm line; the panel grows when conditions appear. */
+.noc-watch:not(:has(.noc-warning)) > .noc-note {
+    display: none;
+}
+
+.noc-watch:not(:has(.noc-warning)) #noc-warnings {
+    margin-top: 0;
+}
+
+.noc-all-clear {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid color-mix(in srgb, var(--color-phosphor) 30%, var(--color-console-bezel-edge));
+    border-radius: var(--radius-small);
+    background: color-mix(in srgb, var(--color-phosphor) 6%, var(--color-field-background));
+    color: var(--color-phosphor-soft);
+    font: 700 var(--text-xs)/1.4 var(--font-mono);
+    letter-spacing: 0.12em;
+    text-shadow: var(--console-glow);
+    text-transform: uppercase;
+}
+
+.noc-all-clear::before {
+    content: "";
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--color-lamp-on);
+    box-shadow: 0 0 8px var(--color-lamp-on);
+}
+
+/* --------------------------------------------------------------------------
+ * Wallboard: fit one screen. Explanatory notes are for close reading at a
+ * desk, so the wallboard hides them; long lists keep a fixed height and scroll
+ * inside their panel. Live data, state, and sources stay visible.
+ * -------------------------------------------------------------------------- */
+
+.noc-wallboard .noc-panel > .noc-note,
+.noc-wallboard .noc-gateway > .noc-note {
+    display: none;
+}
+
+.noc-wallboard .page-content {
+    padding-block: var(--space-3);
+}
+
+.noc-wallboard .noc-header {
+    margin-bottom: var(--space-2);
+}
+
+.noc-wallboard .noc-metrics {
+    margin: var(--space-2) 0 var(--space-3);
+}
+
+.noc-wallboard .noc-metric {
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-4);
+}
+
+.noc-wallboard .noc-metric strong {
+    font-size: clamp(2.2rem, 2.4vw, 3.2rem);
+}
+
+/* Column gap only: the masonry layout uses 4 px rows with no row gap. */
+.noc-wallboard .noc-grid {
+    column-gap: var(--space-4);
+}
+
+.noc-wallboard .noc-panel {
+    padding: var(--space-4);
+}
+
+.noc-wallboard .noc-panel > header {
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+}
+
+.noc-wallboard .noc-history .wan-spark-plot svg {
+    height: 160px;
+}
+
+.noc-wallboard #noc-ports {
+    max-height: 210px;
+}
+
+.noc-wallboard .noc-events {
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.noc-wallboard .noc-port-mix {
+    margin: var(--space-2) 0;
+}
+
+/* Each uplink's name and provider share one line (stacked again on phones). */
+.noc-uplink > strong {
+    grid-column: 1;
+    align-self: center;
+}
+
+.noc-uplink > .noc-uplink-isp {
+    grid-column: 2;
+    justify-self: end;
+    align-self: center;
+    margin-bottom: var(--space-2);
+    text-align: right;
+}
+
+@media (max-width: 600px) {
+    .noc-uplink > strong,
+    .noc-uplink > .noc-uplink-isp {
+        grid-column: 1 / -1;
+        justify-self: start;
+        text-align: left;
+    }
+}
+
+/* Wallboard fit: the remaining height savings, each without hiding data. */
+.noc-wallboard .noc-servers {
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    gap: var(--space-2);
+}
+
+.noc-wallboard .noc-server {
+    padding: var(--space-3);
+}
+
+.noc-wallboard .noc-history .wan-spark-plot svg {
+    height: 130px;
+}
+
+.noc-wallboard #noc-ports {
+    max-height: 150px;
+}
+
+.noc-wallboard .noc-port-ring {
+    flex-basis: 80px;
+    height: 80px;
+}
+
+.noc-wallboard .noc-port-ring strong {
+    width: 60px;
+    height: 60px;
+    font-size: 1.25rem;
+}
+
+.noc-wallboard .noc-metric strong {
+    font-size: clamp(2rem, 2.1vw, 2.8rem);
+}
+
+.noc-wallboard .noc-vpn-connection {
+    padding: var(--space-3);
+}
+
+.noc-wallboard .noc-vpn-traffic {
+    margin: var(--space-2) 0;
+    padding: var(--space-2) var(--space-3);
+}
+
+.noc-wallboard .noc-uplink {
+    padding: var(--space-2) var(--space-3);
+}
+
+/*
+ * Wallboard columns (three-column widths): each panel keeps a column by role
+ * so the columns balance and related panels sit together. Column 1 is the
+ * internet; column 2 the other heroes, VPN and the server fleet; column 3
+ * problems and health. Dense placement stacks each column from the top while
+ * the measured masonry spans keep panel heights. DOM order (and keyboard
+ * order) is unchanged.
+ */
+@media (min-width: 1600px) {
+    .noc-wallboard .noc-grid {
+        grid-auto-flow: dense;
+    }
+
+    .noc-wallboard .noc-grid > [data-signal="internet"],
+    .noc-wallboard .noc-grid > [data-signal="log"] {
+        grid-column: 1;
+    }
+
+    .noc-wallboard .noc-grid > [data-signal="vpn"],
+    .noc-wallboard .noc-grid > [data-signal="compute"] {
+        grid-column: 2;
+    }
+
+    .noc-wallboard .noc-grid > [data-signal="attention"],
+    .noc-wallboard .noc-grid > [data-signal="collection"],
+    .noc-wallboard .noc-grid > [data-signal="network"] {
+        grid-column: 3;
+    }
+
+    .noc-wallboard .noc-events {
+        max-height: 90px;
+    }
+}
+
+/* Wallboard: no trailing page padding, and the internet's state shares one
+   line with its three readings when the panel has room for both (measured
+   on the panel itself, like the uplink cards); otherwise the readings wrap
+   below rather than spill into the next panel. */
+@container (min-width: 580px) {
+    .noc-wallboard .noc-wan-hero {
+        flex-wrap: nowrap;
+    }
+}
+
+.noc-wallboard .noc {
+    padding-bottom: 0;
+}
+
+@media (min-width: 1600px) {
+    .noc-wallboard .noc-wan-status strong {
+        font-size: 1.6rem;
+        white-space: nowrap;
+    }
+
+    .noc-wallboard .noc-wan-facts {
+        gap: var(--space-4);
+    }
+
+    .noc-wallboard .noc-wan-facts dd {
+        font-size: 1.25rem;
+        white-space: nowrap;
+    }
+}
+
+@media (min-width: 1600px) {
+    .noc-wallboard .noc-wan-facts {
+        gap: var(--space-3);
+    }
+
+    .noc-wallboard #noc-ports {
+        max-height: 130px;
+    }
+
+    .noc-wallboard .noc-source {
+        padding-block: var(--space-2);
+    }
+}
+
+/* ==========================================================================
+ * Rearranging panels. Each panel header has a grip; dragging it (mouse or
+ * touch) or using the arrow keys on it moves the panel. The arrangement is
+ * saved in this browser only (observations.js, OBSERVATION_LAYOUT_KEY).
+ * ========================================================================== */
+
+/* Title on the left; tag and grip together on the right. The title gives
+   way on narrow screens so the grip stays on the header row. */
+.noc-panel > header > div:first-child {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-right: auto;
+}
+
+.noc-grip {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin: -4px -8px 0 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-small);
+    background: transparent;
+    color: var(--color-text-faint);
+    cursor: grab;
+    touch-action: none;
+}
+
+.noc-grip svg {
+    width: 10px;
+    height: 16px;
+    fill: currentColor;
+}
+
+/* Highlight by icon color only, no background (owner). */
+.noc-grip:hover,
+.noc-grip:focus-visible {
+    color: var(--signal-soft);
+}
+
+.noc-grip:focus-visible {
+    outline: 2px solid var(--signal);
+    outline-offset: 1px;
+}
+
+/* The lifted panel follows the pointer above the others. */
+.noc-panel.is-dragging {
+    z-index: 20;
+    opacity: 0.88;
+    box-shadow:
+        0 0 0 1px var(--signal),
+        0 0 24px color-mix(in srgb, var(--signal) 30%, transparent),
+        0 30px 60px color-mix(in srgb, var(--color-shadow) 70%, transparent);
+    cursor: grabbing;
+}
+
+body.noc-arranging,
+body.noc-arranging * {
+    cursor: grabbing !important;
+    user-select: none;
+}
+
+/* Where the panel will land. */
+.noc-drop-marker {
+    position: fixed;
+    z-index: 70;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--color-phosphor);
+    box-shadow: 0 0 10px var(--color-phosphor);
+    pointer-events: none;
+}
+
+.noc-drop-marker[hidden] {
+    display: none;
+}
+
+/* Announcements for screen readers only. */
+.noc-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* A column chosen by the viewer in wallboard overrides the panel's role column. */
+@media (min-width: 1600px) {
+    .noc-wallboard .noc-grid > [data-column="1"] { grid-column: 1; }
+    .noc-wallboard .noc-grid > [data-column="2"] { grid-column: 2; }
+    .noc-wallboard .noc-grid > [data-column="3"] { grid-column: 3; }
+}
+
+/* Buttons set their own display, so hidden header controls need this to stay hidden. */
+.noc-controls [hidden] {
+    display: none;
+}
+
+
+/* ==========================================================================
+ * UPS power (NUT). Each UPS tile carries the power hue; its lamp and state
+ * keep status colors: green online, amber on battery or a reported alert,
+ * red (flashing) on low battery, grey when unknown or stale.
+ * ========================================================================== */
+
+.noc-power-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+}
+
+.noc-ups {
+    --level: var(--color-text-muted);
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-console-bezel-edge);
+    border-left: 3px solid var(--signal);
+    border-radius: var(--radius-small);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--signal) 8%, transparent), transparent 60%), var(--color-field-background);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-console-bezel-highlight) 30%, transparent);
+    color: var(--color-text-primary);
+    text-decoration: none;
+}
+
+/* A UPS level is a status (ok, stale, alarm), so ok is the lamp color. */
+.noc-ups[data-level="ok"] { --level: var(--color-lamp-on); }
+.noc-ups[data-level="warning"],
+.noc-ups[data-level="stale"] { --level: var(--color-console-warning); }
+.noc-ups[data-level="alarm"] { --level: var(--color-console-alarm); border-left-color: var(--color-console-alarm); }
+.noc-ups[data-level="warning"] { border-left-color: var(--color-console-warning); }
+
+.noc-ups-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.noc-ups-head .noc-status-dot {
+    background: var(--level);
+    box-shadow: 0 0 8px var(--level);
+}
+
+.noc-ups[data-level="alarm"] .noc-ups-head .noc-status-dot {
+    animation: noc-lamp-alarm 0.7s steps(1, end) infinite;
+}
+
+.noc-ups-head strong {
+    overflow: hidden;
+    font: 700 var(--text-sm)/1.3 var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.noc-ups-state {
+    color: var(--level);
+    font: 700 0.68rem/1.4 var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Battery: the charge as a large figure over a gauge. */
+.noc-ups-battery {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "charge caption" "gauge gauge";
+    align-items: end;
+    column-gap: var(--space-2);
+    row-gap: 4px;
+}
+
+.noc-ups-charge {
+    grid-area: charge;
+    color: var(--signal-soft);
+    font: 700 1.6rem/1 var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+    text-shadow: var(--signal-glow);
+}
+
+.noc-ups-caption {
+    grid-area: caption;
+    color: var(--color-text-muted);
+    font: 500 0.6rem/1.4 var(--font-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.noc-ups-gauge {
+    grid-area: gauge;
+    height: 8px;
+    border-radius: 2px;
+    background:
+        repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), color-mix(in srgb, var(--color-console-bezel-edge) 80%, transparent) calc(10% - 1px) 10%),
+        color-mix(in srgb, var(--color-shadow) 55%, var(--color-console-panel));
+    overflow: hidden;
+}
+
+.noc-ups-gauge-fill {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--signal) 35%, var(--color-shade)), var(--signal));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--signal) 60%, transparent);
+    transform-origin: left center;
+}
+
+.noc-ups[data-level="warning"] .noc-ups-gauge-fill { background: var(--color-console-warning); }
+.noc-ups[data-level="alarm"] .noc-ups-gauge-fill { background: var(--color-console-alarm); }
+
+.noc-ups-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+}
+
+.noc-ups-facts dt {
+    color: var(--color-text-muted);
+    font: 500 0.6rem/1.4 var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.noc-ups-facts dd {
+    margin: 0;
+    font: 700 var(--text-sm)/1.3 var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+}
+
+.noc-ups-alerts {
+    margin: 0;
+    color: var(--color-console-warning);
+    font: 700 var(--text-xs)/1.4 var(--font-mono);
+}
+
+.noc-ups-source {
+    color: var(--color-text-muted);
+    font: 400 var(--text-xs)/1.4 var(--font-mono);
+}
+
+.noc-wallboard .noc-ups-charge {
+    font-size: 2rem;
+}
+
+@media (min-width: 1600px) {
+    .noc-wallboard .noc-grid > [data-signal="power"] {
+        grid-column: 2;
+    }
+}
+
+@media (min-width: 1600px) {
+    .noc-wallboard .noc-grid > [data-column="1"] { grid-column: 1; }
+    .noc-wallboard .noc-grid > [data-column="2"] { grid-column: 2; }
+    .noc-wallboard .noc-grid > [data-column="3"] { grid-column: 3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .noc-ups[data-level="alarm"] .noc-ups-head .noc-status-dot {
+        animation: none;
+    }
+}
+
+
+/*
+ * Wide wallboards (1800 px and up) use four columns so every panel fits one
+ * 1920x1080 screen: internet and log; VPN and power; server fleet and
+ * watchlist; collection and ports. A column the viewer chose still wins.
+ */
+@media (min-width: 1800px) {
+    .noc-wallboard .noc-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .noc-wallboard .noc-grid > [data-signal="internet"],
+    .noc-wallboard .noc-grid > [data-signal="log"] { grid-column: 1; }
+    .noc-wallboard .noc-grid > [data-signal="vpn"],
+    .noc-wallboard .noc-grid > [data-signal="power"] { grid-column: 2; }
+    .noc-wallboard .noc-grid > [data-signal="compute"],
+    .noc-wallboard .noc-grid > [data-signal="attention"] { grid-column: 3; }
+    .noc-wallboard .noc-grid > [data-signal="collection"],
+    .noc-wallboard .noc-grid > [data-signal="network"] { grid-column: 4; }
+
+    .noc-wallboard .noc-grid > [data-column="1"] { grid-column: 1; }
+    .noc-wallboard .noc-grid > [data-column="2"] { grid-column: 2; }
+    .noc-wallboard .noc-grid > [data-column="3"] { grid-column: 3; }
+    .noc-wallboard .noc-grid > [data-column="4"] { grid-column: 4; }
+}
+
+/* Four-column wallboards: UPS tiles sit two across in the narrower panel. */
+@media (min-width: 1800px) {
+    .noc-wallboard .noc-power-grid {
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: var(--space-2);
+    }
+
+    .noc-wallboard .noc-ups {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .noc-wallboard .noc-ups-head {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .noc-wallboard .noc-ups-state {
+        grid-column: 2;
+    }
+}
+
+@media (min-width: 1800px) {
+    .noc-wallboard .noc-history .wan-spark-plot svg {
+        height: 100px;
+    }
+
+    .noc-wallboard .noc-events {
+        max-height: 64px;
+    }
+}
+
+@media (min-width: 1800px) {
+    .noc-wallboard .noc-panel > header {
+        margin-bottom: var(--space-2);
+    }
+}

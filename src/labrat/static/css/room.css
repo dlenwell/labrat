@@ -1,0 +1,1035 @@
+/*
+ * Copyright 2026 LabRat contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Relative, top-down footprints for Room View. No element represents a scale
+ * measurement; the room canvas exists to show physical relationships.
+ */
+
+/* ========================================================================== */
+/* 01. PAGE, NOTICES, AND WORKSPACE                                           */
+/* ========================================================================== */
+
+.room-page {
+    width: 100%;
+}
+
+/* "Saved" after a change, left of the heading tools; fades out (owner). */
+.room-saved {
+    align-self: center;
+    margin-right: var(--space-2);
+    color: var(--color-status-ok);
+    font: 600 var(--text-sm) var(--font-mono);
+    opacity: 0;
+    transition: opacity 600ms ease;
+}
+
+.room-saved.is-shown {
+    opacity: 1;
+    transition: none;
+}
+
+.room-notice {
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+}
+
+.room-notice[data-state="error"] {
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+.room-notice[hidden] {
+    display: none;
+}
+
+/* The plan takes the full width; Unplaced equipment and Build out live in
+   the shared drawer (owner). */
+.room-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+/* The canvas sits sunk into the frame, like Equipment's nested panels
+   (console.css): a shade darker, a shadow inside its top edge, and the
+   bezel highlight along its bottom (owner). */
+.room-canvas-panel {
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--color-console-bezel-edge, var(--color-border));
+    border-radius: var(--radius-card);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-shadow) 18%, transparent), transparent 40px),
+        color-mix(in srgb, var(--color-panel-background-deep) 82%, var(--color-shade));
+    box-shadow:
+        inset 0 7px 9px -6px var(--color-shadow),
+        inset 0 -1px 0 color-mix(in srgb, var(--color-console-bezel-highlight, var(--color-border)) 55%, transparent);
+}
+
+/* The search label with the unplaced count at its right. */
+/* A room panel in the drawer: its body scrolls under the drawer bar. */
+.room-drawer-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.room-drawer-body {
+    flex: 1 1 auto;
+    display: grid;
+    align-content: start;
+    gap: var(--space-2);
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-5);
+}
+
+/* ========================================================================== */
+/* 02. CANVAS, FLOOR, AND WALLS                                               */
+/* ========================================================================== */
+
+.room-canvas-scroll {
+    overflow: auto;
+    border-radius: var(--radius-control);
+}
+
+/*
+ * The room is drawn like an architectural floor plan: one continuous wall
+ * outline (hatched, meeting at the corners) around a dashed floor. --wall
+ * is the drawn wall thickness; the floor and footprint layer sit inside it.
+ */
+.room-canvas {
+    --wall: 12px;
+    --floor-gap: 10px;
+    position: relative;
+    width: 100%;
+    min-width: 580px;
+    aspect-ratio: 1.38;
+    min-height: 470px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    /* The grid lines come from .blueprint-grid in main.css. */
+    background-color: var(--color-panel-background);
+}
+
+.room-floor {
+    position: absolute;
+    z-index: 1;
+    inset: calc(var(--wall) + var(--floor-gap));
+    border: 1px dashed color-mix(in srgb, var(--color-border-strong) 70%, transparent);
+    border-radius: var(--radius-small);
+    background-color: color-mix(in srgb, var(--color-panel-background-deep) 45%, transparent);
+}
+
+/* Walls: solid hatched strips. North and south run the full width so the
+   corners close; east and west fit between them. */
+.room-wall {
+    position: absolute;
+    z-index: 4;
+    /* Centering places wall devices on the wall's center line. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        repeating-linear-gradient(
+            45deg,
+            var(--color-border-strong) 0 2px,
+            var(--color-border) 2px 6px
+        );
+    box-shadow: 0 0 0 1px var(--color-border-bright) inset;
+    cursor: copy;
+    transition: box-shadow 120ms ease, background 120ms ease;
+}
+
+/* A wider, invisible drop area reaching into the room makes thin walls easy
+   to hit while dragging. */
+.room-wall::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.room-wall-north::before {
+    bottom: calc(-1 * var(--floor-gap) - 6px);
+}
+
+.room-wall-south::before {
+    top: calc(-1 * var(--floor-gap) - 6px);
+}
+
+.room-wall-east::before {
+    left: calc(-1 * var(--floor-gap) - 6px);
+}
+
+.room-wall-west::before {
+    right: calc(-1 * var(--floor-gap) - 6px);
+}
+
+/* The wall under the pointer lights up while something is dragged over it. */
+.room-wall.is-drop-target {
+    background:
+        repeating-linear-gradient(
+            45deg,
+            var(--color-accent) 0 2px,
+            var(--color-accent-surface) 2px 6px
+        );
+    box-shadow:
+        0 0 0 1px var(--color-accent) inset,
+        0 0 14px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+.room-wall-north,
+.room-wall-south {
+    right: 0;
+    left: 0;
+    height: var(--wall);
+}
+
+.room-wall-north {
+    top: 0;
+}
+
+.room-wall-south {
+    bottom: 0;
+}
+
+.room-wall-east,
+.room-wall-west {
+    top: var(--wall);
+    bottom: var(--wall);
+    width: var(--wall);
+}
+
+.room-wall-east {
+    right: 0;
+}
+
+.room-wall-west {
+    left: 0;
+}
+
+/* Wall names sit on the wall as small tags. Only the tag is rotated on the
+   side walls, so wall devices keep their real positions. */
+.room-wall > span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    background: var(--color-panel-background);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+.room-wall-east > span {
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.room-wall-west > span {
+    transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+/* ========================================================================== */
+/* 03. EQUIPMENT CARDS                                                        */
+/* ========================================================================== */
+
+.room-layout-items {
+    position: absolute;
+    z-index: 2;
+    inset: calc(var(--wall) + var(--floor-gap));
+    pointer-events: none;
+}
+
+/* An empty room shows a hint in the middle of the floor. */
+.room-layout-items:empty::after {
+    content: "Drag equipment from the list onto the floor or a wall, or add a rack.";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(80%, 22rem);
+    color: var(--color-text-faint);
+    font-size: var(--text-sm);
+    text-align: center;
+    transform: translate(-50%, -50%);
+}
+
+.room-layout-items > *,
+.room-wall > * {
+    pointer-events: auto;
+}
+
+.room-device,
+.room-wall-device,
+.room-shelf-device,
+.room-top-device {
+    position: absolute;
+    display: flex;
+    min-width: 86px;
+    max-width: 160px;
+    min-height: 58px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.35rem 0.5rem;
+    overflow: hidden;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    cursor: grab;
+    text-align: center;
+}
+
+/*
+ * Device type color: a left stripe and the glyph. --type comes from the
+ * shared --color-type-* tokens, so a switch matches Discovery and Rack View.
+ */
+.room-device,
+.room-wall-device,
+.room-shelf-device,
+.room-top-device {
+    --type: var(--color-text-faint);
+    border-left: 3px solid var(--type);
+}
+
+[data-category="server"] { --type: var(--color-type-server); }
+[data-category="switch"] { --type: var(--color-type-switch); }
+[data-category="router"] { --type: var(--color-type-router); }
+[data-category="firewall"] { --type: var(--color-type-firewall); }
+[data-category="access_point"] { --type: var(--color-type-ap); }
+[data-category="ups"] { --type: var(--color-type-ups); }
+[data-category="modem"] { --type: var(--color-type-modem); }
+
+.room-device:active,
+.room-wall-device:active,
+.room-shelf-device:active,
+.room-top-device:active {
+    cursor: grabbing;
+}
+
+.room-device-glyph {
+    color: var(--type, var(--color-accent));
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.room-device-name {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.room-wall-device {
+    z-index: 2;
+    min-width: 76px;
+    min-height: 40px;
+}
+
+/*
+ * Wall equipment hangs on the inside face of its wall: its outer edge lines
+ * up with the wall's outer edge and the rest reaches into the room. JS sets
+ * only the position along the wall (left on north/south, top on east/west).
+ */
+.room-wall-north > .room-wall-device {
+    top: 0;
+    transform: translateX(-50%);
+}
+
+.room-wall-south > .room-wall-device {
+    bottom: 0;
+    transform: translateX(-50%);
+}
+
+.room-wall-west > .room-wall-device {
+    left: 0;
+    transform: translateY(-50%);
+}
+
+.room-wall-east > .room-wall-device {
+    right: 0;
+    transform: translateY(-50%);
+}
+
+/* ========================================================================== */
+/* 04. SHELVES AND FURNITURE TOOLS                                            */
+/* ========================================================================== */
+
+.room-shelf {
+    --shelf-depth: 92px;
+    position: absolute;
+    display: flex;
+    min-width: 70px;
+    width: clamp(170px, 24%, 260px);
+    height: var(--shelf-depth);
+    align-items: end;
+    justify-content: center;
+    /* Steel, like the rest of the plan, not the bright bronze (owner); the
+       lip along the front is a darker band. Square where it meets the
+       wall (the top edge; south shelves below), rounded elsewhere. */
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0 0 var(--radius-control) var(--radius-control);
+    background: linear-gradient(180deg, var(--color-surface-raised), color-mix(in srgb, var(--color-surface-raised) 70%, var(--color-shade)));
+    box-shadow: inset 0 -9px 0 color-mix(in srgb, var(--color-shade) 45%, transparent);
+    transform: translate(-50%, -50%);
+    cursor: grab;
+}
+
+.room-shelf-name,
+.room-area-name,
+.room-rack-name {
+    position: absolute;
+    z-index: 2;
+    top: 0.3rem;
+    right: 0.4rem;
+    left: 0.4rem;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: 0.67rem;
+    font-weight: 750;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/*
+ * Wall shelves sit flush on their wall's inner face (owner): the items
+ * layer is inset --floor-gap from the walls, so the shelf's back edge goes
+ * that far out. East and west shelves turn so their back faces the wall;
+ * their center sits half a shelf depth in from it.
+ */
+.room-shelf-north {
+    top: calc(-1 * var(--floor-gap));
+    transform: translateX(-50%);
+}
+
+/* The pencil beside a rack's or shelf's name (room.js furnitureEditButton):
+   icon only, the accent on hover, like other tools (owner). */
+.room-furniture-edit {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin-left: var(--space-1);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.room-furniture-edit svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.room-furniture-edit:hover,
+.room-furniture-edit:focus-visible {
+    color: var(--color-accent);
+}
+
+.room-furniture-edit:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+/*
+ * Resize handles (room.js addShelfResize): a grip at the shelf's end for its
+ * length and one on its front edge for its depth, shown on hover or focus
+ * within. East and west shelves are turned, so their cursors swap.
+ */
+.room-shelf-handle {
+    position: absolute;
+    z-index: 4;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    opacity: 0;
+    transition: opacity 120ms ease;
+    touch-action: none;
+}
+
+.room-shelf:hover .room-shelf-handle,
+.room-shelf-handle:active {
+    opacity: 0.85;
+}
+
+.room-shelf-handle.is-length {
+    top: 50%;
+    right: -3px;
+    width: 6px;
+    height: 28px;
+    transform: translateY(-50%);
+    cursor: ew-resize;
+}
+
+.room-shelf-handle.is-depth {
+    bottom: -3px;
+    left: 50%;
+    width: 28px;
+    height: 6px;
+    transform: translateX(-50%);
+    cursor: ns-resize;
+}
+
+/* A south shelf's front is its top edge. */
+.room-shelf-south .room-shelf-handle.is-depth {
+    top: -3px;
+    bottom: auto;
+}
+
+.room-shelf-east .room-shelf-handle.is-length,
+.room-shelf-west .room-shelf-handle.is-length {
+    cursor: ns-resize;
+}
+
+.room-shelf-east .room-shelf-handle.is-depth,
+.room-shelf-west .room-shelf-handle.is-depth {
+    cursor: ew-resize;
+}
+
+/* Not turned, so its name stays upright; its wall is the bottom edge. */
+.room-shelf-south {
+    top: auto;
+    bottom: calc(-1 * var(--floor-gap));
+    border-radius: var(--radius-control) var(--radius-control) 0 0;
+    transform: translateX(-50%);
+}
+
+.room-shelf-east {
+    top: 50%;
+    left: calc(100% + var(--floor-gap) - var(--shelf-depth) / 2);
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.room-shelf-west {
+    top: 50%;
+    left: calc(-1 * var(--floor-gap) + var(--shelf-depth) / 2);
+    transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+.room-shelf-device {
+    z-index: 3;
+    bottom: 0.65rem;
+    min-width: 36px;
+    max-width: 64px;
+    min-height: 38px;
+    padding: 0.2rem;
+    border-color: var(--color-border-strong);
+    background-color: var(--color-console-panel-raised);
+    transform: translateX(-50%);
+}
+
+.room-shelf-device .room-device-glyph {
+    font-size: 0.83rem;
+}
+
+.room-shelf-device .room-device-name {
+    font-size: 0.56rem;
+}
+
+/* ========================================================================== */
+/* 05. RACKS                                                                  */
+/* ========================================================================== */
+
+/*
+ * A rack seen from above: a teal cabinet with its name and size, a stripe
+ * per mounted device in its type color, anything sitting on top, and a link
+ * to its elevation.
+ */
+.room-rack {
+    position: absolute;
+    display: flex;
+    width: clamp(150px, 19%, 210px);
+    min-height: 150px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3) var(--space-3);
+    /* Steel like the plan's other furniture, not the bright teal (owner). */
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-card);
+    background: linear-gradient(180deg, var(--color-surface-raised), color-mix(in srgb, var(--color-surface-raised) 70%, var(--color-shade)));
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+    cursor: grab;
+    pointer-events: auto;
+    transform: translate(-50%, -50%);
+}
+
+/*
+ * A rack against a wall (room.js snapRackToWall) sits flush on its inner
+ * face, square on that side, like a wall shelf (owner).
+ */
+.room-rack[data-wall="north"] {
+    top: calc(-1 * var(--floor-gap));
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    transform: translateX(-50%);
+}
+
+.room-rack[data-wall="south"] {
+    top: auto;
+    bottom: calc(-1 * var(--floor-gap));
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    transform: translateX(-50%);
+}
+
+.room-rack[data-wall="west"] {
+    left: calc(-1 * var(--floor-gap));
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    transform: translateY(-50%);
+}
+
+.room-rack[data-wall="east"] {
+    left: auto;
+    right: calc(-1 * var(--floor-gap));
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    transform: translateY(-50%);
+}
+
+.room-rack-compact {
+    width: clamp(112px, 14%, 152px);
+}
+
+.room-rack .room-rack-name {
+    position: static;
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    text-align: left;
+}
+
+/* Mounted devices as thin bars, like a sideways glance into the rack. */
+/* Mounted gear, top unit first (room.js renderRack): one row each with its
+   type stripe, name, and unit; a click opens its details (owner). */
+.room-rack-contents {
+    display: grid;
+    gap: 2px;
+    min-height: 1.6rem;
+    margin: 0;
+    padding: var(--space-1);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: var(--color-surface-sunken);
+    list-style: none;
+}
+
+.room-rack-contents:empty::after {
+    content: "Empty";
+    color: var(--color-text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-align: center;
+}
+
+.room-rack-slot {
+    --type: var(--color-text-faint);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    width: 100%;
+    min-width: 0;
+    padding: 1px var(--space-1) 1px var(--space-2);
+    border: 0;
+    border-left: 3px solid var(--type);
+    border-radius: 2px;
+    background: var(--color-console-panel-raised);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    font: 500 0.62rem/1.4 var(--font-mono);
+    text-align: left;
+}
+
+.room-rack-slot:hover,
+.room-rack-slot:focus-visible {
+    background: var(--color-surface-hover);
+}
+
+.room-rack-slot-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.room-rack-slot-u {
+    flex: none;
+    color: var(--color-text-faint);
+}
+
+.room-rack-more {
+    color: var(--color-text-faint);
+    font: 0.6rem var(--font-mono);
+    text-align: center;
+}
+
+.room-rack-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+/* Rack-top gear: one-row device cards with the type icon, like the
+   Ceiling strip's (owner). */
+.room-rack-top .room-top-device {
+    position: relative;
+    flex: 0 1 auto;
+    flex-direction: row;
+    min-width: 0;
+    min-height: 0;
+    height: 1.4rem;
+    max-width: 100%;
+    padding: 0 var(--space-1);
+    gap: var(--space-1);
+    align-items: center;
+}
+
+.room-rack-top .room-top-device .room-device-name {
+    overflow: hidden;
+    font-size: 0.6rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ========================================================================== */
+/* 06. AREAS, FORMS, AND THE BUILD-OUT DRAWER                                 */
+/* ========================================================================== */
+
+.room-chip-icon {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: var(--type);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.room-area {
+    position: absolute;
+    width: 23%;
+    height: 19%;
+    min-width: 130px;
+    min-height: 105px;
+    border: 1px dashed var(--color-text-muted);
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--color-surface-hover) 30%, transparent);
+    transform: translate(-50%, -50%);
+}
+
+.room-field-help {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.room-form label {
+    display: block;
+    margin: 0.55rem 0 0.3rem;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    font-weight: 650;
+}
+
+/* Field colors and borders come from main.css; the search box fills its panel. */
+/* Available equipment: one readable row per device, draggable. */
+/* Build out's drawer icon, the tool's house left of the title, lined up
+   with the sections' + signs below it, and its text with their titles
+   (owner): 16 px, the + signs' width. */
+.device-drawer[data-view="buildout"] #device-drawer-back[hidden] + .device-drawer-title {
+    margin-left: 11px;
+}
+
+.device-drawer[data-view="buildout"] .device-drawer-title::before {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: var(--space-2);
+    vertical-align: -2px;
+    background-color: var(--color-text-secondary);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h16M6 20V9l6-5 6 5v11M10 20v-6h4v6'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h16M6 20V9l6-5 6 5v11M10 20v-6h4v6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* Create shelf points at the room it lands in (owner): an arrow on its left. */
+.room-create-to-room {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+.room-create-to-room svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* "Add to this room": each form is a collapsible section, closed by default,
+   one open at a time (owner). */
+.room-add {
+    border-top: 1px solid var(--color-border-subtle);
+}
+
+.room-add summary {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding: var(--space-3) 0;
+    cursor: pointer;
+    list-style: none;
+}
+
+.room-add summary::-webkit-details-marker {
+    display: none;
+}
+
+/* A plus that turns into a minus when the section is open. */
+.room-add summary::before {
+    content: "+";
+    width: 1rem;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-weight: 700;
+}
+
+.room-add[open] summary::before {
+    content: "−";
+}
+
+.room-add-title {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+.room-add-hint {
+    margin-left: auto;
+    color: var(--color-text-faint);
+    font-size: var(--text-xs);
+}
+
+.room-add .room-form {
+    padding-bottom: var(--space-4);
+}
+
+.room-form {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.room-form button {
+    margin-top: 0.6rem;
+}
+
+.room-field-help {
+    margin-bottom: 0;
+}
+
+/* Floor equipment is positioned by its center, like racks and areas, so the
+   saved point and the room-bounds clamp in room.js agree. */
+.room-layout-items > .room-device {
+    transform: translate(-50%, -50%);
+}
+
+/* ========================================================================== */
+/* 07. CEILING                                                                */
+/* ========================================================================== */
+
+/*
+ * The Ceiling strip above the room (owner): overhead equipment as compact
+ * cards in a row, like a rack top, about as tall as a pill switch. Drop a
+ * device on it to mount it overhead.
+ */
+.room-ceiling-strip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    /* A fixed height, so the canvas fit (room.js fitCanvas) never changes
+       when cards arrive. */
+    height: 2.25rem;
+    margin-bottom: var(--space-2);
+    padding: 3px var(--space-2) 3px var(--space-3);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-sunken);
+}
+
+.room-ceiling-strip[hidden] {
+    display: none;
+}
+
+.room-ceiling-strip.is-drop-target {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent) inset;
+}
+
+.room-ceiling-label {
+    flex: none;
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.room-ceiling-items {
+    display: flex;
+    flex: 1 1 auto;
+    gap: var(--space-1);
+    min-width: 0;
+    overflow-x: auto;
+}
+
+/* Ceiling cards: device cards like the rest of the plan (steel, type
+   stripe, type icon), in one short row so the strip keeps its height. */
+.room-ceiling-items .room-ceiling-device {
+    position: relative;
+    flex: 0 0 auto;
+    flex-direction: row;
+    min-width: 0;
+    min-height: 0;
+    height: 1.6rem;
+    max-width: 9rem;
+    padding: 0 var(--space-2);
+    gap: var(--space-1);
+    align-items: center;
+}
+
+.room-ceiling-icon {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: var(--type);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.room-ceiling-items .room-ceiling-device .room-device-name {
+    overflow: hidden;
+    font-size: 0.66rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ========================================================================== */
+/* 08. PHONES AND HELP                                                        */
+/* ========================================================================== */
+
+/* These set their own border colors; keep the type stripe on the left. */
+.room-shelf-device,
+.room-top-device {
+    border-left-color: var(--type);
+}
+
+@media (max-width: 760px) {
+    .room-canvas {
+        min-height: 420px;
+    }
+}
+
+@media (max-width: 480px) {
+    .room-canvas-panel {
+        padding: 0.75rem;
+    }
+}
+
+/*
+ * The floor plan's help (room.html #room-help, room.js bindHelp): a native
+ * popover under the ? tool, grouped short points (owner).
+ */
+.room-help {
+    position: fixed;
+    inset: auto;
+    width: min(380px, calc(100vw - 16px));
+    max-height: calc(100dvh - 32px);
+    margin: 0;
+    overflow: auto;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-overlay);
+}
+
+.room-help h3 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-md);
+}
+
+.room-help dl {
+    margin: 0;
+}
+
+.room-help dt {
+    margin-top: var(--space-2);
+    color: var(--color-accent);
+    font: 600 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.room-help dd {
+    margin: 2px 0 0;
+}
+
+.room-help ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.room-help strong {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+.room-help-note {
+    margin: var(--space-3) 0 0;
+    color: var(--color-text-faint);
+    font-size: var(--text-xs);
+}
+
+/* A destructive tool (Delete in the edit panel's bar): the action color on
+   hover, not the accent (planning/STYLEGUIDE.md, Tool buttons). */
+.button.room-icon-button.room-danger-tool:hover:not(:disabled),
+.button.room-icon-button.room-danger-tool:focus-visible {
+    color: var(--color-action);
+}

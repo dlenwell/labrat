@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="labrat-mark-title">
+  <title id="labrat-mark-title">LabRat</title>
+  <!--
+    LabRat mark: a rat in sunglasses, seen in three-quarter profile facing
+    right, on a dark steel badge with no outline. Depth comes from radial
+    fur shading lit from the upper left, a soft shadow under the head, a
+    cyan rim light on the back of the head and body (the badge glow), and a
+    lower bevel on the badge. The near lens is larger than the far one, so
+    the glasses wrap round the face. It must still read at favicon size.
+    Colors follow the app palette (steel, phosphor and cyan glint, pink
+    nose and ears); an SVG served as an image cannot read CSS tokens.
+  -->
+  <defs>
+    <linearGradient id="lr-badge" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#1b2d34"/>
+      <stop offset="1" stop-color="#070f12"/>
+    </linearGradient>
+    <radialGradient id="lr-glow" cx="0.42" cy="0.45" r="0.55">
+      <stop offset="0" stop-color="#2fb8c8" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#2fb8c8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lr-head" cx="0.34" cy="0.28" r="0.85">
+      <stop offset="0" stop-color="#eef4f6"/>
+      <stop offset="0.45" stop-color="#b4c4ca"/>
+      <stop offset="1" stop-color="#5f727a"/>
+    </radialGradient>
+    <radialGradient id="lr-body" cx="0.62" cy="0.18" r="0.95">
+      <stop offset="0" stop-color="#c3d1d6"/>
+      <stop offset="0.5" stop-color="#83969e"/>
+      <stop offset="1" stop-color="#34444b"/>
+    </radialGradient>
+    <linearGradient id="lr-bevel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.75" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="lr-far" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7f939b"/>
+      <stop offset="1" stop-color="#4d5f66"/>
+    </linearGradient>
+    <radialGradient id="lr-ear" cx="0.45" cy="0.4" r="0.6">
+      <stop offset="0" stop-color="#ffb3c8"/>
+      <stop offset="1" stop-color="#c8607f"/>
+    </radialGradient>
+    <linearGradient id="lr-lens" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#24525b"/>
+      <stop offset="0.5" stop-color="#0a161a"/>
+      <stop offset="1" stop-color="#020506"/>
+    </linearGradient>
+    <linearGradient id="lr-glint" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7dffb2"/>
+      <stop offset="1" stop-color="#55d8e8"/>
+    </linearGradient>
+    <clipPath id="lr-clip"><rect x="2" y="2" width="60" height="60" rx="14"/></clipPath>
+    <filter id="lr-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.6"/>
+    </filter>
+  </defs>
+
+  <!-- Badge: dark steel, no outline; a soft glow behind the rat -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#lr-badge)"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#lr-glow)"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#lr-bevel)"/>
+  <path d="M9 3.2h46" stroke="#ffffff" stroke-opacity="0.09" stroke-width="1" stroke-linecap="round"/>
+
+  <g clip-path="url(#lr-clip)">
+    <!-- Tail: curls round from behind -->
+    <path d="M14 58c-6-2-9-8-6-13s9-4 9.5 0" fill="none" stroke="#b97d92" stroke-width="2.6" stroke-linecap="round"/>
+
+    <!-- Body: shoulders turned with the head -->
+    <path d="M7 66c-.5-9 3.5-17 11.5-20.5 6.5-2.8 15-2.6 21.5.6 5.6 2.8 9 8.4 9.6 13.4l.6 6.5z" fill="url(#lr-body)"/>
+    <!-- Chest fur catching the light -->
+    <ellipse cx="41" cy="55.5" rx="5" ry="7.5" transform="rotate(-12 41 55.5)" fill="#e3ecef" opacity="0.35"/>
+    <!-- Rim light down the back -->
+    <path d="M9 60c.6-5.6 3.4-10.4 8-13.2" fill="none" stroke="#55d8e8" stroke-width="1" stroke-linecap="round" opacity="0.45"/>
+
+    <!-- Soft shadow the head casts on the shoulders -->
+    <ellipse cx="33" cy="47" rx="15" ry="4" fill="#000" opacity="0.45" filter="url(#lr-shadow)"/>
+
+    <!-- Far ear, behind the head -->
+    <ellipse cx="36" cy="13.5" rx="5.6" ry="7.2" transform="rotate(22 36 13.5)" fill="url(#lr-far)"/>
+    <ellipse cx="36.4" cy="14.2" rx="3.2" ry="4.6" transform="rotate(22 36.4 14.2)" fill="#a8566f"/>
+
+    <!-- Near ear -->
+    <ellipse cx="18.5" cy="16" rx="8.4" ry="9.4" transform="rotate(-18 18.5 16)" fill="#a3b4bb"/>
+    <ellipse cx="19.2" cy="16.8" rx="5.4" ry="6.6" transform="rotate(-18 19.2 16.8)" fill="url(#lr-ear)"/>
+
+    <!-- Head in three-quarter view: round skull to a long snout, facing right -->
+    <path d="M14.5 33c-.5-9 6.5-15.5 15-15.5 7.5 0 13 4.5 17 10.5 2.5 3.6 6.5 6.5 7.6 9.6.9 2.6-.6 5-3.6 5.6-5.4 1.2-11.4 3.6-19.2 3.4C21.6 46.4 15 40.6 14.5 33z" fill="url(#lr-head)"/>
+    <!-- Cheek and jaw in shadow -->
+    <path d="M17 39c4 5 9.5 7.4 14.8 7.6 6.6.2 12.2-2 17.5-3.2-5.6 3.8-12 5.6-18.3 5.3C24 48.3 19 44.6 17 39z" fill="#3e5058" opacity="0.55"/>
+    <!-- Rim light on the back of the head -->
+    <path d="M16.2 38.5c-1.8-3.4-2-8 .2-11.8" fill="none" stroke="#55d8e8" stroke-width="1.1" stroke-linecap="round" opacity="0.65"/>
+    <!-- Snout highlight -->
+    <path d="M40 30.5c3.8 1.8 8.6 4.6 11.6 7" fill="none" stroke="#f4f8f9" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>
+
+    <!-- Sunglasses, wrapping round the face -->
+    <path d="M28.5 27.6l-9.4 -3" stroke="#05090b" stroke-width="2.3" stroke-linecap="round"/>
+    <!-- Near lens, larger -->
+    <path d="M27.4 26.6c.3-1.1 1.2-1.7 2.3-1.6l9.6.7c1.2.1 2 1.2 1.7 2.4l-1.2 4.8c-.5 2-2.3 3.3-4.3 3.2l-4.4-.3c-2.4-.2-4.1-2.4-3.7-4.8z" fill="url(#lr-lens)" stroke="#020405" stroke-width="1.6"/>
+    <path d="M28.8 26.4l10.4.8" stroke="#ffffff" stroke-opacity="0.25" stroke-width="0.6" stroke-linecap="round"/>
+    <!-- Bridge and far lens, foreshortened -->
+    <path d="M40.8 27.6c1-.6 2-.6 3 0" fill="none" stroke="#020405" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M43.6 27.4c.2-.7.8-1 1.5-.9l3 .5c.7.1 1.1.8.9 1.5l-.9 3c-.3 1-1.3 1.6-2.3 1.4l-.9-.2c-1.2-.3-1.9-1.4-1.7-2.6z" fill="url(#lr-lens)" stroke="#020405" stroke-width="1.1"/>
+    <!-- Lens glint -->
+    <path d="M29.6 28.6l5.2-1.2" stroke="url(#lr-glint)" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M31.2 31.4l2.4-.5" stroke="#55d8e8" stroke-width="1.1" stroke-linecap="round" opacity="0.85"/>
+    <path d="M45 28.6l1.8-.3" stroke="#7dffb2" stroke-width="1" stroke-linecap="round"/>
+
+    <!-- Nose, mouth, and a buck tooth -->
+    <ellipse cx="53.2" cy="38.6" rx="2.5" ry="2" transform="rotate(20 53.2 38.6)" fill="#f07fa2"/>
+    <ellipse cx="52.6" cy="37.9" rx="0.9" ry="0.6" fill="#ffd0de"/>
+    <path d="M51.8 41.2c-1 1.1-2.6 1.6-4.4 1.4" fill="none" stroke="#4f6168" stroke-width="0.9" stroke-linecap="round"/>
+    <path d="M48.6 42.4l2.3-.4.3 2.1c.1.5-.2.9-.7 1l-.9.1c-.4.1-.8-.2-.9-.6z" fill="#fff6e0" stroke="#8fa4ad" stroke-width="0.4"/>
+
+    <!-- Whiskers -->
+    <path d="M48.5 39.5l-9-3.2M48 41l-10 .2M48.6 42.2l-8.6 3.4M51 40.6l9 -1.6M51 41.6l8.4 1.8"
+          fill="none" stroke="#dbe7eb" stroke-width="0.75" stroke-linecap="round" opacity="0.8"/>
+  </g>
+</svg>

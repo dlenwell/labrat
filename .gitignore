@@ -1,0 +1,44 @@
+# Local development
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.json
+*.egg-info/
+build/
+dist/
+
+# Local credentials and private runtime data. The agent environment file
+# (AGENT-ENV-CREDS.env, formerly creds.txt) lives outside the repository;
+# these patterns keep a stray copy from ever being committed.
+creds.txt
+AGENT-ENV-CREDS*
+local_config.toml
+*.toml.lock
+.labrat-config-*.tmp
+local_config.*.toml
+!local_config.example.toml
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.inventory-instance
+*.restore-previews/
+
+# The sample Compose setup's data and config folders (deploy/compose.yaml).
+deploy/data/
+deploy/config/
+*.access-evidence/
+/data/
+
+# Editor/OS files
+.DS_Store
+.idea/
+.vscode/
+
+# The built website (scripts/build_site.py).
+/_site/

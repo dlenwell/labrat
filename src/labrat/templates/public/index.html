@@ -1,0 +1,204 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Public landing page. Anonymous visitors see it, so it shows no inventory data. #}
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}LabRat · Welcome{% endblock %}
+{% block body_class %}landing-body workspace-body{% endblock %}
+{# The header logo here is the plain pill: the mascot is behind the rack below. #}
+{% block brand_mascot %}{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/rack-elevation.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/widget-shelf.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+{% endblock %}
+
+{% block content %}
+{#
+  Color: the hero washes in the signal hues and each feature card takes one
+  (data-hue, tokens in main.css); the rack preview carries the device-type
+  stripes. Green, amber, and red stay reserved for status.
+#}
+<section class="landing-hero panel-screws" aria-labelledby="welcome-title">
+  <div class="landing-hero-copy">
+    <h1 id="welcome-title">Know what's <span class="landing-lurking">lurking</span> in your lab.</h1>
+    <p class="eyebrow">Local-first homelab inventory</p>
+    <p class="intro">
+      LabRat reads what your network and hypervisors already know, then lets
+      you place every device in a real location, area, and rack. Nothing moves
+      until you say so.
+    </p>
+
+    <div class="button-row">
+      {% if site_build %}
+        {# The project website (scripts/build_site.py) reuses this hero. #}
+        <a class="button" href="#quick-start">Get started</a>
+        <a class="button button-secondary" href="{{ url_for('docs.index') }}">Read the field guide</a>
+      {% elif viewer %}
+        <a class="button" href="{{ url_for('private.home') }}">Open your lab</a>
+      {% elif needs_setup %}
+        <a class="button" href="{{ url_for('public.setup') }}">First-time setup</a>
+      {% else %}
+        <a class="button" href="{{ url_for('public.signin') }}">Sign in</a>
+      {% endif %}
+      {% if not site_build %}
+      <a class="button button-secondary" href="{{ url_for('docs.index') }}">Read the field guide</a>
+      {% endif %}
+    </div>
+
+    {# The API light and the sources it reads, one row of same-size chips. #}
+    <div class="landing-signals">
+      {% if not site_build %}
+      <div class="status-row">
+        <span class="led led-waiting" aria-hidden="true"></span>
+        <span class="readout" id="api-status" role="status" aria-live="polite">Checking API…</span>
+      </div>
+      {% endif %}
+
+      <ul class="landing-sources" aria-label="What LabRat reads">
+        <li data-hue="internet">UniFi Network</li>
+        <li data-hue="compute">Proxmox VE</li>
+        <li data-hue="power">NUT UPS servers</li>
+        <li data-hue="network">MikroTik MNDP</li>
+      </ul>
+    </div>
+
+    {% if needs_setup %}
+      <p class="footnote">
+        Use a hostname configured for this LabRat instance to complete setup.
+      </p>
+    {% endif %}
+  </div>
+
+  {#
+    Rack View preview. It uses the real Rack View classes from
+    rack-elevation.css, so it always looks like the actual page. Only the
+    positions (data-u = top unit, data-span = height in units) and the
+    blinking lights come from landing.css. Decorative; hidden from assistive tech.
+  #}
+  {% set rack_units = 6 %}
+  {#
+    Sample cables (landing.js draws them like the Equipment view): each
+    port's "cable" names its link, medium, and speed (Mb/s). Ports are
+    counted from the left of the port row, starting at 0.
+  #}
+  {% set devices = [
+      {"u": 6, "span": 1, "category": "router", "name": "edge router", "meta": "router · U6", "ports": 6, "lit": 4,
+       "cables": {1: ("a", "copper", 1000)}},
+      {"u": 5, "span": 1, "category": "switch", "name": "core switch", "meta": "switch · U5", "ports": 8, "lit": 6,
+       "cables": {0: ("a", "copper", 1000), 1: ("b", "fiber_multimode", 10000), 2: ("c", "dac", 10000), 3: ("d", "copper", 1000)}},
+      {"u": 3, "span": 2, "category": "server", "name": "nas", "meta": "storage · U2", "ports": 4, "lit": 3,
+       "cables": {0: ("b", "fiber_multimode", 10000), 1: ("c", "dac", 10000)},
+       "drives": [("sda", "on"), ("sdb", "on"), ("sdc", "on"), ("sdd", "on"),
+                  ("sde", "on"), ("sdf", "warn"), ("sdg", "on"), ("sdh", "on")]},
+      {"u": 1, "span": 1, "category": "ups", "name": "ups", "meta": "ups · U1", "ports": 2, "lit": 2,
+       "cables": {0: ("d", "copper", 1000)}},
+  ] %}
+  <div class="rack-preview" aria-hidden="true">
+    {#
+      The mascot hides behind the rack: his tail curls out on the right,
+      then a paw grips the left edge and his head peeks out past it, once
+      per page load (landing.css section 02b). Decorative images, like the
+      rack.
+    #}
+    <img class="landing-rat-peek" src="{{ url_for('static', filename='img/rat-peek.svg') }}" alt="">
+    <img class="landing-rat-peek landing-rat-glint" src="{{ url_for('static', filename='img/rat-glint.svg') }}" alt="">
+    <img class="landing-rat-tail" src="{{ url_for('static', filename='img/rat-tail.svg') }}" alt="">
+    <img class="landing-rat-paw" src="{{ url_for('static', filename='img/rat-paw.svg') }}" alt="">
+    <div class="rack-elevations rack-elevations-single">
+      <div class="rack-frame">
+        <div class="rack-frame-top"><span>lab-01</span><span>FRONT</span></div>
+        <div class="rack-frame-body">
+          <div class="rack-ruler">
+            {% for u in range(rack_units, 0, -1) %}<span class="rack-unit-number" data-u="{{ u }}">{{ u }}</span>{% endfor %}
+          </div>
+          <div class="rack-slots">
+            {% for device in devices %}
+              <div class="rack-device" data-category="{{ device.category }}" data-u="{{ device.u }}" data-span="{{ device.span }}" data-units="{{ device.span }}">
+                <span class="rack-device-label">
+                  <span class="rack-device-name">{{ device.name }}</span>
+                  <span class="rack-device-meta">{{ device.meta }}</span>
+                </span>
+                {#
+                  Sample drives as the Equipment view draws a server's
+                  front (widget-shelf.css bay strip, rack-elevation.css
+                  holder): a health lamp, a simulated activity lamp, the
+                  name, a latch, and a fill bar. landing.css sets what the
+                  widget's script would: the grid, fills, and blink timing.
+                #}
+                {% if device.drives %}
+                <span class="rack-drive-bays">
+                  <span class="shelf-mini landing-bays">
+                    {% for name, tone in device.drives %}
+                    <span class="shelf-mini-bay is-{{ tone }}">
+                      <span class="shelf-mini-lamps">
+                        <span class="shelf-led shelf-led-status is-{{ tone }}"></span>
+                        <span class="shelf-led shelf-led-activity is-idle"></span>
+                      </span>
+                      <span class="shelf-mini-name">{{ name }}</span>
+                      <span class="shelf-mini-latch"></span>
+                      <span class="shelf-mini-fill is-{{ tone }}"></span>
+                    </span>
+                    {% endfor %}
+                  </span>
+                </span>
+                {% endif %}
+                <span class="rack-port-lights">
+                  {% for port in range(device.ports) %}{% set cable = device.cables.get(port) %}<span class="rack-port-light" data-linked="{{ 'true' if port < device.lit else 'false' }}"{% if cable %} data-cable="{{ cable[0] }}" data-medium="{{ cable[1] }}" data-speed="{{ cable[2] }}"{% endif %}></span>{% endfor %}
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="rack-ruler rack-ruler-right">
+            {% for u in range(rack_units, 0, -1) %}<span class="rack-unit-number" data-u="{{ u }}">{{ u }}</span>{% endfor %}
+          </div>
+        </div>
+        <div class="rack-frame-bottom"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="landing-features" aria-label="What LabRat does">
+  <article class="landing-feature" data-hue="internet">
+    {{ icon("discover", "landing-feature-icon") }}
+    <p class="landing-feature-kicker">01 / Discover</p>
+    <h2>See what's out there</h2>
+    <p>
+      Read-only collectors poll UniFi Network, Proxmox VE, and NUT servers
+      for devices, ports, link state, and UPS power. Observations stay
+      separate from your inventory.
+    </p>
+  </article>
+  <article class="landing-feature" data-hue="network">
+    {{ icon("place", "landing-feature-icon") }}
+    <p class="landing-feature-kicker">02 / Place</p>
+    <h2>Put it where it lives</h2>
+    <p>
+      Arrange locations, areas, racks, shelves, and walls, or drag a whole
+      rack into order. Every placement is an explicit, audited choice, so a
+      collector never moves your gear.
+    </p>
+  </article>
+  <article class="landing-feature" data-hue="compute">
+    {{ icon("trace", "landing-feature-icon") }}
+    <p class="landing-feature-kicker">03 / Trace</p>
+    <h2>Follow the cables</h2>
+    <p>
+      Port lights and observed links show how equipment connects, with the
+      source, evidence, and confidence behind every cable.
+    </p>
+  </article>
+  <article class="landing-feature" data-hue="vpn">
+    {{ icon("watch", "landing-feature-icon") }}
+    <p class="landing-feature-kicker">04 / Watch</p>
+    <h2>Keep an eye on it</h2>
+    <p>
+      A live operations screen shows internet uplinks, VPN tunnels, servers,
+      and UPS power, with a watchlist for anything that needs attention.
+    </p>
+  </article>
+</section>
+<script src="{{ url_for('static', filename='js/wiring.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/landing.js') }}" defer></script>
+{% endblock %}

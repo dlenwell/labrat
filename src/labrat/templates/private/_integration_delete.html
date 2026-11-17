@@ -1,0 +1,29 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% from "_icons.html" import icon %}
+{% set editor = integration_editor %}
+<div data-integration-editor data-editor-title="Delete {{ editor.label }}" data-editor-category="{{ editor.category }}" data-editor-new="0">
+  {% if integration_message %}<p class="form-error" role="alert">{{ integration_message }}</p>{% endif %}
+  <div class="integration-delete-warning">
+    <h3>Delete {{ editor.display_name }}?</h3>
+    <p>This removes the saved connection settings and credentials and disables collection. An in-flight request may still finish.</p>
+    <dl class="integration-retained-counts">
+      <dt>Discovered devices kept</dt><dd>{{ editor.removal.observations }}</dd>
+      <dt>Inventory devices kept</dt><dd>{{ editor.removal.inventory }}</dd>
+      <dt>Placements kept</dt><dd>{{ editor.removal.placements }}</dd>
+    </dl>
+    <p>Retained devices can remain visible as stale or “ghost” observations. Their readings will no longer be refreshed by this connection. Inventory, placements, links, and audit history are preserved.</p>
+    <p>Adding the controller again with a different connection name can leave a second set of observations. You can link future observations to your existing inventory in Discovery.</p>
+  </div>
+  <form method="post" action="{{ url_for('private.integrations.remove') }}" class="integration-delete-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="revision" value="{{ integration_revision }}">
+    <input type="hidden" name="kind" value="{{ editor.kind }}">
+    <input type="hidden" name="name" value="{{ editor.name }}">
+    <input type="hidden" name="action" value="delete">
+    <label class="integration-delete-acknowledgement"><input type="checkbox" name="confirm" value="delete" required> I understand that retained devices may remain visible.</label>
+    <div class="device-drawer-footer integration-form-actions">
+      <button class="button button-secondary integration-remove-confirm" type="submit">{{ icon('trash') }}Delete integration</button>
+      <button class="button button-quiet room-icon-button" type="button" data-integration-cancel aria-label="Cancel" title="Cancel" data-tooltip="Cancel">{{ icon('close') }}</button>
+    </div>
+  </form>
+</div>

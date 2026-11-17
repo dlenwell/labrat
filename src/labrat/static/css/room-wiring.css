@@ -1,0 +1,618 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/* Equipment without racks: room-only wiring, using the shared rack faceplates. */
+
+/* ========================================================================== */
+/* 01. DIAGRAM MODE AND CANVAS                                                */
+/* ========================================================================== */
+
+.rack-page[data-equipment-mode="tree"] .rack-main-panel {
+    flex-basis: 100%;
+    position: static;
+}
+
+/* The Diagram is the canvas alone (owner): no Internet, Power, or Around
+   the room panels beside it. */
+.rack-page[data-equipment-mode="tree"] .rack-side-column {
+    display: none;
+}
+
+.room-wiring {
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-control);
+    background: var(--color-console-panel);
+    /* clip, not hidden: nothing (a focused key tab, the slid-out key) can
+       scroll the frame itself and shift the whole diagram. */
+    overflow: clip;
+}
+
+.room-wiring[hidden] {
+    display: none;
+}
+
+.room-wiring-diagram {
+    position: relative;
+    overflow: clip;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    isolation: isolate;
+}
+
+.room-wiring-canvas {
+    display: grid;
+    justify-items: start;
+    overflow: auto;
+    /* Height set by RoomWiring.fitHeight to fill the window; phones below. */
+    min-height: 240px;
+    cursor: grab;
+    overscroll-behavior: contain;
+    min-width: 0;
+    background-image:
+        linear-gradient(var(--color-border-subtle) 1px, transparent 1px),
+        linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+.room-wiring-canvas:empty {
+    display: none;
+}
+
+.room-wiring-stage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+    flex: none;
+    isolation: isolate;
+}
+
+.room-wiring-size {
+    /* Keep the stage origin at the room edge even when its tree is small. */
+    min-width: 100%;
+    position: relative;
+}
+
+.room-wiring-stage > .room-wiring-node,
+.room-wiring-stage > .room-wiring-patch {
+    z-index: 1;
+}
+
+/* Wires sit in the stage, above the cards, in stage coordinates. */
+.room-wiring-stage > .room-wiring-lines {
+    top: 0;
+    left: 0;
+    overflow: visible;
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* ========================================================================== */
+/* 02. DEVICE CARDS AND PORTS                                                 */
+/* ========================================================================== */
+
+.room-wiring-stage .room-wiring-node {
+    right: auto;
+    padding: 10px 12px;
+    border-top-color: var(--color-border-strong);
+    border-right-color: var(--color-border-strong);
+    border-bottom-color: var(--color-border-strong);
+    /* Diagram positions are layout aids; they do not alter saved placement. */
+    overflow: visible;
+}
+
+.room-wiring-node .rack-device-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 700 0.9rem/1.4 var(--font-mono);
+}
+
+.room-wiring-place {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Only wired ports show, down the card's sides (owner): west-bound wires
+   on the left edge, east-bound on the right, so none wraps its card.
+   room-wiring.js placePorts sets each one's top. */
+.room-wiring-node .room-wiring-port {
+    position: absolute;
+    z-index: 3;
+    width: 10px;
+    max-width: none;
+    height: 10px;
+    margin: 0;
+}
+
+.room-wiring-node .room-wiring-port[data-side="left"] {
+    left: -6px;
+}
+
+.room-wiring-node .room-wiring-port[data-side="right"] {
+    right: -6px;
+}
+
+
+/* A Wi-Fi or UPS line has no port: a dot in its line's color. */
+.room-wiring-node .room-wiring-dot {
+    border-radius: 50%;
+    border-color: var(--color-cable-wifi);
+    background: color-mix(in srgb, var(--color-cable-wifi) 40%, transparent);
+}
+
+.room-wiring-node .room-wiring-dot[data-kind="usb"],
+.room-wiring-node .room-wiring-dot[data-kind="relay"] {
+    border-color: var(--color-type-ups);
+    background: color-mix(in srgb, var(--color-type-ups) 40%, transparent);
+}
+
+/* ========================================================================== */
+/* 03. WIRE STYLES                                                            */
+/* ========================================================================== */
+
+.room-wiring-lines path.is-usb {
+    --cable: var(--color-type-ups);
+    stroke-dasharray: 6 3 1 3;
+}
+
+/* A relayed UPS (dummy-ups) only reports through this NUT server: sparse,
+   fainter dots in the UPS color, as in Discovery, never a connection. */
+.room-wiring-lines path.is-relay {
+    --cable: var(--color-type-ups);
+    stroke-dasharray: 1 6;
+    stroke-linecap: round;
+    opacity: 0.6;
+}
+
+.room-wiring-lines path.is-wireless {
+    --cable: var(--color-type-ap);
+    stroke-dasharray: 4 5;
+}
+
+/* ========================================================================== */
+/* 04. PATCH PANEL AND DESTINATION POPUPS                                     */
+/* ========================================================================== */
+
+/* The patch panel's card at the top of the Diagram's first column, fixed
+   like a device faceplate (owner): one column of sockets facing east. */
+.room-wiring-patch {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-console-panel);
+}
+
+.room-wiring-patch:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+/* A conceptual room boundary: sockets are unlabeled until inspected. */
+.room-patch-panel {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(var(--patch-columns), 20px);
+    grid-auto-rows: 20px;
+    align-content: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px;
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    background: linear-gradient(180deg, var(--color-surface-raised), var(--color-console-panel));
+    box-shadow: inset 0 0 0 3px var(--color-console-bezel);
+}
+
+.room-patch-panel::before,
+.room-patch-panel::after {
+    position: absolute;
+    left: calc(50% - 2px);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--color-text-faint);
+    content: "";
+}
+
+.room-patch-panel::before {
+    top: 4px;
+}
+
+.room-patch-panel::after {
+    bottom: 4px;
+}
+
+.room-patch-socket,
+.room-patch-unused {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    padding: 2px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 2px;
+    background: var(--color-console-recess);
+    box-shadow: inset 0 1px 3px var(--color-shadow);
+}
+
+.room-patch-socket {
+    cursor: pointer;
+}
+
+.room-patch-socket:hover,
+.room-patch-socket:focus-visible,
+.room-patch-socket[aria-expanded="true"] {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.room-patch-socket .room-patch-lamp {
+    width: 10px;
+    height: 14px;
+}
+
+.room-patch-unused {
+    opacity: 0.45;
+}
+
+/* Destination cards live outside the canvas so their link cannot be clipped
+   when the panel is at its top edge or the diagram is panned on a phone. */
+.room-patch-details {
+    position: fixed;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* As wide as the port line needs, so it stays on one line (owner). */
+    width: max-content;
+    max-width: min(420px, calc(100vw - 16px));
+    max-height: calc(100dvh - 16px);
+    overflow: auto;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-console-panel);
+    box-shadow: var(--shadow-overlay);
+    color: var(--color-text-primary);
+    overflow-wrap: anywhere;
+}
+
+/* Far device, then its port and this room's end on one line (owner). */
+.room-patch-details strong {
+    font: 700 var(--text-sm) var(--font-mono);
+}
+
+.room-patch-details p {
+    margin: 0;
+    white-space: nowrap;
+    color: var(--color-text-secondary);
+    font: var(--text-xs)/1.5 var(--font-mono);
+}
+
+/* Phones keep a scrolling page and a canvas of most of the screen. */
+@media (max-width: 600px) {
+    .room-wiring-canvas {
+        max-height: 70vh;
+    }
+}
+
+/* Phones: a port line wider than the screen wraps instead of scrolling. */
+@media (max-width: 480px) {
+    .room-patch-details p {
+        white-space: normal;
+    }
+}
+
+/* The way to the far device: a pill with an arrow, like a selected view
+   tab (view-switch.css), not a bare link (owner). */
+.room-patch-follow {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: var(--space-1);
+    margin-top: var(--space-1);
+    padding: 2px var(--space-2) 2px var(--space-3);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-surface);
+    box-shadow: 0 0 0 1px var(--color-accent-muted) inset;
+    color: var(--color-accent-strong);
+    cursor: pointer;
+    font: 600 var(--text-xs)/1.6 var(--font-sans);
+    text-decoration: none;
+}
+
+.room-patch-follow svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 120ms ease;
+}
+
+.room-patch-follow:hover svg,
+.room-patch-follow:focus-visible svg {
+    transform: translateX(2px);
+}
+
+.room-patch-follow:focus-visible {
+    outline: 2px solid var(--color-accent-strong);
+    outline-offset: 2px;
+}
+
+.room-wiring-node {
+    cursor: pointer;
+}
+
+/* ========================================================================== */
+/* 05. HELP, STATUS, AND ZOOM                                                 */
+/* ========================================================================== */
+
+/* Native popover keeps instructions available without expanding the header. */
+.room-diagram-help {
+    width: min(420px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-overlay);
+}
+
+/* Grouped headings and short bullets, as the Floor plan's help (room.css .room-help). */
+.room-diagram-help h3 {
+    margin: 0 0 var(--space-2);
+}
+
+.room-diagram-help dl {
+    margin: 0;
+}
+
+.room-diagram-help dt {
+    margin-top: var(--space-2);
+    color: var(--color-accent);
+    font: 600 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.room-diagram-help dd {
+    margin: 2px 0 0;
+}
+
+.room-diagram-help ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.room-diagram-help strong {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+.room-diagram-help-note {
+    margin: var(--space-3) 0;
+    color: var(--color-text-faint);
+    font-size: var(--text-xs);
+}
+
+.room-wiring-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.room-wiring-canvas.is-panning {
+    cursor: grabbing;
+    user-select: none;
+}
+
+/* View controls stay outside the scaled and scrolling stage, bottom left,
+   where a left-to-right tree leaves room (owner). */
+.room-wiring-zoom {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-console-panel);
+    box-shadow: var(--shadow-overlay);
+}
+
+.room-wiring .room-wiring-zoom .button {
+    min-width: 36px;
+    height: 36px;
+    padding: var(--space-1) var(--space-2);
+}
+
+.room-wiring-zoom output {
+    min-width: 46px;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font: var(--text-xs) var(--font-mono);
+}
+
+/* ========================================================================== */
+/* 06. CABLE KEY                                                              */
+/* ========================================================================== */
+
+/*
+ * Floating cable key on the Diagram, styled like Discovery's map key
+ * (topology.css .topology-key): left side, above the zoom controls (owner),
+ * two columns of one item per line. The arrow slides it out to the left and
+ * leaves a small "Key" tab glued to the canvas's left wall, as on Discovery
+ * (room-wiring.js bindKey).
+ */
+.room-wiring-key {
+    position: absolute;
+    z-index: 4;
+    left: 12px;
+    bottom: 68px;
+    max-width: calc(100% - 48px);
+    pointer-events: none;
+}
+
+.room-wiring-key[hidden] {
+    display: none;
+}
+
+.room-wiring-key-panel {
+    position: relative;
+    padding: 0.55rem 2.2rem 0.6rem 0.75rem;
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--color-console-panel) 92%, transparent);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+    pointer-events: auto;
+    transition: transform 240ms ease, opacity 240ms ease;
+}
+
+.room-wiring-key[data-open="false"] .room-wiring-key-panel {
+    opacity: 0;
+    pointer-events: none;
+    /* Slide fully past the canvas's left edge (the key sits 12 px in). */
+    transform: translateX(calc(-100% - 1rem));
+}
+
+/* The shared key (racks.html #rack-cable-key) as two stacked columns. */
+.room-wiring-key .rack-cable-key {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: start;
+    gap: 0 1.1rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.room-wiring-key .rack-cable-legend {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+}
+
+/* Column headings, as Discovery's Types and Wires. */
+.room-wiring-key .rack-cable-legend::before {
+    min-height: 1.5rem;
+    line-height: 1.5rem;
+    color: var(--color-phosphor-dim);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    content: "Cables";
+}
+
+.room-wiring-key .rack-cable-legend + .rack-cable-legend::before {
+    content: "Other lines";
+}
+
+.room-wiring-key-toggle,
+.room-wiring-key-tab {
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-small);
+    background: var(--color-console-panel);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    line-height: 1;
+}
+
+.room-wiring-key-toggle {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    font-size: 1rem;
+}
+
+/* Collapsed: a small tab glued to the canvas's left wall, as on Discovery. */
+.room-wiring-key-tab {
+    position: absolute;
+    left: -12px;
+    bottom: 0;
+    padding: 0.35rem 0.6rem;
+    border-left: 0;
+    border-radius: 0 var(--radius-small) var(--radius-small) 0;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease 120ms;
+}
+
+.room-wiring-key[data-open="false"] .room-wiring-key-tab {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.room-wiring-key-toggle:hover,
+.room-wiring-key-tab:hover,
+.room-wiring-key-toggle:focus-visible,
+.room-wiring-key-tab:focus-visible {
+    border-color: var(--color-phosphor-dim);
+    color: var(--color-phosphor-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .room-wiring-key-panel,
+    .room-wiring-key-tab {
+        transition: none;
+    }
+}
+
+/* Phones drop the key, as on Equipment; colors stay on the wires. */
+@media (max-width: 600px) {
+    .room-wiring-key {
+        display: none;
+    }
+}
+
+/* ========================================================================== */
+/* 07. PATCH HIGHLIGHT                                                        */
+/* ========================================================================== */
+
+/* Trace exactly one boundary socket's cable and its local endpoint. */
+.room-wiring-node.is-patch-highlighted {
+    outline: 2px solid var(--color-accent-strong);
+    outline-offset: 3px;
+    box-shadow: 0 0 14px var(--color-accent-muted);
+}
+
+.room-wiring-node .is-patch-port {
+    outline: 2px solid var(--color-accent-strong);
+    outline-offset: 2px;
+}
+
+.room-wiring-lines path.is-patch-highlighted {
+    opacity: 1;
+    filter: brightness(1.4);
+}

@@ -1,0 +1,139 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+
+/* Used by: Observations, Discovery, Equipment and Diagram, Discovery clients, Cluster, Networks, Widgets. */
+
+/* Shared control-room skin for Equipment, Observations, and Discovery.
+   Structural layout, responsive behavior, and animations stay in each
+   page's stylesheet. Load this after page CSS so the pages share one chassis
+   and drawer finish. All colors are inherited from the console tokens in
+   main.css. */
+
+.rack-view-body,
+.observations-body,
+.discovery-body {
+    background:
+        radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--color-phosphor) 6%, transparent), transparent 55%),
+        var(--color-console-background);
+}
+
+.rack-view-body .rack-block,
+.rack-view-body .rack-room-group,
+.observations-body .noc-panel,
+.discovery-body .view-frame,
+.rack-view-body .view-frame {
+    position: relative;
+    isolation: isolate;
+    border: 1px solid var(--color-console-bezel-edge);
+    border-radius: var(--radius-control);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-console-bezel-highlight) 14%, transparent), transparent 40px),
+        var(--color-console-panel);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--color-console-bezel-highlight) 55%, transparent),
+        inset 0 0 0 4px var(--color-console-bezel),
+        inset 0 0 0 5px color-mix(in srgb, var(--color-shadow) 50%, var(--color-console-bezel-edge)),
+        0 18px 40px color-mix(in srgb, var(--color-shadow) 60%, transparent);
+}
+
+/*
+ * Panels nested inside a room's view frame (rack panels, the "Around the
+ * room" groups, the internet uplink and power side panels, and the
+ * Diagram's canvas) read as sunk
+ * into it, not as copies of it (owner): one shade
+ * darker than the frame, a shadow falling inside their top edge, and the
+ * bezel highlight caught along their bottom instead of their top, with no
+ * drop shadow beneath. The bezel ring stays.
+ */
+.rack-view-body .view-frame .rack-block,
+.rack-view-body .view-frame .rack-room-group,
+.rack-view-body .view-frame .rack-wan-panel,
+.rack-view-body .view-frame .rack-power-panel,
+.rack-view-body .view-frame .rack-room-other-panel,
+.rack-view-body .view-frame .room-wiring,
+.observations-body .view-frame .noc-panel,
+.view-frame .widget-panel {
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--color-shadow) 18%, transparent), transparent 40px),
+        color-mix(in srgb, var(--color-console-panel) 82%, var(--color-shade));
+    box-shadow:
+        inset 0 7px 9px -6px var(--color-shadow),
+        inset 0 -1px 0 color-mix(in srgb, var(--color-console-bezel-highlight) 55%, transparent),
+        inset 0 0 0 4px var(--color-console-bezel),
+        inset 0 0 0 5px color-mix(in srgb, var(--color-shadow) 50%, var(--color-console-bezel-edge));
+}
+
+/*
+ * The places inside "Around the room" sit one step deeper: darker again,
+ * with a fainter inner shadow and no bezel ring, so they read as sections
+ * of that panel rather than panels of their own.
+ */
+.rack-view-body .view-frame .rack-room-other .rack-room-group,
+.cluster-body .view-frame .cluster-card {
+    border-color: color-mix(in srgb, var(--color-console-bezel-edge) 70%, transparent);
+    background: color-mix(in srgb, var(--color-console-panel) 64%, var(--color-shade));
+    box-shadow:
+        inset 0 5px 7px -5px var(--color-shadow),
+        inset 0 -1px 0 color-mix(in srgb, var(--color-console-bezel-highlight) 40%, transparent);
+}
+
+.rack-view-body .rack-block::after,
+.observations-body .noc-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    border-radius: inherit;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 2px,
+        var(--effect-scanline) 2px,
+        var(--effect-scanline) 3px
+    );
+    pointer-events: none;
+}
+
+.rack-view-body .rack-block-title h3,
+.rack-view-body .rack-room-group-header h3,
+.observations-body .noc-panel > header h2 {
+    color: var(--color-phosphor-soft);
+    font-family: var(--font-mono);
+    font-size: var(--text-md);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-shadow: var(--console-glow);
+}
+
+/* The rack's name reads 2px larger than other panel titles (owner). */
+.rack-view-body .rack-block-title h3 {
+    font-size: calc(var(--text-md) + 2px);
+}
+
+.device-drawer,
+.observations-body .noc-drawer {
+    border-left: 1px solid var(--color-console-bezel-highlight);
+    background:
+        repeating-linear-gradient(to bottom, transparent 0 2px, var(--effect-scanline-soft) 2px 3px),
+        var(--color-console-panel);
+    box-shadow:
+        inset 4px 0 0 var(--color-console-bezel),
+        inset 5px 0 0 color-mix(in srgb, var(--color-shadow) 50%, var(--color-console-bezel-edge)),
+        -24px 0 60px color-mix(in srgb, var(--color-shadow) 60%, transparent);
+}
+
+.device-drawer-bar,
+.observations-body .noc-drawer-header {
+    border-bottom: 1px solid var(--color-console-bezel-edge);
+    background: linear-gradient(180deg, var(--color-console-bezel), var(--color-console-panel));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-console-bezel-highlight) 55%, transparent);
+}
+
+.device-drawer-title,
+.observations-body #noc-drawer-title {
+    color: var(--color-phosphor-soft);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-shadow: var(--console-glow);
+}

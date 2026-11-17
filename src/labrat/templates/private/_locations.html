@@ -1,0 +1,185 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Used by: Locations, Location detail, Locations map. #}
+{#
+  Shared Locations building block. Both the Locations list and a single
+  site's page render sites through this macro, so they always look the same.
+
+  The nesting mirrors the physical world: a site is a building, rooms sit
+  inside it, and racks sit inside each room.
+#}
+
+{% from "_icons.html" import icon %}
+{% from "private/_view_frame.html" import view_menu %}
+
+{#
+  The Locations pages' frame heading, the room views' design (owner;
+  _room_header.html, view-frame.css): a one-line breadcrumb ending in the
+  page title, the Add location tool, the Areas | Map view switch, and,
+  when there is more than one location, pill tabs for All and each
+  location, always rightmost (they keep the current view).
+
+  Args:
+    all_sites: Every location, ``{"id", "name"}``, in name order.
+    site: The location being shown, or none on the Locations list.
+    view: "areas" (the buildings of area cards) or "map" (the canvas).
+    tools: A macro drawing the heading's tools instead of Add location.
+#}
+{% macro locations_header(all_sites, site=none, view="areas", tools=none) %}
+<header class="view-heading room-heading locations-heading">
+  <div class="view-heading-readouts">
+    <div class="room-heading-path">
+      {% if site %}
+      <nav class="room-breadcrumbs" aria-label="Breadcrumb">
+        <a href="{{ url_for('private.locations') }}">Locations</a>
+        <span aria-hidden="true">/</span>
+      </nav>
+      <h1 id="locations-title">{{ site.name }}</h1>
+      {% else %}
+      <h1 id="locations-title">Locations</h1>
+      {% endif %}
+    </div>
+  </div>
+  <div class="view-heading-actions room-heading-actions" role="group" aria-label="Location controls">
+    {% call view_menu("locations-tools", "Location tools") %}
+      {% if tools %}{{ tools() }}{% else %}
+      <button class="button button-quiet room-icon-button" id="location-add-tool" type="button" aria-label="Add a location" title="Add a location" data-tooltip="Add location" aria-controls="device-drawer" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 11 12 4l6 4.7M5 10v10h8M10 20v-5h3M19 14v8M15 18h8"/></svg>
+      </button>
+      {% endif %}
+    {% endcall %}
+    {# Areas (the buildings of area cards) or Map (one canvas; owner). #}
+    <nav class="room-view-switch locations-view-switch" aria-label="Locations views">
+      <a class="room-view-tab" href="{{ url_for('private.location_detail', site_id=site.id) if site else url_for('private.locations') }}"{% if view == "areas" %} aria-current="page"{% endif %}>Areas</a>
+      <a class="room-view-tab" href="{{ url_for('private.locations_map', site_id=site.id) if site else url_for('private.locations_map') }}"{% if view == "map" %} aria-current="page"{% endif %}>Map</a>
+    </nav>
+    {% if all_sites | length > 1 %}
+    <nav class="room-view-switch" aria-label="Locations">
+      {% set all_href = url_for('private.locations_map') if view == "map" else url_for('private.locations') %}
+      <a class="room-view-tab" href="{{ all_href }}"{% if not site %} aria-current="page"{% endif %}>All</a>
+      {% for each in all_sites %}
+      {% set href = url_for('private.locations_map', site_id=each.id) if view == "map" else url_for('private.location_detail', site_id=each.id) %}
+      <a class="room-view-tab" href="{{ href }}"{% if site and site.id == each.id %} aria-current="page"{% endif %}>{{ each.name }}</a>
+      {% endfor %}
+    </nav>
+    {% endif %}
+  </div>
+</header>
+{% endmacro %}
+
+{#
+  The drawer's New location form (locations.js): a name, Create location,
+  and the same save as closing the drawer after typing one (owner).
+#}
+{% macro location_drawer() %}
+{% from "private/_device_drawer.html" import device_drawer %}
+{% call device_drawer("New location", initial_view="closed") %}
+  <section class="device-drawer-view" data-view="closed" aria-hidden="true" inert hidden></section>
+  <section class="device-drawer-view locations-drawer-panel" data-view="site" aria-labelledby="location-add-title" aria-hidden="true" inert>
+    <h2 class="device-drawer-panel-title" id="location-add-title">New location</h2>
+    <form class="locations-drawer-body" id="location-add-form" data-location-kind="site">
+      <p class="location-add-help">A location is a building or property, such as a home, office, or workshop. Areas and racks go inside it.</p>
+      <label for="site-name">Name</label>
+      <input id="site-name" name="name" type="text" maxlength="120" placeholder="Home, workshop, or building" required>
+      <button class="button button-secondary" type="submit">Create location</button>
+    </form>
+  </section>
+{% endcall %}
+{% endmacro %}
+
+{#
+  Rename and delete for one location (locations.js). Areas are renamed and
+  deleted from their own heading (Edit area), racks from the rack editor.
+  Delete opens a confirmation (remove-dialog.js) that asks the server what
+  goes with it and offers to unplace any equipment inside.
+
+  Args:
+    kind: The API path segment ("sites").
+    id: The entity's ID.
+    name: Its current name, for the rename field.
+    label: What to call it in the interface ("location").
+#}
+{% macro location_tools(kind, id, name, label) -%}
+<span class="location-tools" role="group" aria-label="{{ label | capitalize }} {{ name }} tools">
+  <button class="location-tool" type="button" data-location-action="rename" data-kind="{{ kind }}"
+          data-id="{{ id }}" data-name="{{ name }}" data-label="{{ label }}"
+          aria-label="Rename {{ label }} {{ name }}" title="Rename {{ label }}">{{ icon("edit") }}</button>
+  <button class="location-tool location-tool-delete" type="button" data-location-action="delete" data-kind="{{ kind }}"
+          data-id="{{ id }}" data-name="{{ name }}" data-label="{{ label }}"
+          title="Delete {{ label }}" aria-label="Delete {{ label }} {{ name }}">{{ icon("trash") }}</button>
+</span>
+{%- endmacro %}
+
+
+{#
+  Render one site as a building.
+
+  Args:
+    site: A site from _location_tree() with rooms, racks, and counts.
+    index: 1-based position, shown in the kicker ("LOCATION / 01").
+    link_title: When true (the Locations list), the roof shows the site name
+      linked to its own page. On a site's own page the name is already the
+      page title, so the roof just says "Areas" (owner: rooms are becoming
+      areas, which can be outdoors or on a roof).
+#}
+{% macro building(site, index=1, link_title=true) %}
+<section class="location-building" id="site-{{ site.id }}" aria-labelledby="site-title-{{ site.id }}">
+  <header class="location-building-roof">
+    <div class="location-building-title">
+      {% if link_title %}
+        <span class="location-kicker">Location / {{ "%02d" | format(index) }}</span>
+        <h2 id="site-title-{{ site.id }}">
+          <a href="{{ url_for('private.location_detail', site_id=site.id) }}">{{ site.name }}</a>
+        </h2>
+      {% else %}
+        <h2 id="site-title-{{ site.id }}">Areas</h2>
+      {% endif %}
+    </div>
+    {{ location_tools("sites", site.id, site.name, "location") }}
+  </header>
+
+  {# The rooms sit on the blueprint grid; each room card is solid (owner). #}
+  <div class="location-room-grid blueprint-grid">
+    {% for room in site.rooms %}
+      {# An area card (owner): its name, a ledger list of what sits at its
+         top level, and View. No rename, delete, or count here. #}
+      <article class="location-room">
+        <header class="location-room-header">
+          <h3><a href="{{ url_for('private.room_default', room_id=room.id) }}">{{ room.name }}</a></h3>
+        </header>
+
+        {% if room.contents %}
+          <ul class="location-area-list" aria-label="In {{ room.name }}">
+            {% for item in room.contents %}
+              <li class="location-area-item" data-kind="{{ item.kind }}">
+                {% if item.kind == "rack" %}
+                  <span class="location-rack-glyph" aria-hidden="true"><i></i><i></i><i></i></span>
+                {% elif item.kind == "device" %}
+                  <svg class="location-area-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="10" rx="2"/><path d="M8 12h.01M12 12h4"/></svg>
+                {% else %}
+                  <svg class="location-area-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h18M3 15h18M5 9v6M19 9v6"/></svg>
+                {% endif %}
+                <span class="location-area-text">
+                  <span class="location-area-name">{{ item.name }}</span>
+                  <span class="location-area-meta readout">{{ item.meta }}</span>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="location-room-empty">Nothing placed here yet.</p>
+        {% endif %}
+
+        <a class="button button-secondary location-room-open" href="{{ url_for('private.room_default', room_id=room.id) }}">View →</a>
+      </article>
+    {% endfor %}
+
+    {# Adding an area happens inside the building it belongs to (owner:
+       "area", since it can be outdoors or a roof). #}
+    <form class="location-room location-add location-add-room" data-location-kind="room" data-site-id="{{ site.id }}">
+      <label for="room-name-{{ site.id }}">Add area</label>
+      <input id="room-name-{{ site.id }}" name="name" type="text" maxlength="120" placeholder="Office, garage, or roof" required>
+      <button class="button button-secondary" type="submit">Create area</button>
+    </form>
+  </div>
+</section>
+{% endmacro %}

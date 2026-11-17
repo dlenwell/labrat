@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "models": ["UniFi Dream Machine PRO SE", "UDM Pro SE"],
+      "ports": [
+        {"from": 1, "through": 9, "connector": "rj45"},
+        {"from": 10, "through": 11, "connector": "sfp_plus"}
+      ],
+      "source": "https://techspecs.ui.com/unifi/cloud-gateways/udm-se"
+    },
+    {
+      "models": ["USW Aggregation"],
+      "ports": [{"from": 1, "through": 8, "connector": "sfp_plus"}],
+      "source": "https://techspecs.ui.com/unifi/switching/usw-aggregation"
+    },
+    {
+      "models": ["US XG 16", "ES-16-XG", "EdgeSwitch 16 XG"],
+      "ports": [
+        {"from": 1, "through": 12, "connector": "sfp_plus"},
+        {"from": 13, "through": 16, "connector": "rj45"}
+      ],
+      "source": "https://store.ui.com/us/en/products/es-16-xg"
+    },
+    {
+      "models": ["USW Enterprise 8 PoE", "USW-Enterprise-8-PoE"],
+      "ports": [
+        {"from": 1, "through": 8, "connector": "rj45"},
+        {"from": 9, "through": 10, "connector": "sfp_plus"}
+      ],
+      "source": "https://store.ui.com/us/en/category/all-switching"
+    },
+    {
+      "models": ["US 16 PoE 150W", "US-16-150W"],
+      "ports": [
+        {"from": 1, "through": 16, "connector": "rj45"},
+        {"from": 17, "through": 18, "connector": "sfp"}
+      ],
+      "source": "https://store.ui.com/us/en/category/all-switching"
+    },
+    {
+      "models": ["USW Flex 2.5G 8 PoE"],
+      "ports": [
+        {"from": 1, "through": 8, "connector": "rj45"},
+        {"from": 9, "through": 10, "connector": "combo"}
+      ],
+      "source": "https://store.ui.com/us/en/category/all-switching"
+    },
+    {
+      "models": ["USW Flex Mini", "USW Flex", "USW Flex 2.5G 5"],
+      "ports": [{"from": 1, "through": 5, "connector": "rj45"}],
+      "source": "https://store.ui.com/us/en/category/all-switching"
+    },
+    {
+      "models": ["UAP AC M Pro"],
+      "ports": [{"from": 1, "through": 2, "connector": "rj45"}],
+      "source": "https://techspecs.ui.com/unifi/wifi/uap-ac-m-pro"
+    }
+  ]
+}

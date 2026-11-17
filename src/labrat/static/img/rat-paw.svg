@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 14" aria-hidden="true">
+  <!--
+    The LabRat mascot's paw, gripping the rack preview's left edge on the
+    landing page: three small fingers curled over the frame, drawn in front
+    of it while the rest of the rat hides behind. Colors follow the logo.
+  -->
+  <defs>
+    <linearGradient id="paw-skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2c2d1"/>
+      <stop offset="1" stop-color="#c98aa0"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#paw-skin)" stroke="#8b5a6b" stroke-width="0.6">
+    <ellipse cx="8" cy="2.8" rx="3.2" ry="2.2"/>
+    <ellipse cx="8.4" cy="6.9" rx="3.4" ry="2.3"/>
+    <ellipse cx="8" cy="11" rx="3.1" ry="2.1"/>
+  </g>
+  <!-- Claw tips over the edge. -->
+  <path d="M11 2.6h1.2M11.6 6.8h1.2M11 10.9h1.2" stroke="#fff6e0" stroke-width="0.9" stroke-linecap="round"/>
+</svg>

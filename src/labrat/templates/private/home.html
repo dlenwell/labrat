@@ -1,0 +1,183 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "private/_widgets.html" import widget_styles, widget_scripts %}
+
+{% block title %}LabRat · Your lab{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wan.css') }}">
+{{ widget_styles() }}
+{% endblock %}
+
+{% block body_class %}home-body view-frame-body workspace-body{% endblock %}
+
+{#
+  Home page color: each area takes one signal hue (data-hue, tokens in
+  main.css): Observations internet cyan, Equipment physical-network teal,
+  Discovery compute blue, Locations VPN violet. Device types use their own
+  type colors. Green, amber, and red stay reserved for status.
+#}
+{% block content %}
+{# One view frame, its sections sunk into it, with no visible heading
+   (owner: the header's lit Home tab names the page); the page title stays
+   for screen readers. The page links live in "Pick up where you left off". #}
+<div class="home-dashboard view-frame room-frame">
+  <h1 class="visually-hidden" id="home-title">Home</h1>
+
+  <section class="home-section" aria-labelledby="home-overview-title">
+    <div class="home-section-heading">
+      <div>
+        <p class="eyebrow">Current snapshot</p>
+        <h2 id="home-overview-title">Your inventory at a glance</h2>
+      </div>
+    </div>
+    <div class="home-stat-grid">
+      <div class="home-stat" data-hue="internet">{{ icon("observed", "home-stat-icon") }}<strong>{{ counts.observed }}</strong><span>Recognized observations</span></div>
+      <div class="home-stat" data-hue="compute">{{ icon("inventory", "home-stat-icon") }}<strong>{{ counts.inventory }}</strong><span>Inventory devices</span></div>
+      <div class="home-stat" data-hue="network">{{ icon("rack", "home-stat-icon") }}<strong>{{ counts.racks }}</strong><span>Racks</span></div>
+      <div class="home-stat" data-hue="vpn">{{ icon("placement", "home-stat-icon") }}<strong>{{ counts.placed }}</strong><span>Saved placements</span></div>
+    </div>
+
+    {#
+      What's in the lab: recognized observations by equipment type, as one
+      bar in the device-type colors used on every page. The bar is an SVG
+      whose segment widths are attributes (the content security policy
+      blocks inline style attributes); colors come from home CSS.
+    #}
+    {% if composition %}
+    <div class="home-mix">
+      <h3 class="home-mix-title" id="home-mix-title">What's in your lab</h3>
+      <svg class="home-mix-bar" viewBox="0 0 1000 20" preserveAspectRatio="none" role="img" aria-labelledby="home-mix-title home-mix-summary">
+        {% set offset = namespace(x=0) %}
+        {% for part in composition %}
+          {% set width = part.share * 1000 %}
+          <rect data-category="{{ part.category }}" x="{{ '%.2f' % offset.x }}" y="0" width="{{ '%.2f' % width }}" height="20"></rect>
+          {% set offset.x = offset.x + width %}
+        {% endfor %}
+      </svg>
+      <ul class="home-mix-legend" id="home-mix-summary">
+        {% for part in composition %}
+          <li data-category="{{ part.category }}"><span class="home-mix-swatch" aria-hidden="true"></span>{{ part.label }} <strong>{{ part.count }}</strong></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </section>
+
+  {# Internet uplink summary per gateway, drawn and refreshed by wan.js. #}
+  {# No heading or refresh note (owner): the card's own status line leads. #}
+  <section class="home-section home-wan-section" data-hue="internet" data-wan-widget="card" aria-label="WAN status" hidden>
+    <div data-wan-body></div>
+  </section>
+
+  {#
+    Lab health: live widgets from the cluster and network APIs
+    (planning/specs/widgets.md), placed with markup through the widget
+    feeds and redrawn every five minutes. Each half shows only when an
+    enabled Proxmox or UniFi source can feed it.
+  #}
+  {% if live.cluster or live.network %}
+  <section class="home-section home-live-section" aria-labelledby="home-live-title">
+    <div class="home-section-heading">
+      <div>
+        <p class="eyebrow">Live</p>
+        <h2 id="home-live-title">Lab health</h2>
+      </div>
+      {% if live.cluster %}<a href="{{ url_for('private.cluster') }}">Cluster →</a>{% endif %}
+    </div>
+    <div class="home-live-grid">
+      {% if live.cluster %}
+      <div data-hue="compute">
+        <h3 class="home-mix-title">Needs attention</h3>
+        <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.attention" data-widget-bare data-widget-limit="5"
+          data-widget-link="{{ url_for('private.cluster') }}" data-widget-refresh="300"></div>
+      </div>
+      <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.tiles"
+        data-widget-hue="compute" data-widget-refresh="300"></div>
+      {% endif %}
+      <div class="home-live-charts">
+      {% if live.cluster %}
+      <div data-hue="compute">
+        <h3 class="home-mix-title">Guests</h3>
+        <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.guest-states" data-widget-refresh="300"></div>
+      </div>
+      <div data-hue="compute">
+        <h3 class="home-mix-title">Cluster CPU · 24 h</h3>
+        <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.cpu-24h" data-widget-refresh="300"></div>
+      </div>
+      {% endif %}
+      {% if live.network %}
+      <div data-hue="network">
+        <h3 class="home-mix-title">Clients by network</h3>
+        <div data-widget-src="{{ url_for('network_api.network') }}" data-widget-feed="network.clients-by-network" data-widget-refresh="300"></div>
+      </div>
+      {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="home-lower-grid">
+    <section class="home-section home-work-section" aria-labelledby="home-work-title">
+      <div class="home-section-heading">
+        <div>
+          <p class="eyebrow">Keep mapping</p>
+          <h2 id="home-work-title">Pick up where you left off</h2>
+        </div>
+      </div>
+      <div class="home-link-grid">
+        <a class="home-link-card" data-hue="internet" href="{{ url_for('private.observations') }}">{{ icon("observations", "home-link-icon") }}<span>01 / Live</span><strong>Observations</strong><small>The NOC screen: internet, VPN, servers, UPS power, and a watchlist of what needs attention.</small></a>
+        <a class="home-link-card" data-hue="network" href="{{ url_for('private.racks') }}">{{ icon("equipment", "home-link-icon") }}<span>02 / Placement</span><strong>Equipment</strong><small>Every rack in an area, front and rear, plus its shelves, floor, walls, and ceiling.</small></a>
+        <a class="home-link-card" data-hue="compute" href="{{ url_for('private.topology') }}">{{ icon("discovery", "home-link-icon") }}<span>03 / Discovery</span><strong>Discovery map</strong><small>Observed equipment and links with their confidence, laid out as a tree.</small></a>
+        <a class="home-link-card" data-hue="vpn" href="{{ url_for('private.locations') }}">{{ icon("locations", "home-link-icon") }}<span>04 / Locations</span><strong>Locations</strong><small>Your buildings, the areas inside them, and each area's racks.</small></a>
+      </div>
+      <p class="home-link-footnote">{{ counts.observed_links }} observed link{% if counts.observed_links != 1 %}s{% endif %} currently recorded.</p>
+    </section>
+
+    <section class="home-section home-sources-section" aria-labelledby="home-sources-title">
+      <div class="home-section-heading">
+        <div>
+          <p class="eyebrow">Collector cache</p>
+          <h2 id="home-sources-title">Sources</h2>
+        </div>
+      </div>
+      {% if source_status %}
+      <ul class="home-source-list">
+        {% for source in source_status %}
+        {# A condensed ledger row per source (owner): lamp, name, then its
+           state and age under it, the full text in the tooltip. #}
+        <li title="{{ source.name }}: {{ source.label }} · {{ source.age }}"><span class="led led-{{ source.state }}{% if source.fresh %} is-fresh{% endif %}" aria-hidden="true"></span><strong>{{ source.name }}</strong><small>{{ source.label }} · <span class="readout">{{ source.age }}</span></small></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="home-source-empty">No discovery source is registered yet. Configure a controller and run the collector.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="home-section home-docs-section" aria-labelledby="home-docs-title">
+    <div class="home-section-heading">
+      <div>
+        <p class="eyebrow">Field guide</p>
+        <h2 id="home-docs-title">Understand what LabRat knows</h2>
+      </div>
+      <a href="{{ url_for('docs.index') }}">All documentation →</a>
+    </div>
+    <div class="home-docs-grid">
+      <a data-hue="vpn" href="{{ url_for('docs.inventory') }}">{{ icon("book", "home-doc-icon") }}<strong>Inventory model</strong><span>Locations, areas, racks, identity, and placement.</span></a>
+      <a data-hue="compute" href="{{ url_for('docs.discovery') }}">{{ icon("discover", "home-doc-icon") }}<strong>Discovery guide</strong><span>Collector sources, freshness, and provenance.</span></a>
+      <a data-hue="internet" href="{{ url_for('docs.api') }}">{{ icon("api", "home-doc-icon") }}<strong>API reference</strong><span>Current methods and paths from the running code.</span></a>
+    </div>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/wan.js') }}" defer></script>
+{% if live.cluster or live.network %}
+{{ widget_scripts() }}
+<script src="{{ url_for('static', filename='js/cluster-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/network-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/widget-feeds.js') }}" defer></script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,77 @@
+# Copyright 2026 LabRat contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copy these settings into your Git-ignored local_config.toml.
+# Never commit session keys, passwords, or integration API credentials.
+
+[server]
+# Hosts accepted in HTTP Host headers. Add the VM IP, DNS name, container host,
+# or ingress hostname used to open LabRat. If omitted, loopback hosts are used.
+allowed_hosts = ["localhost", "127.0.0.1", "::1"]
+
+[database]
+path = "data/labrat.sqlite3"
+
+[auth]
+# REQUIRED: Generate a unique secret with:
+# python -c 'import secrets; print(secrets.token_urlsafe(48))'
+# Paste the output below. Never use the example placeholder as a real key.
+secret_key = "REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS"
+
+# Use false ONLY for local HTTP development. For HTTPS, change this to true.
+secure_cookies = false
+
+
+# Step 4B reads these optional sections. Configure either or both.
+# Credentials stay in this private file; the collector only stores source names.
+# TLS certificate validation is on by default. To use a private CA, set
+# ca_bundle = "/path/to/ca.pem" inside the corresponding section.
+# Do not disable TLS verification except temporarily for local diagnosis.
+#
+# A single controller can use [unifi] and [proxmox] as below. To support
+# multiple controllers, use [integrations.unifi.office] or
+# [integrations.proxmox.home] instead.
+# [unifi]
+# url = "https://unifi.example.lan"
+# api_key = "read-only-token"
+# controller_type = "unifi_os"  # "network_application" for a self-hosted Network application.
+# wan_interval_seconds = 30  # WAN-only poll between full scans; 0 disables.
+# access_interval_seconds = 900  # Cache subnet/firewall evidence; 0 disables, 300..86400.
+# Optional: name LLDP neighbors from vendors LabRat does not know (see
+# docs/discovery-adapters.md). Patterns must not match host NIC names.
+# [[unifi.lldp_vendors]]
+# vendor = "Example Networks"
+# port_pattern = 'port\d+'
+# ouis = ["00:00:5e"]
+#
+# [proxmox]
+# url = "https://proxmox.example.lan:8006"
+# token_id = "labrat@pve!readonly"
+# token_secret = "read-only-token-secret"
+# report_interval_seconds = 3600  # Read NIC MACs from each node's report; 0 disables.
+# live_interval_seconds = 20  # Node, guest, and task state between scans; 0 disables.
+# Optional SNMPv3 supplement for physical NIC MAC addresses and live link state.
+# Node IPs are read from the Proxmox cluster API; only the listed nodes are polled.
+# [proxmox.snmp]
+# nodes = ["pve1"]
+# username = "labrat"
+# auth_passphrase = "the first passphrase from createUser"
+# priv_passphrase = "the second passphrase from createUser"
+# auth_protocol = "sha"   # Optional: sha, sha224, sha256, sha384, sha512.
+# priv_protocol = "aes"   # Optional: aes, aes192, aes256, aes192c, aes256c.
+# port = 161
+#
+# [scan]
+# # The only networks LabRat may scan, and the protocols it may probe there.
+# ranges = ["192.0.2.0/24"]
+# probes = ["nut"]           # Network UPS Tools servers (read-only LIST commands)
+# [scan.nut]
+# ups_interval_seconds = 30  # UPS readings between scans; 0 disables.
+#
+# [mndp]
+# # Passively listen for MikroTik announcements (no credentials; sends nothing).
+# # The collector must share a network segment with the MikroTiks.
+# listen_seconds = 65
+#
+# Run once: python -m labrat.collector --once
+# Inspect results: python -m labrat.collector --list

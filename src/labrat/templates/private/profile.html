@@ -1,0 +1,66 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "base.html" %}
+
+{% block title %}LabRat · Profile{% endblock %}
+{% block body_class %}profile-body workspace-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<header class="page-heading">
+  <div>
+    <p class="eyebrow">Account</p>
+    <h1 id="profile-title">{{ viewer.display_name or viewer.username }}</h1>
+    <p class="page-heading-lede">
+      <span class="readout">@{{ viewer.username }}</span>
+      · {{ 'Administrator' if viewer.is_admin else 'Member' }}
+    </p>
+  </div>
+  <div class="page-heading-actions">
+    <a class="button button-quiet" href="{{ url_for('private.home') }}">Back to home</a>
+  </div>
+</header>
+
+<div class="profile-layout">
+  <section class="profile-panel panel-screws" aria-labelledby="profile-account-title">
+    <p class="eyebrow">Details</p>
+    <h2 id="profile-account-title">Your account</h2>
+    <dl class="account-details">
+      <dt>Username</dt>
+      <dd class="readout">{{ viewer.username }}</dd>
+      <dt>Display name</dt>
+      <dd>{{ viewer.display_name or 'Not set' }}</dd>
+      <dt>Role</dt>
+      <dd>{{ 'Administrator' if viewer.is_admin else 'Member' }}</dd>
+      <dt>Sign-in</dt>
+      <dd>{{ sign_in_methods | join(', ') if sign_in_methods else 'None configured' }}</dd>
+      <dt>Member since</dt>
+      <dd class="readout">{{ member_since or 'Unknown' }}</dd>
+    </dl>
+  </section>
+
+  <section class="profile-panel" aria-labelledby="profile-activity-title">
+    <div class="profile-panel-heading">
+      <div>
+        <p class="eyebrow">Audit trail</p>
+        <h2 id="profile-activity-title">Your recent changes</h2>
+      </div>
+      <span class="profile-count readout" title="Total changes you have made">{{ change_count }}</span>
+    </div>
+    {% if activity %}
+      <ol class="profile-activity">
+        {% for entry in activity %}
+          <li>
+            <span class="profile-activity-label">{{ entry.label }}</span>
+            <span class="profile-activity-subject">{{ entry.subject }}</span>
+            <time class="profile-activity-age readout" datetime="{{ entry.when }}">{{ entry.age }}</time>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="profile-empty">No changes yet. Placements, locations, and rack edits you make will appear here.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

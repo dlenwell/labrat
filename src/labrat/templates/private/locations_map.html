@@ -1,0 +1,88 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{#
+  Locations map (owner: a large canvas of the rooms and racks, their
+  equipment, and the links between rooms through patch panels at the
+  edge). The canvas is drawn by locations-map.js from the locations and
+  topology APIs; this template is its frame, heading, and tools.
+#}
+{% extends "base.html" %}
+{% from "private/_locations.html" import locations_header %}
+
+{% block title %}LabRat · {{ site.name ~ " map" if site else "Locations map" }}{% endblock %}
+{% block body_class %}locations-body view-frame-body workspace-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-switch.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/locations.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/locations-map.css') }}">
+{% endblock %}
+
+{% macro map_tools() %}
+<label class="locations-map-find">
+  <span class="visually-hidden">Find equipment on the map</span>
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg>
+  <input type="search" id="map-find" placeholder="Find…" autocomplete="off" aria-describedby="map-find-count">
+  <span class="locations-map-find-count" id="map-find-count" aria-live="polite"></span>
+</label>
+<button class="button button-quiet room-icon-button" id="map-zoom-out" type="button" aria-label="Zoom out" title="Zoom out" data-tooltip="Zoom out">
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M7 10h6"/></svg>
+</button>
+<button class="button button-quiet room-icon-button" id="map-zoom-in" type="button" aria-label="Zoom in" title="Zoom in" data-tooltip="Zoom in">
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M7 10h6M10 7v6"/></svg>
+</button>
+<button class="button button-quiet room-icon-button" id="map-fit" type="button" aria-label="Fit everything" title="Fit everything" data-tooltip="Fit everything">
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+</button>
+<button class="button button-quiet room-icon-button" id="map-room-cables" type="button" aria-pressed="true" aria-label="Cables inside areas" title="Cables inside areas" data-tooltip="Cables inside areas">
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h5a3 3 0 0 1 3 3v4a3 3 0 0 0 3 3h5"/><rect x="2" y="5" width="2.5" height="4" rx=".5"/><rect x="19.5" y="15" width="2.5" height="4" rx=".5"/></svg>
+</button>
+{% endmacro %}
+
+{% block content %}
+<section class="locations-page locations-map-page view-frame room-frame"
+         data-site-id="{{ site.id if site else '' }}"
+         data-area-url="{{ url_for('private.room_default', room_id=0) }}">
+  {{ locations_header(all_sites, site, view="map", tools=map_tools) }}
+
+  <p class="locations-notice" id="locations-notice" role="alert" aria-live="polite" hidden></p>
+
+  <div class="locations-map" id="locations-map" tabindex="0"
+       aria-label="Map of locations, areas, racks, and cables. Drag or use the arrow keys to pan; scroll, the zoom tools, or + and - to zoom; 0 fits everything; double-click an area to zoom to it.">
+    <svg class="locations-map-svg" id="locations-map-svg" role="img" aria-labelledby="locations-map-title">
+      <title id="locations-map-title">Locations map</title>
+      <g id="locations-map-world"></g>
+    </svg>
+    <p class="locations-map-empty" id="locations-map-empty" hidden></p>
+    {# The cable key, like Discovery's: colour is the medium. #}
+    <details class="locations-map-key" id="locations-map-key">
+      <summary>Key</summary>
+      <ul>
+        <li><span class="map-key-line is-medium-copper"></span>Copper</li>
+        <li><span class="map-key-line is-medium-dac"></span>DAC</li>
+        <li><span class="map-key-line is-medium-fiber-mm"></span>Fiber, multimode</li>
+        <li><span class="map-key-line is-medium-fiber-sm"></span>Fiber, single-mode</li>
+        <li><span class="map-key-line is-medium-unknown"></span>Medium not reported</li>
+        <li><span class="map-key-line is-tentative"></span>Tentative</li>
+        <li><span class="map-key-panel"></span>Patch panel: cables to other areas</li>
+      </ul>
+    </details>
+    {# The selected device: where it is, its cables (each a jump to the
+       other end), and a way into its area. #}
+    <aside class="locations-map-panel" id="locations-map-panel" aria-labelledby="locations-map-panel-title" hidden>
+      <header>
+        <h2 id="locations-map-panel-title"></h2>
+        <button class="button button-quiet room-icon-button" id="locations-map-panel-close" type="button" aria-label="Close" title="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <div id="locations-map-panel-body"></div>
+    </aside>
+    {# Overview: the whole map and the part in view; click to move there. #}
+    <svg class="locations-map-mini" id="locations-map-mini" aria-hidden="true"></svg>
+    <div class="locations-map-tip" id="locations-map-tip" role="status" hidden></div>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/view-frame.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/wiring.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/locations-map.js') }}" defer></script>
+{% endblock %}

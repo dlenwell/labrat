@@ -1,0 +1,284 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/*
+ * The labrat.foo landing page. It builds on the app's main.css and
+ * landing.css (the animated hero comes from the app itself) and
+ * adds only what the website needs: section layout, the screenshot grid,
+ * the promise cards, the sources table, and the quick start.
+ *
+ * Contents:
+ *   01  Page and sections
+ *   02  Screenshots
+ *   03  Promise cards and sources table
+ *   04  Quick start
+ *   05  Screenshot viewer
+ */
+
+/* 01  Page and sections ------------------------------------------------- */
+
+.site-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    padding-bottom: 5rem;
+}
+
+.site-section h2 {
+    margin: 0 0 1.25rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+}
+
+.site-note {
+    margin: 0.75rem 0 0;
+    color: var(--color-text-faint);
+    font-size: 0.85rem;
+}
+
+/* 02  Screenshots ------------------------------------------------------- */
+
+.site-shot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 1.25rem;
+}
+
+/* The first screenshot spans the grid. */
+.site-shot-wide {
+    grid-column: 1 / -1;
+}
+
+.site-shot {
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    background: var(--color-panel-background);
+}
+
+/* Each screenshot opens the viewer: a borderless button around the image. */
+.site-shot-open {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: zoom-in;
+}
+
+.site-shot-open:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+}
+
+.site-shot-open img {
+    transition: filter 160ms ease;
+}
+
+.site-shot-open:hover img {
+    filter: brightness(1.12);
+}
+
+.site-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.site-shot figcaption {
+    padding: 0.8rem 1rem 1rem;
+    color: var(--color-text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.site-shot figcaption strong {
+    color: var(--color-text-primary);
+}
+
+/* 03  Promise cards and sources table ------------------------------------ */
+
+.site-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    gap: 1rem;
+}
+
+.site-card {
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--color-border);
+    border-top: 3px solid var(--hue, var(--color-accent));
+    border-radius: 0.6rem;
+    background: var(--color-panel-background);
+}
+
+.site-card[data-hue="network"] { --hue: var(--color-signal-network); }
+.site-card[data-hue="internet"] { --hue: var(--color-signal-internet); }
+.site-card[data-hue="compute"] { --hue: var(--color-signal-compute); }
+.site-card[data-hue="power"] { --hue: var(--color-signal-power); }
+
+.site-card h3 {
+    margin: 0 0 0.45rem;
+    font-size: 1.05rem;
+}
+
+.site-card p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.site-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+}
+
+.site-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-panel-background);
+    font-size: 0.95rem;
+}
+
+.site-table th,
+.site-table td {
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    text-align: left;
+    vertical-align: top;
+}
+
+.site-table thead th {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.site-table tbody th {
+    white-space: nowrap;
+}
+
+.site-table td {
+    color: var(--color-text-secondary);
+}
+
+.site-table tr:last-child > * {
+    border-bottom: 0;
+}
+
+/* 04  Quick start ------------------------------------------------------- */
+
+.site-start p {
+    max-width: 52rem;
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+}
+
+.site-code {
+    margin: 0 0 1rem;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    background: var(--color-surface-sunken);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+/* 05  Screenshot viewer ----------------------------------------------------- */
+
+.site-viewer {
+    width: min(96vw, 110rem);
+    max-width: none;
+    max-height: 96vh;
+    padding: 0;
+    overflow: visible;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.6rem;
+    background: var(--color-panel-background-deep);
+    color: var(--color-text-primary);
+}
+
+.site-viewer::backdrop {
+    background: #000c;
+}
+
+.site-viewer-figure {
+    display: grid;
+    margin: 0;
+}
+
+.site-viewer-image {
+    display: block;
+    width: 100%;
+    max-height: calc(96vh - 5rem);
+    object-fit: contain;
+    border-radius: 0.6rem 0.6rem 0 0;
+    background: var(--color-surface-sunken);
+    touch-action: pan-y;
+    user-select: none;
+}
+
+.site-viewer-caption {
+    padding: 0.8rem 5rem 0.9rem 1.1rem;
+    color: var(--color-text-secondary);
+    line-height: 1.45;
+}
+
+.site-viewer-caption strong {
+    color: var(--color-text-primary);
+}
+
+.site-viewer-count {
+    position: absolute;
+    right: 1.1rem;
+    bottom: 0.9rem;
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+.site-viewer-button {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 50%;
+    background: var(--color-panel-background-deep);
+    color: var(--color-text-primary);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.site-viewer-button:hover,
+.site-viewer-button:focus-visible {
+    border-color: var(--color-accent-muted);
+    color: var(--color-accent);
+}
+
+.site-viewer-prev,
+.site-viewer-next {
+    top: calc(50% - 2.5rem);
+}
+
+.site-viewer-prev { left: -1.3rem; }
+.site-viewer-next { right: -1.3rem; }
+
+.site-viewer-close {
+    top: -1.3rem;
+    right: -1.3rem;
+}
+
+/* Phone width: the buttons sit inside the screenshot's edges. */
+@media (max-width: 720px) {
+    .site-viewer-prev { left: 0.4rem; }
+    .site-viewer-next { right: 0.4rem; }
+    .site-viewer-close { top: 0.4rem; right: 0.4rem; }
+}

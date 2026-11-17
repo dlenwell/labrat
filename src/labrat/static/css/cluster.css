@@ -1,0 +1,835 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/* Used by: Cluster, Networks. */
+/*
+ * The Proxmox cluster view (templates/private/cluster.html, js/cluster.js).
+ * It sits in the shared view frame (view-frame.css); its panels and cards
+ * take the sunk console look from console.css. This file owns layout,
+ * and each tab's own pieces; the charts, bars, tiles, and panels
+ * are widgets (widgets.css).
+ *
+ * Contents
+ *   01. Layout and panels
+ *   02. Summary: node cards
+ *   03. Compute: groups and guest cards
+ *   04. Networks: the bridge-by-node grid
+ *   05. Storage: engines, Ceph, ZFS
+ *   06. Phones
+ */
+
+/* ========================================================================== */
+/* 01. LAYOUT AND PANELS                                                       */
+/* ========================================================================== */
+
+.cluster-views {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.cluster-view {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.cluster-view[hidden],
+.cluster-tools[hidden],
+.cluster-sources[hidden] {
+    display: none;
+}
+
+.cluster-tools {
+    display: contents;
+}
+
+.cluster-muted {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+/* Cards inside a panel sit one step deeper (console.css .cluster-card). */
+.cluster-card {
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-small);
+}
+
+.cluster-empty {
+    padding: var(--space-6);
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.cluster-sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin-bottom: var(--space-3);
+}
+
+.cluster-source[aria-pressed="true"] {
+    color: var(--color-accent);
+}
+
+/* ========================================================================== */
+/* 02. SUMMARY                                                                 */
+/* ========================================================================== */
+
+/* Node small multiples: one card per node, the same scales in each. */
+.cluster-node-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: var(--space-2);
+}
+
+.cluster-node-heading,
+.cluster-guest-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.cluster-node-heading h3,
+.cluster-guest-heading h3 {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font: 650 var(--text-sm) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cluster-node-model {
+    margin: 0.2rem 0 var(--space-2);
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cluster-node-row {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr) 3.4rem;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 1.6rem;
+}
+
+.cluster-node-key {
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-mono);
+}
+
+.cluster-node-figure {
+    color: var(--color-text-primary);
+    font: 600 var(--text-xs) var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.cluster-node-foot {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.cluster-node.is-offline {
+    opacity: 0.6;
+}
+
+/* ========================================================================== */
+/* 03. COMPUTE                                                                 */
+/* ========================================================================== */
+
+.cluster-groups {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.cluster-guest-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: var(--space-2);
+}
+
+.cluster-guest {
+    display: grid;
+    gap: 0.3rem;
+}
+
+.cluster-guest:hover,
+.cluster-guest:focus-visible {
+    border-color: var(--color-border-strong);
+}
+
+.cluster-guest-id {
+    color: var(--color-text-muted);
+    font: var(--text-xs) var(--font-mono);
+}
+
+.cluster-guest-spec,
+.cluster-guest-where {
+    margin: 0;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font: var(--text-xs) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cluster-guest-where {
+    color: var(--color-text-muted);
+}
+
+.cluster-guest-agent {
+    margin: 0;
+    overflow: hidden;
+    font: var(--text-xs) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cluster-guest-ip,
+.cluster-list-ip {
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.cluster-guest-meters.is-disk {
+    grid-template-columns: 2.4rem minmax(0, 1fr) 2.6rem;
+}
+
+.cluster-list-os {
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cluster-guest-meters {
+    display: grid;
+    grid-template-columns: 2.4rem minmax(0, 1fr) 2.4rem minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+}
+
+.cluster-guest.is-stopped .cluster-guest-heading h3,
+.cluster-guest.is-stopped .cluster-guest-spec {
+    color: var(--color-text-muted);
+}
+
+.cluster-guest.is-template {
+    border-style: dashed;
+}
+
+/* The grouping tool shows the icon of the current grouping. */
+#cluster-group[data-group="vlan"] .cluster-group-node,
+#cluster-group[data-group="node"] .cluster-group-vlan {
+    display: none;
+}
+
+/* The style tool shows the icon of the current presentation. */
+#cluster-compute-style:not([data-style="cards"]) .cluster-style-cards,
+#cluster-compute-style:not([data-style="list"]) .cluster-style-list,
+#cluster-compute-style:not([data-style="map"]) .cluster-style-map {
+    display: none;
+}
+
+/* List: a ledger like the Clients list, a heading row per group. */
+.cluster-list-scroll {
+    position: relative;
+    overflow-x: auto;
+}
+
+.cluster-list {
+    width: 100%;
+    border-collapse: collapse;
+    font: var(--text-xs) var(--font-mono);
+}
+
+.cluster-list th,
+.cluster-list td {
+    padding: 0.3rem 0.6rem;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.cluster-list thead th {
+    position: sticky;
+    top: 0;
+    padding: 0;
+    background: var(--color-surface-raised);
+}
+
+.cluster-list thead button {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-mono);
+    text-align: left;
+    cursor: pointer;
+}
+
+.cluster-list thead button:hover,
+.cluster-list thead button:focus-visible {
+    color: var(--color-accent);
+}
+
+.cluster-list-group th {
+    padding-top: 0.7rem;
+    color: var(--color-text-secondary);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.cluster-list tbody tr:not(.cluster-list-group) {
+    background: var(--color-surface-raised);
+}
+
+.cluster-list tbody tr:not(.cluster-list-group):nth-child(odd) {
+    background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface-raised));
+}
+
+.cluster-list tbody tr:not(.cluster-list-group):hover,
+.cluster-list tbody tr:not(.cluster-list-group):focus-visible {
+    background: var(--color-surface-hover);
+}
+
+.cluster-list tr.is-stopped td {
+    color: var(--color-text-muted);
+}
+
+.cluster-list-name {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.cluster-list .is-number {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.cluster-list-meter {
+    min-width: 7rem;
+}
+
+.cluster-list-meter > .widget-meter {
+    display: inline-block;
+    width: 4rem;
+    min-width: 0;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+}
+
+/* Map: a treemap of guests sized by memory. */
+.cluster-map {
+    position: relative;
+    overflow-x: auto;
+}
+
+.cluster-map-svg {
+    display: block;
+    width: 100%;
+    min-width: 36rem;
+    height: auto;
+}
+
+.cluster-map-group {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 6%, transparent);
+    stroke: var(--color-border);
+}
+
+.cluster-map-group-label {
+    fill: var(--color-text-secondary);
+    font: 600 11px var(--font-mono);
+}
+
+.cluster-map-tile rect:first-child {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 30%, var(--color-console-recess));
+    stroke: var(--color-panel-background);
+    stroke-width: 2;
+}
+
+.cluster-map-tile.is-stopped rect:first-child {
+    fill: color-mix(in srgb, var(--color-text-muted) 14%, var(--color-console-recess));
+}
+
+.cluster-map-tile:hover rect:first-child,
+.cluster-map-tile:focus-visible rect:first-child {
+    fill: color-mix(in srgb, var(--hue, var(--color-accent)) 48%, var(--color-console-recess));
+}
+
+.cluster-map-tile {
+    outline: none;
+}
+
+.cluster-map-use {
+    fill: var(--hue, var(--color-accent));
+}
+
+.cluster-map-label {
+    fill: var(--color-text-primary);
+    font: 650 11px var(--font-mono);
+    pointer-events: none;
+}
+
+.cluster-map-detail {
+    fill: var(--color-text-secondary);
+    font: 10px var(--font-mono);
+    pointer-events: none;
+}
+
+/* ========================================================================== */
+/* 04. NETWORKS                                                                */
+/* ========================================================================== */
+
+.cluster-matrix-scroll {
+    position: relative;
+    overflow-x: auto;
+}
+
+.cluster-matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font: var(--text-xs) var(--font-mono);
+}
+
+.cluster-matrix th,
+.cluster-matrix td {
+    padding: 0.35rem 0.6rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.cluster-matrix thead th {
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
+.cluster-matrix tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+}
+
+.cluster-matrix tbody tr:hover {
+    background: var(--color-surface-hover);
+}
+
+.cluster-matrix-node,
+.cluster-matrix-cell {
+    text-align: center;
+}
+
+.cluster-matrix .cluster-matrix-cell {
+    text-align: center;
+}
+
+.cluster-matrix-count,
+.cluster-matrix-vlan {
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* A configured bridge is a lit network-hue pip; a missing one a hollow ring. */
+.cluster-matrix-dot {
+    display: inline-block;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+.is-present .cluster-matrix-dot {
+    background: var(--hue, var(--color-lamp-port));
+}
+
+.is-missing .cluster-matrix-dot {
+    border: 1px dashed var(--color-text-faint);
+}
+
+.is-partial .is-missing .cluster-matrix-dot {
+    border: 2px solid var(--color-status-warning);
+}
+
+.cluster-matrix-ip {
+    margin-left: 0.35rem;
+    color: var(--color-text-muted);
+}
+
+/* The diagram: nodes, bridges, and VLANs in columns, linked by curves. */
+#cluster-network-style[data-style="grid"] .cluster-style-diagram,
+#cluster-network-style[data-style="diagram"] .cluster-style-grid {
+    display: none;
+}
+
+.cluster-diagram {
+    position: relative;
+    overflow-x: auto;
+}
+
+.cluster-diagram-svg {
+    display: block;
+    width: 100%;
+    min-width: 40rem;
+    height: auto;
+}
+
+.cluster-diagram-heading {
+    fill: var(--color-text-muted);
+    font: 600 11px var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.cluster-diagram-link {
+    fill: none;
+    stroke: color-mix(in srgb, var(--hue, var(--color-accent)) 45%, transparent);
+    stroke-width: 1.5;
+    transition: opacity 120ms ease, stroke 120ms ease;
+}
+
+.cluster-diagram-link.is-vlan {
+    stroke: color-mix(in srgb, var(--color-text-muted) 55%, transparent);
+}
+
+.cluster-diagram-item rect {
+    fill: var(--color-surface-raised);
+    stroke: var(--color-border-strong);
+    stroke-width: 1;
+}
+
+.cluster-diagram-item.is-node rect {
+    stroke: color-mix(in srgb, var(--hue, var(--color-accent)) 60%, var(--color-border-strong));
+}
+
+.cluster-diagram-item.is-partial rect {
+    stroke: var(--color-status-warning);
+    stroke-width: 2;
+}
+
+.cluster-diagram-item.is-offline {
+    opacity: 0.55;
+}
+
+.cluster-diagram-item {
+    cursor: default;
+    outline: none;
+    transition: opacity 120ms ease;
+}
+
+.cluster-diagram-item:focus-visible rect {
+    stroke: var(--color-accent);
+    stroke-width: 2;
+}
+
+.cluster-diagram-title {
+    fill: var(--color-text-primary);
+    font: 650 12px var(--font-mono);
+}
+
+.cluster-diagram-detail {
+    fill: var(--color-text-muted);
+    font: 10px var(--font-mono);
+}
+
+/* Focus: everything unconnected fades; the traced path lights. */
+.cluster-diagram-svg.is-focused .cluster-diagram-item:not(.is-lit),
+.cluster-diagram-svg.is-focused .cluster-diagram-link:not(.is-lit) {
+    opacity: 0.18;
+}
+
+.cluster-diagram-svg.is-focused .cluster-diagram-link.is-lit {
+    stroke: var(--hue, var(--color-accent));
+    stroke-width: 2;
+}
+
+.cluster-legend {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.cluster-legend-dot {
+    width: 0.7rem;
+    height: 0.7rem;
+    flex: 0 0 auto;
+    border: 2px solid var(--color-status-warning);
+    border-radius: 50%;
+}
+
+.cluster-legend-key {
+    width: 1.4rem;
+    height: 0.8rem;
+    flex: 0 0 auto;
+    border: 2px solid var(--color-status-warning);
+    border-radius: 0.4rem;
+}
+
+/* ========================================================================== */
+/* 05. STORAGE                                                                 */
+/* ========================================================================== */
+
+.cluster-engine-grid,
+.cluster-zfs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: var(--space-2);
+}
+
+.cluster-engine-heading,
+.cluster-zfs-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.cluster-engine-heading h3,
+.cluster-zfs-heading h3,
+.cluster-osd-host h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font: 650 var(--text-sm) var(--font-mono);
+}
+
+.cluster-engine-list,
+.cluster-osds,
+.cluster-vdevs,
+.cluster-checks {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cluster-engine-list li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.25rem var(--space-2);
+    align-items: center;
+}
+
+.cluster-engine-list li > .widget-meter,
+.cluster-engine-list li > .cluster-muted {
+    grid-column: 1 / -1;
+}
+
+.cluster-engine-list li.is-disabled {
+    opacity: 0.55;
+}
+
+.cluster-engine-name {
+    min-width: 0;
+    overflow: hidden;
+    font: var(--text-xs) var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* One pip per node: lit where the storage is enabled. */
+.cluster-engine-nodes {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.cluster-node-pip {
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid var(--color-text-faint);
+    border-radius: 2px;
+}
+
+.cluster-node-pip.is-on {
+    border-color: transparent;
+    background: var(--hue, var(--color-accent));
+}
+
+.cluster-ceph-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-2) var(--space-4);
+    align-items: center;
+    margin-bottom: var(--space-3);
+}
+
+.cluster-ceph-head > .widget-meter {
+    grid-column: 1 / -1;
+}
+
+.cluster-health {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font: 650 var(--text-md) var(--font-mono);
+}
+
+.cluster-health-on { color: var(--color-text-primary); }
+.cluster-health-warn { color: var(--color-status-warning); }
+.cluster-health-alarm { color: var(--color-status-error); }
+
+.cluster-facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.2rem var(--space-3);
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-xs);
+}
+
+.cluster-facts dt {
+    color: var(--color-text-muted);
+}
+
+.cluster-facts dd {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+}
+
+.cluster-checks {
+    margin-bottom: var(--space-3);
+    font-size: var(--text-xs);
+}
+
+.cluster-checks li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.cluster-osd-hosts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: var(--space-2);
+}
+
+.cluster-osd-host h3 {
+    margin-bottom: var(--space-2);
+}
+
+.cluster-osd {
+    display: grid;
+    grid-template-columns: auto 3.6rem 2.6rem minmax(0, 1fr) 4.2rem;
+    align-items: center;
+    gap: var(--space-2);
+    font: var(--text-xs) var(--font-mono);
+}
+
+.cluster-osd-class,
+.cluster-osd-size {
+    color: var(--color-text-muted);
+}
+
+.cluster-osd-size {
+    text-align: right;
+}
+
+.cluster-zfs > .widget-meter {
+    margin-bottom: var(--space-2);
+}
+
+.cluster-vdevs {
+    margin-top: var(--space-3);
+    font: var(--text-xs) var(--font-mono);
+}
+
+.cluster-vdev {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.cluster-vdev.depth-1 { padding-left: 1rem; }
+.cluster-vdev.depth-2 { padding-left: 2rem; }
+.cluster-vdev.depth-3 { padding-left: 3rem; }
+
+.cluster-vdev-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cluster-zfs-status {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.cluster-subheading {
+    margin: var(--space-3) 0 var(--space-2);
+    color: var(--color-text-muted);
+    font: 600 var(--text-xs) var(--font-mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* OSD fill columns: the hue, amber past Ceph's 85% near-full line. */
+.cluster-osd-fill {
+    margin-bottom: var(--space-3);
+}
+
+/* ========================================================================== */
+/* 06. PHONES                                                                  */
+/* ========================================================================== */
+
+@media (max-width: 640px) {
+    .cluster-ceph-head {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Small flags on node cards. */
+.cluster-node-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: var(--space-2) 0 0;
+}
+
+.cluster-pill {
+    padding: 0.05rem 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    font: 10px var(--font-mono);
+}
+
+.cluster-pill.is-warning {
+    border-color: color-mix(in srgb, var(--color-status-warning) 55%, transparent);
+    color: var(--color-status-warning);
+}
+
+/* Guest sparklines: a CPU row on cards, a cell in the list. */
+.cluster-guest-spark {
+    display: grid;
+    grid-template-columns: 2.4rem minmax(0, 1fr) 3rem;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.cluster-list-spark {
+    min-width: 7rem;
+}
+
+.cluster-list-spark .widget-spark {
+    width: 7rem;
+}
+
+
+/* The ZFS and Ceph style toggle shows the icon of the current view. */
+#cluster-zfs-style:not([data-style="shelf"]) .cluster-style-shelf,
+#cluster-zfs-style:not([data-style="cards"]) .cluster-style-cards {
+    display: none;
+}

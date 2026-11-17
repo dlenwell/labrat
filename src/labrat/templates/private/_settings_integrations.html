@@ -1,0 +1,75 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% from "_icons.html" import icon %}
+{% from "private/_device_drawer.html" import device_drawer %}
+<section class="settings-section" aria-labelledby="settings-integrations-title" data-integration-settings data-overview-url="{{ url_for('private.settings', panel='integrations') }}" data-open-catalog="{{ '1' if request.args.get('catalog') == '1' else '0' }}">
+  <div class="settings-section-heading integration-heading">
+    <div><p class="eyebrow">Discovery</p><h2 id="settings-integrations-title">Integrations</h2></div>
+    <div class="integration-tools" role="toolbar" aria-label="Integration tools">
+      {% if integrations %}
+      <label class="visually-hidden" for="integration-filter">Filter integrations</label>
+      <input id="integration-filter" class="integration-filter" type="search" placeholder="Filter integrations…" autocomplete="off" data-integration-filter>
+      {% endif %}
+      <a class="button button-quiet room-icon-button" href="{{ url_for('private.settings', panel='integrations', catalog='1') }}" data-integration-add aria-label="Add integration" title="Add integration" data-tooltip="Add integration" aria-haspopup="dialog">{{ icon('add') }}</a>
+    </div>
+  </div>
+  {% if integration_saved %}<p class="settings-saved" role="status">Integration saved. The collector will use these settings on its next full scan.</p>{% endif %}
+  {% if integration_removed %}<p class="settings-saved" role="status">Integration deleted. Collection is disabled; existing devices, placements, and observations were kept.</p>{% endif %}
+  {% if integration_message and not integration_editor %}<p class="form-error" role="alert">{{ integration_message }}</p>{% endif %}
+
+  <div class="integration-list">
+    {% for integration in integrations %}
+    <article class="integration-card" data-connection-row="{{ integration.label }} {{ integration.display_name }} {{ integration.url }}">
+      <span class="led led-{{ integration.health.state }} integration-lamp" role="img" aria-label="{{ integration.health.label }}" title="{{ integration.health.label }}"></span>
+      <span class="integration-kind" title="{{ integration.label }}">{{ icon(integration.icon) }}<span class="visually-hidden">{{ integration.label }}</span></span>
+      <a class="integration-row-main" href="{{ url_for('private.settings', panel='integrations', kind=integration.kind, name=integration.name) }}" data-integration-launch aria-label="Details for {{ integration.label }} {{ integration.display_name }}" aria-haspopup="dialog">
+        <strong class="integration-row-name">{{ integration.display_name }}</strong>
+        <span class="integration-row-endpoint">{{ integration.url }}</span>
+        {% if integration.health.state == 'error' %}<span class="integration-row-message">{{ integration.health.message }}</span>{% endif %}
+      </a>
+      <div class="integration-row-tools">
+        <a class="button button-quiet room-icon-button" href="{{ url_for('private.settings', panel='integrations', kind=integration.kind, name=integration.name) }}" data-integration-launch aria-label="Edit {{ integration.label }} {{ integration.display_name }}" title="Edit {{ integration.label }} {{ integration.display_name }}" data-tooltip="Edit {{ integration.label }} {{ integration.display_name }}" aria-haspopup="dialog">{{ icon('edit') }}</a>
+        <a class="button button-quiet room-icon-button" href="{{ url_for('private.settings', panel='integrations', kind=integration.kind, name=integration.name, action='delete') }}" data-integration-launch aria-label="Delete {{ integration.label }} {{ integration.display_name }}" title="Delete {{ integration.label }} {{ integration.display_name }}" data-tooltip="Delete {{ integration.label }} {{ integration.display_name }}" aria-haspopup="dialog">{{ icon('trash') }}</a>
+      </div>
+    </article>
+    {% else %}
+      {% if integration_kinds %}<p class="integration-empty">No integrations configured yet. Use + to add a connection.</p>{% endif %}
+    {% endfor %}
+    <p class="integration-note" data-integration-filter-empty hidden>No matching integrations.</p>
+  </div>
+  <noscript><p>Enable JavaScript to use the integration drawers.</p></noscript>
+  <p class="integration-storage-note">Connection settings and credentials stay in your private local configuration file. They are excluded from inventory backups.</p>
+
+  {% call device_drawer("Integrations", initial_view="closed") %}
+    <section class="device-drawer-view" data-view="closed" aria-hidden="true" inert><h2 class="device-drawer-panel-title">Integrations</h2></section>
+    <section class="device-drawer-view integration-drawer-panel" data-view="add" aria-hidden="true" inert>
+      <h2 class="device-drawer-panel-title">Add integration</h2>
+      <label class="visually-hidden" for="integration-search">Find an integration</label>
+      <input id="integration-search" type="search" placeholder="Find an integration…" autocomplete="off" data-integration-search>
+      <div class="integration-menu" data-integration-categories>
+        {% for category in integration_categories %}
+        <button class="integration-menu-item" type="button" data-integration-category="{{ category.key }}">{{ icon(category.icon) }}<span>{{ category.label }}</span>{{ icon('chevron') }}</button>
+        {% endfor %}
+      </div>
+      <div class="integration-menu" data-integration-search-results hidden>
+        {% for entry in integration_catalog %}
+        <a class="integration-menu-item" href="{{ url_for('private.settings', panel='integrations', kind=entry.kind, is_new='1') }}" data-integration-launch data-integration-search-item="{{ entry.label }} {{ entry.category }} {{ entry.description }}">{{ icon(entry.icon) }}<span>{{ entry.label }}<small>{{ entry.description }}</small></span>{{ icon('chevron') }}</a>
+        {% endfor %}
+        <p class="integration-note" data-integration-no-results hidden>No matching integrations.</p>
+      </div>
+    </section>
+    {% for category in integration_categories %}
+    <section class="device-drawer-view integration-drawer-panel" data-view="category-{{ category.key }}" aria-hidden="true" inert>
+      <h2 class="device-drawer-panel-title">{{ category.label }}</h2>
+      <div class="integration-menu">
+        {% for entry in integration_catalog if entry.category == category.key %}
+        <a class="integration-menu-item" href="{{ url_for('private.settings', panel='integrations', kind=entry.kind, is_new='1') }}" data-integration-launch>{{ icon(entry.icon) }}<span>{{ entry.label }}<small>{{ entry.description }}</small></span>{{ icon('chevron') }}</a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+    <section class="device-drawer-view integration-drawer-panel" data-view="connection" aria-hidden="true" inert>
+      <h2 class="device-drawer-panel-title" id="integration-connection-title">{% if integration_editor %}{{ 'Delete' if integration_editor.removing else 'Add' if integration_editor.is_new else 'Edit' }} {{ integration_editor.label }}{% else %}Connection{% endif %}</h2>
+      <div data-integration-editor-slot>{% if integration_editor %}{% if integration_editor.removing %}{% include "private/_integration_delete.html" %}{% else %}{% include "private/_integration_editor.html" %}{% endif %}{% endif %}</div>
+    </section>
+  {% endcall %}
+</section>

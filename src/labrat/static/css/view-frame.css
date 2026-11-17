@@ -1,0 +1,493 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/* Used by: Home, Observations, Discovery, Equipment and Diagram, Discovery clients, Cluster, Networks, Floor plan, Locations, Location detail, Locations map, Widgets, Docs. */
+/*
+ * One frame for every view with a tab switch (Discovery's two views and a
+ * room's Floor plan, Equipment, and Diagram), so the switch reads as
+ * changing tabs: the same bezel panel (skinned in console.css), the same compact
+ * heading with readouts on the left, and tool buttons to the left of the
+ * view switch, which is always the rightmost control.
+ */
+
+/* ========================================================================== */
+/* 01. FRAME AND HEADING                                                      */
+/* ========================================================================== */
+
+/* Workspace pages start close to the header strip; the shared footer
+   follows the frame, which each view sizes to fit the window. Pages using
+   the frame add view-frame-body to their body class. */
+.view-frame-body .page-content {
+    padding-top: 1rem;
+    padding-bottom: 0;
+}
+
+.view-frame {
+    min-width: 0;
+    padding: 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background-color: var(--color-panel-background-deep);
+}
+
+/* Frame header: compact readouts beside the room Diagram's icon controls. */
+.view-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.view-heading-readouts {
+    flex: 1 1 16rem;
+    min-width: 0;
+}
+
+.view-heading h1 {
+    margin: 0;
+    font: 700 var(--text-sm) var(--font-mono);
+    letter-spacing: 0.03em;
+}
+
+.view-heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+    max-width: 100%;
+    margin-left: auto;
+}
+
+/* The switch sits a little apart from the tool buttons on its left. */
+.view-heading-actions > .room-view-switch {
+    margin-left: var(--space-2);
+}
+
+/* ========================================================================== */
+/* 02. TOOLBAR TOGGLES AND DIVIDERS                                           */
+/* ========================================================================== */
+
+/*
+ * Filter toggles: a visually hidden checkbox inside an icon button label,
+ * whose icon art turns the highlight color while on (owner: color the icon,
+ * not the button's background or outline). Infrastructure's "Highlight unplaced" and the
+ * client list's filters share this look.
+ */
+.view-toggle {
+    cursor: pointer;
+}
+
+.view-toggle input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+/* Off reads quieter; on draws the icon art in the theme's highlight color. */
+.view-toggle {
+    color: var(--color-text-muted);
+}
+
+.view-toggle:has(input:checked),
+.view-toggle:has(input:checked):hover {
+    color: var(--color-accent);
+}
+
+.view-toggle:has(input:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+}
+
+/* A thin rule between groups of toolbar buttons. */
+.view-toolbar-divider {
+    width: 1px;
+    height: 24px;
+    margin-inline: var(--space-1);
+    background: var(--color-border);
+}
+
+/* ========================================================================== */
+/* 03. READOUTS AND NOTICES                                                   */
+/* ========================================================================== */
+
+/* Readouts: numbers and identifiers use the mono face (see main.css). */
+.view-summary {
+    margin-top: var(--space-1);
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums slashed-zero;
+    overflow-wrap: anywhere;
+}
+
+.view-notice {
+    min-height: 1.7rem;
+    margin: 0.2rem 0 0;
+    color: var(--color-success);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+}
+
+.view-notice:empty {
+    display: none;
+}
+
+.view-notice[data-state="error"] {
+    color: var(--color-error);
+}
+
+/* ========================================================================== */
+/* 04. PHONE MENU AND SHORT TAB LABELS                                        */
+/* ========================================================================== */
+
+/*
+ * ☰ tool menus (_view_frame.html view_menu): wide screens show the
+ * panel's buttons inline, so the wrappers are layout-free and the toggle
+ * hidden. The phone block below folds them into a dropdown.
+ */
+.view-menu,
+.view-menu-panel {
+    display: contents;
+}
+
+.view-menu-toggle {
+    display: none !important;
+}
+
+/* A dot on ☰ when a view flags changed settings inside it. */
+.view-menu-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-accent);
+}
+
+/* Short tab labels only on phones. */
+.view-tab-short {
+    display: none;
+}
+
+/*
+ * Phones: one ordered stack instead of wrapped clusters. Row one holds any
+ * loose tool buttons (smaller), the view switch with short labels filling
+ * the rest, and ☰ at the far right; an opened search takes its own row;
+ * the summary sits right above the content. The title is hidden visually,
+ * since the active tab names the view. The actions group's children join
+ * the heading's own flex rows.
+ */
+@media (max-width: 640px) {
+    .view-heading {
+        gap: var(--space-1);
+        padding: var(--space-1) var(--space-1) var(--space-2);
+    }
+
+    .view-heading-actions {
+        display: contents;
+    }
+
+    .view-heading-actions > * {
+        order: 1;
+    }
+
+    .view-heading .room-icon-button {
+        width: 34px;
+        height: 34px;
+        padding: var(--space-1);
+    }
+
+    .view-heading .room-view-switch {
+        order: 2;
+        display: flex;
+        flex: 1 1 0;
+        margin-left: var(--space-1);
+    }
+
+    .view-heading .room-view-tab {
+        flex: 1;
+        padding-inline: 0.4rem;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .view-tab-long {
+        display: none;
+    }
+
+    .view-tab-short {
+        display: inline;
+    }
+
+    .view-toolbar-divider {
+        display: none;
+    }
+
+    /* ☰ at the far right of the tool row, after the switch. */
+    .view-menu {
+        position: relative;
+        order: 3 !important;
+        display: block;
+        margin-left: var(--space-1);
+    }
+
+    .view-menu-toggle {
+        display: grid !important;
+    }
+
+    .view-menu[data-open] .view-menu-toggle {
+        color: var(--color-accent);
+    }
+
+    /* Dropdown of tools, three to a row, aligned to the right edge. */
+    .view-menu-panel {
+        display: none;
+    }
+
+    .view-menu[data-open] .view-menu-panel {
+        position: absolute;
+        top: calc(100% + var(--space-1));
+        right: 0;
+        z-index: 5;
+        display: grid;
+        grid-template-columns: repeat(3, 40px);
+        gap: var(--space-1);
+        padding: var(--space-2);
+        border: 1px solid var(--color-border-strong);
+        border-radius: var(--radius-control);
+        background: var(--color-surface-raised);
+        box-shadow: var(--shadow-overlay);
+    }
+
+    /* Inside the dropdown the tools keep their full touch size. */
+    .view-menu-panel .room-icon-button {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Order 3 is free for a view's own control after the switch, and 4 for
+       a row it opens (Client devices: the ☰ filters and search). */
+    .view-heading-readouts {
+        order: 5;
+        flex: 1 1 100%;
+    }
+
+    .view-heading h1 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    /* A room's title is its name, not the view's, so it stays visible. */
+    .room-heading .room-heading-path h1 {
+        position: static;
+        width: auto;
+        height: auto;
+        clip-path: none;
+    }
+
+    .view-summary {
+        margin-top: 0;
+    }
+}
+
+/* ========================================================================== */
+/* 05. ROOM FRAMES                                                            */
+/* ========================================================================== */
+
+/* Room views: their content sits sunk below the heading, which is break
+   enough, so no dividing line (owner). */
+.room-frame > .view-heading {
+    border-bottom: 0;
+    /* The view switch's right edge lines up with the sunk content (owner). */
+    padding-right: 0;
+}
+
+/* ========================================================================== */
+/* 06. SUBTABS                                                                */
+/* ========================================================================== */
+
+/*
+ * Subtabs (view-frame.js viewSubtabs): the second level of a frame's pill
+ * tabs, for drilling into part of a view. A smaller pill track at the top
+ * of the content, left-aligned, lit like the view switch. A level-2 row
+ * nests under a level-1 row: quieter chips joined to it by a short rule,
+ * so the path reads top to bottom. Rows scroll sideways when they overflow.
+ */
+.view-subtabs {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.view-subtabs-track {
+    display: inline-flex;
+    gap: 2px;
+    max-width: 100%;
+    padding: 3px;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-sunken);
+    scrollbar-width: none;
+}
+
+.view-subtab {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.85rem;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font: 600 var(--text-xs) var(--font-sans);
+    cursor: pointer;
+}
+
+.view-subtab:hover {
+    color: var(--color-text-primary);
+}
+
+.view-subtab:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+.view-subtab[aria-current="true"] {
+    background: var(--color-accent-surface);
+    color: var(--color-accent-strong);
+    box-shadow: 0 0 0 1px var(--color-accent-muted) inset;
+}
+
+.view-subtab-detail {
+    color: var(--color-text-muted);
+    font: var(--text-xs) var(--font-mono);
+}
+
+.view-subtab-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+}
+
+.view-subtab-dot.is-warning { background: var(--color-status-warning); }
+.view-subtab-dot.is-alarm { background: var(--color-status-error); }
+
+/* Level 2: a deeper row hung off the one above by a short elbow rule. */
+.view-subtabs-level-2 {
+    margin-top: calc(-1 * var(--space-1));
+    padding-left: var(--space-4);
+}
+
+.view-subtabs-level-2::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 0.8rem;
+    height: 0.9rem;
+    margin: -0.9rem 0.35rem 0 0;
+    border-bottom: 1px solid var(--color-border-strong);
+    border-left: 1px solid var(--color-border-strong);
+    border-bottom-left-radius: 6px;
+}
+
+.view-subtabs-level-2 .view-subtabs-track {
+    border-color: var(--color-border-subtle);
+    background: transparent;
+}
+
+.view-subtabs-level-2 .view-subtab {
+    padding: 0.2rem 0.7rem;
+    font-weight: 500;
+}
+
+/* ========================================================================== */
+/* 07. SPREAD TAB STRIP                                                       */
+/* ========================================================================== */
+
+/*
+ * Spread-open subtabs (view-frame.js placeSubtabs): on wide screens the lit
+ * tab in the view switch opens to reveal its subtabs as an inner strip, the
+ * tab and strip reading as one lit capsule. The strip grows from zero
+ * width the first time it opens; reduced motion skips that.
+ */
+.room-view-tab.is-spread {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.view-tab-strip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 0;
+    overflow: hidden;
+    border-top-right-radius: var(--radius-pill);
+    border-bottom-right-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-accent-surface) 55%, var(--color-surface-sunken));
+    box-shadow:
+        0 0 0 1px var(--color-accent-muted) inset,
+        inset 0 3px 5px -4px var(--color-shadow);
+    transition: max-width 360ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.view-tab-strip.is-open {
+    max-width: 40rem;
+}
+
+.view-tab-strip-track {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    padding: 0 0.35rem 0 0.15rem;
+    white-space: nowrap;
+}
+
+/* A thin seam where the tab ends and its strip begins. */
+.view-tab-strip-track::before {
+    content: "";
+    width: 1px;
+    height: 1.1rem;
+    margin-right: 0.3rem;
+    background: var(--color-accent-muted);
+}
+
+.view-tab-strip .view-subtab {
+    padding: 0.25rem 0.6rem;
+}
+
+.view-tab-strip .view-subtab[aria-current="true"] {
+    background: var(--color-accent-surface);
+    box-shadow: 0 0 0 1px var(--color-accent-muted) inset;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .view-tab-strip {
+        transition: none;
+    }
+}
+
+/* A level-2 row under a spread strip hangs from the switch, on the right. */
+.view-subtabs-level-2.is-under-switch {
+    justify-content: flex-end;
+    margin-top: calc(-1 * var(--space-2));
+    padding-right: var(--space-3);
+    padding-left: 0;
+}
+
+.view-subtabs-level-2.is-under-switch::before {
+    order: 2;
+    margin: -0.9rem 0 0 0.35rem;
+    border-right: 1px solid var(--color-border-strong);
+    border-left: 0;
+    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: 0;
+}

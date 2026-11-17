@@ -1,0 +1,108 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{# Used by: Equipment and Diagram, Floor plan. #}
+{#
+  Shared heading for Floor plan, Equipment elevations, and Diagram. Every
+  room view puts it at the top of one view frame (view-frame.css), like
+  Discovery, so switching views reads as changing tabs.
+#}
+{% from "private/_view_frame.html" import view_menu %}
+
+{#
+  Render the room's frame heading: a one-line breadcrumb ending in the room
+  name, an optional readout under it, then the view's tools and the
+  Floor plan | Equipment | Diagram switch, always rightmost.
+
+  Call it with {% call %} to add a view's own tool buttons before the shared
+  ones (Add equipment, Refresh); phones fold all of them behind ☰.
+
+  Args:
+    room: {"id", "name"} of the room.
+    site: {"id", "name"} of its location.
+    view: "floor", "equipment" or "wiring", the view being shown.
+    refresh_id: Element ID for this view's Refresh button.
+    summary_id: Element ID for a live readout under the title, or none.
+    help: {"id", "label"} of a help popover; its ? tool goes after Refresh,
+      right beside the view switch (owner), or none.
+#}
+{% macro room_header(room, site, view, refresh_id, summary_id=none, help=none) %}
+{# Render the view's own tools now: inside the nested call below, caller
+   would name that block's caller instead. #}
+{% set view_tools = caller() if caller is defined else "" %}
+<header class="view-heading room-heading">
+  <div class="view-heading-readouts">
+    {# One line: Locations / location / room, the room as the page title. #}
+    <div class="room-heading-path">
+      <nav class="room-breadcrumbs" aria-label="Breadcrumb">
+        <a href="{{ url_for('private.locations') }}">Locations</a>
+        <span aria-hidden="true">/</span>
+        <a href="{{ url_for('private.location_detail', site_id=site.id) }}">{{ site.name }}</a>
+        <span aria-hidden="true">/</span>
+      </nav>
+      <h1 id="room-title">{{ room.name }}</h1>
+    </div>
+    {% if summary_id %}
+    <div class="view-summary" id="{{ summary_id }}" role="status" aria-live="polite"></div>
+    {% endif %}
+  </div>
+  <div class="view-heading-actions room-heading-actions" role="group" aria-label="Area view controls">
+    {% call view_menu(refresh_id ~ "-tools", "Area tools") %}
+      {{ view_tools }}
+      {% if refresh_id == "rack-refresh" %}
+      <button class="button button-quiet room-icon-button" id="rack-empty-add" type="button" aria-label="Add equipment" title="Add equipment" data-tooltip="Add equipment" aria-controls="device-drawer"{% if view != "wiring" %} hidden{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="7" width="13" height="13" rx="1.5"/><path d="M2 13h13M5 10h2M5 16h2M19 2v8M15 6h8"/></svg>
+      </button>
+      {% endif %}
+      {# Rename or delete this area (owner): the shared Edit area panel
+         (area_editor_panel, area-editor.js). #}
+      <button class="button button-quiet room-icon-button" id="area-edit-tool" type="button" aria-label="Edit area: rename or delete it" title="Edit area: rename or delete it" data-tooltip="Edit area" aria-controls="device-drawer" aria-expanded="false">
+        {# An area outline with a pencil, so it reads apart from Edit rack's pencil. #}
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 4H4v16h16v-7M4 9h4M15 20v-4"/><path d="M14 13h-2v-2l7-7 2 2z"/></svg>
+      </button>
+      <button class="button button-quiet room-refresh room-icon-button" id="{{ refresh_id }}" type="button" aria-label="Refresh" title="Refresh" data-tooltip="Refresh">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/></svg>
+      </button>
+      {% if help %}
+      <button class="button button-quiet room-icon-button room-help-tool" id="{{ help.id }}-tool" type="button" aria-label="{{ help.label }}" title="{{ help.label }}" data-tooltip="How to use" popovertarget="{{ help.id }}" aria-controls="{{ help.id }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 8a2.5 2.5 0 1 1 4 2c-1.5 1-1.5 1.5-1.5 3M12 17h.01"/></svg>
+      </button>
+      {% endif %}
+    {% endcall %}
+    <nav class="room-view-switch" aria-label="Area views">
+      <a class="room-view-tab" href="{{ url_for('private.room_view', room_id=room.id) }}"
+         {% if view == "floor" %}aria-current="page"{% endif %} aria-label="Floor plan"><span class="view-tab-long">Floor plan</span><span class="view-tab-short">Floor</span></a>
+      <a class="room-view-tab" href="{{ url_for('private.room_equipment', room_id=room.id) }}"
+         {% if view == "equipment" %}aria-current="page"{% endif %} aria-label="Equipment"><span class="view-tab-long">Equipment</span><span class="view-tab-short">Equip</span></a>
+      <a class="room-view-tab" href="{{ url_for('private.room_wiring', room_id=room.id) }}"
+         {% if view == "wiring" %}aria-current="page"{% endif %}>Diagram</a>
+    </nav>
+  </div>
+</header>
+{% endmacro %}
+
+{#
+  The Edit area panel, one panel of the shared device drawer on every area
+  view (area-editor.js AreaEditor): the area's name, saved when the panel
+  closes, and Delete area as a trash tool in the drawer bar that asks first
+  (remove-dialog.js) and then opens the location. Opened by the heading's
+  Edit area tool.
+
+  Args:
+    room: {"id", "name"} of the area (a Room in the data model).
+    site: {"id", "name"} of its location.
+#}
+{% macro area_editor_panel(room, site) -%}
+<section class="device-drawer-view area-editor" data-view="area-edit" id="area-edit-view" data-area-id="{{ room.id }}" data-site-id="{{ site.id }}" aria-labelledby="area-edit-title" aria-hidden="true" inert>
+  <h2 class="device-drawer-panel-title" id="area-edit-title">Edit area</h2>
+  <form id="area-edit-form" class="device-form area-editor-form">
+    <p class="device-field-help">In {{ site.name }}</p>
+    <label for="area-edit-name">Area name</label>
+    <input id="area-edit-name" name="name" type="text" maxlength="120" required autocomplete="off" value="{{ room.name }}">
+    <p class="device-field-help">Changes save when you close this panel. An area can be indoors, outdoors, or a roof.</p>
+  </form>
+  <div class="device-drawer-panel-tools" data-tools-for="area-edit" role="group" aria-label="Area tools" hidden>
+    <button class="button button-quiet room-icon-button device-danger-tool" id="area-edit-delete" type="button" aria-label="Delete area: asks first, can unplace equipment" title="Delete area: asks first, can unplace equipment" data-tooltip="Delete area">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/></svg>
+    </button>
+  </div>
+</section>
+{%- endmacro %}

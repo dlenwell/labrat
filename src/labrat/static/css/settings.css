@@ -1,0 +1,1121 @@
+/*
+ * Copyright 2026 LabRat contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Settings page: browser appearance and administrator inventory backups.
+ * All colors, type, and spacing come from tokens in main.css; each theme
+ * card's miniature uses that theme's --theme-preview-* tokens.
+ */
+
+
+/* ========================================================================== */
+/* 01. SECTIONS                                                                */
+/* ========================================================================== */
+
+/* The compact eyebrow is the page heading; leave room for the panels. */
+.settings-heading {
+    margin-bottom: var(--space-5);
+}
+
+.settings-heading .eyebrow {
+    margin: 0;
+}
+
+.settings-section {
+    max-width: 60rem;
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-panel-background-deep);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-lift) 5%, transparent);
+}
+
+.settings-section-heading h2 {
+    margin: var(--space-2) 0 var(--space-1);
+    font-size: var(--text-xl);
+}
+
+.settings-section-heading p:last-child {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+/* Confirmation after a save (the page reloads with ?saved=...). */
+.settings-saved {
+    max-width: 60rem;
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid color-mix(in srgb, var(--color-status-ok) 55%, transparent);
+    border-radius: var(--radius-control);
+    background: var(--color-status-ok-surface);
+}
+
+.settings-form .button-row {
+    margin-top: var(--space-5);
+}
+
+
+/* ========================================================================== */
+/* 02. THEME CHOICES                                                           */
+/* ========================================================================== */
+
+.theme-choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+    gap: var(--space-3);
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    border: 0;
+}
+
+/* Each choice is a card; the radio itself stays visible and focusable. */
+.theme-choice {
+    position: relative;
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background);
+    cursor: pointer;
+}
+
+.theme-choice:hover {
+    border-color: var(--color-border-strong);
+}
+
+.theme-choice:has(input:checked) {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent), 0 0 18px var(--color-accent-soft);
+}
+
+.theme-choice:has(input:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.theme-choice input {
+    position: absolute;
+    top: calc(var(--space-3) + 0.5rem);
+    right: calc(var(--space-3) + 0.5rem);
+    z-index: 1;
+    margin: 0;
+    accent-color: var(--color-accent);
+}
+
+.theme-choice.is-unavailable {
+    cursor: not-allowed;
+}
+
+.theme-choice.is-unavailable .theme-preview,
+.theme-choice.is-unavailable .theme-choice-description {
+    opacity: 0.55;
+}
+
+.theme-choice-text {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.theme-choice-name {
+    font-weight: 700;
+}
+
+.theme-choice-description {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+}
+
+.theme-choice-soon {
+    justify-self: start;
+    margin-top: var(--space-1);
+    padding: 0.1rem 0.5rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Miniature page: a header bar and a panel with three lines                   */
+/* -------------------------------------------------------------------------- */
+
+.theme-preview {
+    display: grid;
+    grid-template-rows: 0.9rem 1fr;
+    gap: 0.4rem;
+    height: 5.5rem;
+    padding: 0.45rem;
+    border: 1px solid var(--preview-line);
+    border-radius: var(--radius-small);
+    background: var(--preview-page);
+}
+
+.theme-preview-bar {
+    border-radius: 3px;
+    background: var(--preview-panel);
+    box-shadow: inset 0.7rem 0 0 var(--preview-accent);
+}
+
+.theme-preview-panel {
+    display: grid;
+    align-content: start;
+    gap: 0.3rem;
+    padding: 0.45rem;
+    border: 1px solid var(--preview-line);
+    border-radius: 3px;
+    background: var(--preview-panel);
+}
+
+.theme-preview-panel i {
+    height: 0.3rem;
+    border-radius: 2px;
+    background: var(--preview-line);
+}
+
+.theme-preview-panel i:first-child {
+    width: 45%;
+    background: var(--preview-accent);
+    box-shadow: 0 0 6px var(--preview-glow);
+}
+
+.theme-preview-panel i:last-child {
+    width: 70%;
+}
+
+[data-theme-preview="disco"] {
+    --preview-page: var(--theme-preview-disco-page);
+    --preview-panel: var(--theme-preview-disco-panel);
+    --preview-line: var(--theme-preview-disco-line);
+    --preview-accent: var(--theme-preview-disco-accent);
+    --preview-glow: var(--theme-preview-disco-glow);
+}
+
+[data-theme-preview="dark"] {
+    --preview-page: var(--theme-preview-dark-page);
+    --preview-panel: var(--theme-preview-dark-panel);
+    --preview-line: var(--theme-preview-dark-line);
+    --preview-accent: var(--theme-preview-dark-accent);
+    --preview-glow: transparent;
+}
+
+[data-theme-preview="light"] {
+    --preview-page: var(--theme-preview-light-page);
+    --preview-panel: var(--theme-preview-light-panel);
+    --preview-line: var(--theme-preview-light-line);
+    --preview-accent: var(--theme-preview-light-accent);
+    --preview-glow: transparent;
+}
+
+/* Match my system: half dark, half light, split on the diagonal. */
+[data-theme-preview="system"] .theme-preview {
+    border-color: var(--theme-preview-dark-line);
+    background: linear-gradient(135deg,
+        var(--theme-preview-dark-page) 0 50%,
+        var(--theme-preview-light-page) 50% 100%);
+}
+
+[data-theme-preview="system"] {
+    --preview-panel: color-mix(in srgb, var(--theme-preview-dark-panel) 50%, var(--theme-preview-light-panel));
+    --preview-line: var(--theme-preview-dark-line);
+    --preview-accent: var(--theme-preview-dark-accent);
+    --preview-glow: transparent;
+}
+
+
+/* ========================================================================== */
+/* 03. ACCENT COLOR (Dark, Light, and Match my system)                         */
+/* ========================================================================== */
+
+/* Disco has its own palette, so the accent picker hides while it is chosen. */
+.settings-form:has(input[name="theme"][value="disco"]:checked) .accent-choices {
+    display: none;
+}
+
+.accent-choices {
+    margin: var(--space-5) 0 0;
+    padding: var(--space-4) 0 0;
+    border: 0;
+    border-top: 1px solid var(--color-border);
+}
+
+.accent-choices-legend {
+    float: left;
+    width: 100%;
+    padding: 0;
+    font-weight: 700;
+}
+
+.accent-choices-note {
+    clear: both;
+    margin: var(--space-1) 0 var(--space-3);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+}
+
+.accent-choice-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.accent-choice {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0.4rem 0.85rem 0.4rem 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-panel-background);
+    cursor: pointer;
+}
+
+.accent-choice:hover {
+    border-color: var(--color-border-strong);
+}
+
+.accent-choice:has(input:checked) {
+    border-color: var(--swatch-light);
+    box-shadow: 0 0 0 1px var(--swatch-light);
+}
+
+.accent-choice:has(input:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+/* The radio stays for keyboard and screen readers; the swatch shows it. */
+.accent-choice input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Half Light shade, half Dark shade, split on the diagonal. */
+.accent-swatch {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--swatch-light) 0 50%, var(--swatch-dark) 50% 100%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-shadow) 30%, transparent);
+}
+
+.accent-choice:has(input:checked) .accent-swatch {
+    box-shadow: inset 0 0 0 2px var(--color-panel-background), 0 0 0 1px var(--swatch-light);
+}
+
+[data-accent-choice="blue"] { --swatch-light: var(--accent-choice-blue-light); --swatch-dark: var(--accent-choice-blue-dark); }
+[data-accent-choice="red"] { --swatch-light: var(--accent-choice-red-light); --swatch-dark: var(--accent-choice-red-dark); }
+[data-accent-choice="purple"] { --swatch-light: var(--accent-choice-purple-light); --swatch-dark: var(--accent-choice-purple-dark); }
+[data-accent-choice="pink"] { --swatch-light: var(--accent-choice-pink-light); --swatch-dark: var(--accent-choice-pink-dark); }
+
+/* The Dark, Light, and system miniatures above follow the picked accent. */
+.settings-form:has(input[name="accent"][value="red"]:checked) {
+    --theme-preview-light-accent: var(--accent-choice-red-light);
+    --theme-preview-dark-accent: var(--accent-choice-red-dark);
+}
+
+.settings-form:has(input[name="accent"][value="purple"]:checked) {
+    --theme-preview-light-accent: var(--accent-choice-purple-light);
+    --theme-preview-dark-accent: var(--accent-choice-purple-dark);
+}
+
+.settings-form:has(input[name="accent"][value="pink"]:checked) {
+    --theme-preview-light-accent: var(--accent-choice-pink-light);
+    --theme-preview-dark-accent: var(--accent-choice-pink-dark);
+}
+
+
+/* ========================================================================== */
+/* 04. SETTINGS NAVIGATION AND INVENTORY BACKUPS                               */
+/* ========================================================================== */
+
+.settings-layout {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-5);
+    max-width: 78rem;
+}
+
+.settings-navigation {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.settings-navigation a {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+}
+
+.settings-navigation a:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+}
+
+.settings-navigation a[aria-current="page"] {
+    border-color: var(--color-border-strong);
+    background: var(--color-panel-background);
+    color: var(--color-text-primary);
+    box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.settings-navigation span {
+    font-weight: 700;
+}
+
+.settings-navigation small {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+}
+
+.settings-panel {
+    min-width: 0;
+}
+
+.backup-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+}
+
+.backup-action {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background);
+}
+
+.backup-step {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+}
+
+.backup-action h3,
+.backup-review h3 {
+    margin: var(--space-3) 0 var(--space-2);
+    font-size: var(--text-lg);
+}
+
+.backup-action p,
+.backup-scope p,
+.backup-review p {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.backup-action > p {
+    margin: 0 0 var(--space-4);
+}
+
+.backup-action form {
+    width: 100%;
+    margin-top: auto;
+}
+
+.backup-upload {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-2);
+}
+
+.backup-upload label {
+    font-weight: 600;
+    font-size: var(--text-sm);
+}
+
+.backup-upload input[type="file"] {
+    width: 100%;
+    min-width: 0;
+    font-size: var(--text-sm);
+}
+
+.backup-upload input::file-selector-button {
+    margin-right: var(--space-2);
+    padding: var(--space-2);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-small);
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    cursor: pointer;
+}
+
+.backup-footnote {
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-xs);
+}
+
+.backup-scope,
+.backup-review {
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+.backup-scope h3 {
+    margin: 0;
+    font-size: var(--text-md);
+}
+
+.backup-scope p:last-child {
+    margin-bottom: 0;
+}
+
+.backup-table-scroll {
+    overflow-x: auto;
+    margin: var(--space-4) 0;
+}
+
+.backup-summary {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: var(--text-sm);
+}
+
+.backup-summary th,
+.backup-summary td {
+    padding: var(--space-3) var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.backup-summary thead {
+    background: var(--color-panel-background);
+    color: var(--color-text-secondary);
+}
+
+.backup-summary td {
+    font-family: var(--font-mono);
+}
+
+.backup-review .backup-notice {
+    padding: var(--space-3);
+    border-left: 3px solid var(--color-status-warning);
+    background: var(--color-panel-background);
+    color: var(--color-text-primary);
+}
+
+.backup-confirm {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+
+/* Keep navigation accessible without squeezing content on smaller screens. */
+@media (max-width: 900px) {
+    .settings-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .settings-navigation {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .backup-actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .settings-section {
+        padding: var(--space-4);
+    }
+}
+
+
+/* ========================================================================== */
+/* 05. INTEGRATIONS                                                           */
+/* ========================================================================== */
+
+.integration-list {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+
+.integration-fields {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+}
+
+.integration-card {
+    display: grid;
+    grid-template-columns: 0.65rem 1.4rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background);
+}
+
+.integration-note,
+.integration-field small,
+.integration-storage-note {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+}
+
+.integration-empty {
+    margin-top: var(--space-5);
+}
+
+.integration-field {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.integration-field label {
+    font-weight: 600;
+}
+
+.integration-field label span {
+    color: var(--color-text-muted);
+    font-weight: 400;
+}
+
+.integration-field input,
+.integration-field select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background);
+    color: var(--color-text-primary);
+    font: inherit;
+}
+
+.integration-advanced {
+    margin: var(--space-5) 0;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+}
+
+.integration-advanced summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.integration-enabled {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin: var(--space-4) 0;
+}
+
+.integration-storage-note {
+    margin: var(--space-5) 0 0;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+.integration-test-result {
+    margin: var(--space-4) 0;
+    padding: var(--space-3);
+    border-left: 3px solid var(--color-border-strong);
+    background: var(--color-panel-background);
+}
+
+.integration-test-result[data-state="error"] {
+    border-color: var(--color-status-warning);
+}
+
+.integration-test-result[data-state="success"] {
+    border-color: var(--color-status-ok);
+}
+
+/* Catalog navigation and compact tools reuse the shared room toolbar icons. */
+.integration-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.integration-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.integration-drawer-panel {
+    box-sizing: border-box;
+    padding: var(--space-5);
+}
+
+.integration-drawer-panel input[type="search"] {
+    box-sizing: border-box;
+    width: 100%;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    color: var(--color-text-primary);
+    font: inherit;
+}
+
+.integration-menu {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+
+.integration-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 3.5rem;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background);
+    color: var(--color-text-primary);
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.integration-menu-item:hover,
+.integration-menu-item:focus-visible {
+    border-color: var(--color-border-strong);
+    background: var(--color-surface-hover);
+}
+
+.integration-menu-item > span {
+    flex: 1;
+    min-width: 0;
+}
+
+.integration-menu-item > .page-icon {
+    flex: none;
+    width: 1.4rem;
+    height: 1.4rem;
+}
+
+.integration-menu-item small {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+}
+
+.integration-menu[hidden],
+.integration-menu-item[hidden] {
+    display: none;
+}
+
+/* Sticky drawer actions share the existing shell's footer and icon sizing. */
+.integration-form-actions {
+    margin-top: var(--space-4);
+}
+
+.integration-form-actions .room-icon-button:hover::after,
+.integration-form-actions .room-icon-button:focus-visible::after {
+    top: auto;
+    bottom: calc(100% + 4px);
+}
+
+.integration-drawer-panel .settings-form .integration-form-actions {
+    margin-top: var(--space-4);
+}
+
+.integration-field input[type="checkbox"] {
+    justify-self: start;
+    width: auto;
+}
+
+
+/* Compact connection rows keep long names and endpoints inside their column. */
+.integration-card[hidden] {
+    display: none;
+}
+
+.integration-kind .page-icon {
+    width: 1.4rem;
+    height: 1.4rem;
+    color: var(--color-text-secondary);
+}
+
+.integration-row-main {
+    display: grid;
+    grid-template-columns: minmax(5rem, 0.75fr) minmax(0, 1.25fr);
+    align-items: center;
+    column-gap: var(--space-3);
+    min-width: 0;
+    color: var(--color-text-primary);
+    text-decoration: none;
+}
+
+.integration-row-name,
+.integration-row-endpoint,
+.integration-row-message {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.integration-row-name {
+    font-size: var(--text-md);
+    font-weight: 600;
+}
+
+.integration-row-endpoint {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+}
+
+.integration-row-message {
+    grid-column: 1 / -1;
+    color: var(--color-status-error);
+    font-size: var(--text-xs);
+}
+
+.integration-row-tools {
+    display: flex;
+    align-items: center;
+}
+
+.integration-filter {
+    width: clamp(6rem, 22vw, 14rem);
+    min-width: 0;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background);
+    color: var(--color-text-primary);
+    font: inherit;
+    font-size: var(--text-sm);
+}
+
+/* The detail drawer shows the full safe message and timestamps. */
+.integration-health {
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background);
+}
+
+.integration-health h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    font-size: var(--text-md);
+}
+
+.integration-health p,
+.integration-health dl {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.integration-health dd {
+    margin: 0 0 var(--space-2);
+    overflow-wrap: anywhere;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+}
+
+.integration-delete-warning {
+    padding: var(--space-4);
+    border-left: 3px solid var(--color-status-warning);
+    background: var(--color-panel-background);
+    line-height: 1.6;
+}
+
+.integration-delete-warning h3 {
+    margin-top: 0;
+}
+
+.integration-delete-warning p {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+}
+
+.integration-retained-counts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+}
+
+.integration-retained-counts dd {
+    margin: 0;
+    font-family: var(--font-mono);
+}
+
+.integration-delete-acknowledgement {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin: var(--space-5) 0;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.integration-remove-confirm {
+    border-color: var(--color-status-error);
+    color: var(--color-status-error);
+    background: var(--color-status-error-surface);
+}
+
+.integration-remove-confirm .page-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+/* Names/endpoints stack only where a phone cannot comfortably fit both. */
+@media (max-width: 600px) {
+    .integration-card {
+        grid-template-columns: 0.6rem minmax(0, 1fr) auto;
+        gap: var(--space-2);
+        padding: var(--space-2);
+    }
+
+    .integration-kind {
+        display: none;
+    }
+
+    .integration-row-main {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .integration-row-tools .room-icon-button {
+        width: 36px;
+        height: 36px;
+    }
+
+    .integration-filter {
+        width: 8rem;
+    }
+}
+
+/* ========================================================================== */
+/* 05. DISCOVERY METHODS AND EXPLICIT SCAN PERMISSION                           */
+/* ========================================================================== */
+
+.discovery-methods {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+
+.discovery-method {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-panel-background);
+}
+
+.discovery-method-icon {
+    color: var(--color-text-secondary);
+}
+
+.discovery-method-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.discovery-method-name {
+    min-width: 0;
+    color: var(--color-text-primary);
+    text-decoration: none;
+}
+
+.discovery-method-name small,
+.discovery-subnet-choice small {
+    display: block;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.discovery-toggle-form {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Native checkbox semantics with a compact, keyboard-accessible switch face. */
+.discovery-switch {
+    position: relative;
+    display: inline-flex;
+    width: 2.5rem;
+    height: 1.5rem;
+    cursor: pointer;
+}
+
+.discovery-switch input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.discovery-switch span {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    background: var(--color-panel-background-deep);
+    pointer-events: none;
+}
+
+.discovery-switch span::after {
+    content: '';
+    position: absolute;
+    top: 0.25rem;
+    left: 0.25rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: var(--color-text-secondary);
+}
+
+.discovery-switch input:checked + span {
+    border-color: var(--color-lamp-on);
+    background: color-mix(in srgb, var(--color-lamp-on) 18%, var(--color-panel-background-deep));
+}
+
+.discovery-switch input:checked + span::after {
+    left: 1.25rem;
+    background: var(--color-lamp-on);
+}
+
+.discovery-switch input:focus-visible + span {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+}
+
+.discovery-feedback {
+    margin: var(--space-3) 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+}
+
+.discovery-subnets {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-3) 0 var(--space-5);
+}
+
+.discovery-subnet {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+}
+
+.discovery-subnet-choice {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    cursor: pointer;
+}
+
+.discovery-subnet-choice input {
+    accent-color: var(--color-lamp-on);
+}
+
+.discovery-cidr,
+.discovery-rule {
+    font-family: var(--font-mono);
+    overflow-wrap: anywhere;
+}
+
+.discovery-manual textarea,
+.integration-field textarea {
+    width: 100%;
+    min-height: 6rem;
+    resize: vertical;
+}
+
+.discovery-access-blocked {
+    color: var(--color-status-error);
+}
+
+.discovery-access-allowed {
+    color: var(--color-lamp-on);
+}
+
+.discovery-access-mixed {
+    color: var(--color-status-warning);
+}
+
+.discovery-access-unknown {
+    color: var(--color-text-secondary);
+}
+
+.discovery-evidence {
+    margin: var(--space-4) 0;
+    font-size: var(--text-sm);
+}
+
+.discovery-evidence dt {
+    margin-top: var(--space-3);
+    color: var(--color-text-secondary);
+}
+
+.discovery-evidence dd {
+    margin: var(--space-1) 0;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .discovery-method {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: var(--space-2);
+    }
+
+    .discovery-method-icon {
+        display: none;
+    }
+}
+
+/* Hidden controls and filtered rows must override their normal flex/grid display. */
+.discovery-toggle-save[hidden],
+.discovery-subnet[hidden] {
+    display: none;
+}

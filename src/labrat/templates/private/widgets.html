@@ -1,0 +1,87 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "base.html" %}
+{% from "private/_widgets.html" import widget_styles, widget_scripts %}
+{% block title %}LabRat · Widgets{% endblock %}
+{% block body_class %}widgets-body view-frame-body workspace-body{% endblock %}
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-switch.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/view-frame.css') }}">
+{{ widget_styles() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/widget-gallery.css') }}">
+{% endblock %}
+{% block content %}
+{#
+  The widget gallery (planning/specs/widgets.md), reached from Settings.
+  Samples: every widget drawn by widget-gallery.js from made-up data, with
+  the call that draws it. Live: the registered feeds drawn from this lab's
+  APIs with markup alone (data-widget), which is how another page stitches
+  one in. The hue buttons recolour every widget, to try each domain hue.
+#}
+<section class="view-frame widget-gallery" id="widget-gallery" data-hue="compute" aria-label="Widgets" data-view="{{ view }}">
+  <header class="view-heading">
+    <div class="view-heading-readouts">
+      <h1 id="widgets-title">Widgets</h1>
+      <div class="view-summary">
+        <a href="{{ url_for('private.settings') }}">Settings</a> · charts, bars, tiles, and panels any page can use
+      </div>
+    </div>
+    <div class="view-heading-actions">
+      {% if view == 'samples' %}
+      <div class="widget-gallery-hues" role="group" aria-label="Hue">
+        {% for hue in ['compute', 'network', 'internet', 'vpn', 'power'] %}
+        <button class="button button-quiet widget-gallery-hue" type="button" data-hue="{{ hue }}" data-pick-hue="{{ hue }}" aria-pressed="{{ 'true' if hue == 'compute' else 'false' }}" title="{{ "VPN" if hue == "vpn" else hue|capitalize }} hue">
+          <span class="widget-gallery-hue-dot" aria-hidden="true"></span><span>{{ "VPN" if hue == "vpn" else hue|capitalize }}</span>
+        </button>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <nav class="room-view-switch" aria-label="Gallery views">
+        {% for key, label in [('samples', 'Samples'), ('live', 'Live')] %}
+        <a class="room-view-tab" href="{{ url_for('private.widgets', view=key) if key != 'samples' else url_for('private.widgets') }}"{% if view == key %} aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+  </header>
+
+  {% if view == 'samples' %}
+  <nav class="widget-gallery-index" id="widget-gallery-index" aria-label="Widgets on this page"></nav>
+  <div class="widget-gallery-items" id="widget-gallery-items"></div>
+  {% else %}
+  <p class="widget-gallery-intro">
+    Each widget below is placed with markup alone: an element with
+    <code>data-widget-src</code> (an API address) and <code>data-widget-feed</code>
+    (a feed in <code>widget-feeds.js</code>). Copy one onto any page that loads the widget kit.
+  </p>
+  <div class="widget-gallery-live">
+    <div class="widget-gallery-wide" data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.attention"
+      data-widget-link="{{ url_for('private.cluster') }}" data-widget-refresh="300"></div>
+    <div class="widget-gallery-wide" data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.tiles" data-widget-hue="compute"></div>
+    <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.guest-states" data-widget-title="Guest states" data-widget-hue="compute"></div>
+    <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.memory-by-node" data-widget-title="Memory by node" data-widget-hue="compute"></div>
+    <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.os-mix" data-widget-title="Operating systems" data-widget-hue="compute"></div>
+    <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.cpu-24h" data-widget-title="Cluster CPU · 24 h" data-widget-hue="compute"></div>
+    <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.memory-24h" data-widget-title="Cluster memory · 24 h" data-widget-hue="compute"></div>
+    <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.cpu-clock" data-widget-title="CPU clock" data-widget-hue="compute"></div>
+    <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.busiest-guests" data-widget-title="Busiest guests" data-widget-hue="compute"></div>
+    <div data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.storage" data-widget-title="Storage" data-widget-hue="compute"></div>
+    <div data-widget-src="{{ url_for('network_api.network') }}" data-widget-feed="network.clients-by-network" data-widget-title="Clients by network" data-widget-hue="network"></div>
+    <div data-widget-src="{{ url_for('network_api.network') }}" data-widget-feed="network.connections" data-widget-title="How clients connect" data-widget-hue="network"></div>
+    <div data-widget-src="{{ url_for('network_api.network') }}" data-widget-feed="network.top-clients" data-widget-title="Top clients" data-widget-hue="network"></div>
+    <div class="widget-gallery-wide" data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.drives" data-widget-title="Every drive" data-widget-hue="compute" data-widget-bare data-widget-masonry></div>
+    <div class="widget-gallery-wide" data-widget-src="{{ url_for('cluster_api.cluster') }}" data-widget-feed="cluster.zfs" data-widget-title="ZFS pool" data-widget-hue="compute"></div>
+    <div class="widget-gallery-wide" data-widget-src="{{ url_for('network_api.network') }}" data-widget-feed="network.wifi-channels" data-widget-title="Wi-Fi neighbourhood" data-widget-hue="network"></div>
+    <div class="widget-gallery-wide" data-widget-src="{{ url_for('network_api.network') }}" data-widget-feed="network.sinkholes" data-widget-title="DNS sinkholes" data-widget-hue="network"></div>
+    <div data-widget="donut" data-widget-title="Inline data" data-widget-hue="power">
+      <script type="application/json">{{ {"data": [{"label": "Example A", "value": 3}, {"label": "Example B", "value": 2}, {"label": "Example C", "value": 1}], "options": {"label": "An inline example", "centre": "6", "caption": "items"}} | tojson }}</script>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{{ widget_scripts() }}
+<script src="{{ url_for('static', filename='js/cluster-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/network-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/shelf-model.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/widget-feeds.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/widget-gallery.js') }}" defer></script>
+{% endblock %}

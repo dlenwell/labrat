@@ -1,0 +1,41 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% extends "docs/base.html" %}
+
+{% block title %}LabRat · Discovery guide{% endblock %}
+{% block docs_title %}Discovery{% endblock %}
+{% block docs_intro %}Observe first, then decide what it means. The collector reads your sources on its own schedule and keeps a local cache.{% endblock %}
+
+{% block docs_content %}
+<section class="docs-prose">
+  <h2>Configured sources</h2>
+  <p>UniFi Network, Proxmox VE, and Pi-hole are the integrations so far. Administrators add and edit these connections in <a href="{{ url_for('docs.setup') }}#setup-integrations-title">Settings → Integrations</a>; LabRat writes them, credentials included, to the private <code>local_config.toml</code>, which is excluded from inventory backups. The collector picks up valid changes before its next full scan. An explicit Test connection checks read-only API access without saving changes or running discovery.</p>
+  <p>Everything else is switched on in <a href="{{ url_for('docs.setup') }}#setup-discovery-title">Settings → Discovery</a>, and service discovery is permission-based: <strong>Network scanning</strong> lists the only subnets LabRat may contact, and nothing outside them is probed, whatever UniFi reports. NUT discovery finds UPS servers there and reads them with list commands only; LabRat never logs in or sends commands to a UPS. MikroTik discovery listens passively for MNDP announcements without sending anything.</p>
+  <pre><code>python -m labrat.collector --once
+python -m labrat.collector --list</code></pre>
+  <p><code>--once</code> performs one cycle and exits. <code>--list</code> reads the stored cache without contacting controllers. Running the command without either switch polls repeatedly at the configured interval.</p>
+
+  <h2>What each adapter reads</h2>
+  <p>Proxmox records physical cluster nodes and physical Ethernet interfaces where the API exposes them, using its interface <code>active</code> flag as port link status. Duplicate-MAC aliases and interfaces Proxmox marks as not existing are excluded. UniFi records adopted physical network equipment and ports from its local Integration API. Explicit down state wins over a positive reported speed; negotiated speed is used as link evidence when the source does not provide explicit state. The packaged model-profile catalog supplies known connector layouts offline; unknown connector types remain unclassified. Virtual machines, containers, and generic MAC-learning tables remain outside physical discovery. Connected UniFi clients are collected separately from infrastructure.</p>
+
+  <p>Beyond equipment and ports, Proxmox also feeds the Cluster page: each node's load, memory, history, storage, drives with their SMART readings, ZFS pools, Ceph health and OSDs, services, certificates, and pending updates, plus its guests. While a node's screen is open, LabRat reloads that data every 30 seconds. UniFi feeds the Networks page with its networks, Wi-Fi, firewall zones and policies, devices, and clients. Pi-hole, when added, adds its statistics to the DNS sinkholes on Networks. All of it is read-only.</p>
+  <h2>Browse client devices</h2>
+  <p>Discovery has two views: <strong>Infrastructure</strong> keeps the infrastructure map focused, while <strong>Clients</strong> lists wired and Wi-Fi endpoints reported by UniFi. Search by name, address, or manufacturer. The toolbar toggles show or hide VMs and containers, Wi-Fi, and wired clients (each toggle's tooltip gives its count), and can narrow the list to unplaced or not-connected clients. Click a column header to sort (Address does not sort, since a VM can list several); headers stay visible while scrolling. A VM with several network cards is one row. Known server interfaces are hidden by default; turn on <strong>Show server interfaces</strong> to reveal them. VMs and containers are not placed or added to inventory. Exact Proxmox guest MAC matches show VM or container icons and their hosting nodes when the API token has <code>VM.Audit</code> access on <code>/vms</code>. Device icons follow the controller's reported classification, and lamps distinguish current, stale, and unavailable observations.</p>
+  <p>Select a client to inspect its reported identity, network, radio, traffic, and connection evidence in the side drawer. You can explicitly add it to inventory without placing it, choose your own display name, or place it using the same area and position forms as other equipment. A scan cannot overwrite your name or move the device. Placed clients appear in area views; Wi-Fi associations remain separate from physical cables.</p>
+  <p>Administrators can open <strong>Open ports</strong> for a quick check of 34 common TCP ports. This requires a fresh client address, an enabled reporting connection, Network scanning switched on, and an address or CIDR explicitly allowed in Settings → Discovery. Discovered subnet and firewall information does not grant permission. The check sends no application payloads, does not check UDP or every port, and cannot identify services from an open port alone. Closed, filtered, and unreachable outcomes are not distinguished.</p>
+
+  <h2>Physical server cables</h2>
+  <p>LLDP neighbors are matched to Proxmox nodes and physical NICs when their identifiers resolve uniquely. When a physical NIC has a unique MAC address, a targeted UniFi client lookup can supply an inferred switch-to-NIC cable. Shared MACs, stale records, down ports, and conflicting links remain unresolved. Inferred links appear by default with their evidence in the device inspector.</p>
+  <p>NUT reports a server's address but not its network interfaces. When UniFi lists that exact address as a wired client, LabRat infers one "Wired NIC" on the server and a cable to the switch port UniFi reports. When UniFi lists it on Wi-Fi, LabRat shows an inferred Wi-Fi interface and its access point instead, never a cable. Either inference disappears when UniFi stops reporting the match, and stays put while UniFi cannot be read.</p>
+  <p>An optional SNMPv3 supplement can provide physical NIC MAC addresses and operational link state when Proxmox omits them. Switch it on in Settings → Discovery and name the permitted nodes there; only those hosts are queried. Client lookup failures retain earlier observations with their original timestamps.</p>
+
+  <h2>Resolve an unidentified neighbor</h2>
+  <p>A switch inspector lists unresolved neighbors with their reported switch port, chassis identifier, remote port, and announced addresses. Discovery's inspector links to Equipment view for matching. Open <strong>Match to server NIC</strong>, choose an existing server and its physical NIC, then save the identity match. Ports already assigned to another observed cable are protected from conflicting choices.</p>
+  <p>The match is saved with the inventory server and used when the neighbor is observed again. If that neighbor disappears, its observed cable disappears too. Use <strong>Remove neighbor match</strong> in the switch or server inspector to undo the decision.</p>
+
+  <h2>Failure and freshness</h2>
+  <p>Collector requests are GET-only with timeouts. A failed cycle records a sanitized error type. Device records remain available when temporarily absent. Successful complete port and link snapshots reconcile vanished ports, aliases, and links; offline Proxmox nodes retain their last known NIC list until the next complete online scan. Explicit port-down state overrides speed, so a nominal speed on a down UniFi port does not count as an active link.</p>
+
+  <h2>Placement remains a human decision</h2>
+  <p>Discovery observations do not automatically create canonical devices or set physical positions. When placing an unlinked observation in Discovery, choose whether to create a new inventory device (the default) or link it to an existing one. The existing-device path links records; it does not merge or delete inventory entries. Rack and area pages use saved inventory placements. Link candidates retain their confidence and evidence and do not become canonical cables automatically.</p>
+</section>
+{% endblock %}

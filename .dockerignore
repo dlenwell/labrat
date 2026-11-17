@@ -1,0 +1,18 @@
+# Keep the image to what it runs, and private files out of the build context.
+.git
+.venv
+.claude
+data
+deploy/data
+deploy/config
+local_config.toml
+AGENT-ENV-CREDS.env
+creds.txt
+**/__pycache__
+*.egg-info
+build
+dist
+.coverage
+htmlcov
+tests
+planning

@@ -1,0 +1,164 @@
+/* Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 */
+/*
+ * The widget gallery (templates/private/widgets.html, js/widget-gallery.js).
+ * It sits in the shared view frame; the widgets themselves are styled by
+ * widgets.css. This file owns the gallery's own layout: the hue buttons,
+ * the jump index, each entry's heading, demo, and code, and the Live grid.
+ */
+
+/* ========================================================================== */
+/* 01. HEADING AND HUE BUTTONS                                                 */
+/* ========================================================================== */
+
+.widget-gallery .view-summary a {
+    color: var(--color-text-secondary);
+}
+
+.widget-gallery-hues {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.widget-gallery-hue {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: var(--text-xs);
+}
+
+.widget-gallery-hue[aria-pressed="true"] {
+    color: var(--color-text-primary);
+    box-shadow: inset 0 -2px 0 var(--hue);
+}
+
+.widget-gallery-hue-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: var(--hue);
+}
+
+/* ========================================================================== */
+/* 02. SAMPLES                                                                 */
+/* ========================================================================== */
+
+.widget-gallery-index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.4rem;
+    margin-bottom: var(--space-4);
+    font: var(--text-xs) var(--font-mono);
+}
+
+.widget-gallery-index a {
+    padding: 0.15rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+}
+
+.widget-gallery-index a:hover,
+.widget-gallery-index a:focus-visible {
+    border-color: var(--hue);
+    color: var(--color-text-primary);
+}
+
+.widget-gallery-items {
+    display: grid;
+    gap: var(--space-6);
+}
+
+.widget-gallery-item {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+    scroll-margin-top: 5rem;
+}
+
+.widget-gallery-item-heading h2 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font: 650 var(--text-lg) var(--font-display);
+}
+
+.widget-gallery-item-heading p {
+    margin: 0.2rem 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.widget-gallery-demo {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.widget-gallery-code {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    overflow-x: auto;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-small);
+    background: var(--color-console-recess);
+    color: var(--color-text-secondary);
+    font: var(--text-xs) / 1.5 var(--font-mono);
+}
+
+.widget-gallery-stack {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 32rem;
+}
+
+.widget-gallery-lamps {
+    display: flex;
+    gap: var(--space-4);
+    margin: 0;
+    color: var(--color-text-secondary);
+    font: var(--text-xs) var(--font-mono);
+}
+
+.widget-gallery-spark-row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+}
+
+/* ========================================================================== */
+/* 03. LIVE                                                                    */
+/* ========================================================================== */
+
+.widget-gallery-intro {
+    max-width: 48rem;
+    margin: 0 0 var(--space-4);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+}
+
+.widget-gallery-live {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: var(--space-3);
+}
+
+.widget-gallery-wide {
+    grid-column: 1 / -1;
+}
+
+/* ========================================================================== */
+/* 04. PHONES                                                                  */
+/* ========================================================================== */
+
+@media (max-width: 640px) {
+    .widget-gallery-hue span:last-child {
+        display: none;
+    }
+
+    .widget-gallery-live {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

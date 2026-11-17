@@ -1,0 +1,7 @@
+{# Used by: Discovery, Equipment and Diagram. #}
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{% macro wire_style_button(id) -%}
+<button class="button button-quiet room-icon-button room-wire-style" id="{{ id }}" type="button" aria-pressed="false" aria-label="Wire style: 90°. Switch to Curved" title="Wire style: 90°. Switch to Curved" data-tooltip="Wire style: 90°. Switch to Curved" data-style="square">
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="wire-style-square" d="M3 19h8V5h10"/><path class="wire-style-curved" d="M3 19h3a5 5 0 0 0 5-5v-4a5 5 0 0 1 5-5h5"/></svg>
+</button>
+{%- endmacro %}
