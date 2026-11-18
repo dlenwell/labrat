@@ -13,7 +13,7 @@ Keys deliberately are *not* unique per owner: a host may have many sensors of
 the same kind. Attribute values use type-tagged JSON in a TEXT column.
 
 Used by: api.locations, api.observation_actions, discovery.neighbor_matches,
-inventory_backup.
+integrations.
 """
 
 from sqlalchemy import CheckConstraint, ForeignKey, String, Text

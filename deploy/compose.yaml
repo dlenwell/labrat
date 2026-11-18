@@ -40,7 +40,9 @@ services:
 
   collector:
     <<: *labrat
-    command: ["collector", "--interval", "300"]
+    # Full scans every 60 seconds unless the config sets
+    # [collector] interval_seconds (or add "--interval", "<seconds>").
+    command: ["collector"]
     # The collector needs the migrated database the web service creates.
     depends_on:
       web:

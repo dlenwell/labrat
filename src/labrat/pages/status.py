@@ -7,7 +7,7 @@ The header status strip and the home page both show one indicator per
 configured discovery source. This module reads only the local database; it
 never contacts a controller, so pages stay fast when an integration is down.
 
-Used by: app, pages.activity.
+Used by: app, integrations, pages.activity.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -70,7 +70,11 @@ def describe_age(moment: datetime | None, now: datetime) -> str:
 
 
 def source_health(db: Session, now: datetime | None = None) -> list[dict[str, Any]]:
-    """Return display-ready health for every discovery source, by name.
+    """Return display-ready health for every enabled discovery source, by name.
+
+    A deleted integration keeps its source row, switched off, so the
+    devices it found keep their history; switched-off sources, and derived
+    sources whose parent is switched off or gone, are left out.
 
     States: ``error`` when the last attempt recorded an error, ``ready``
     after at least one successful collection, otherwise ``waiting``. A ready
@@ -87,13 +91,19 @@ def source_health(db: Session, now: datetime | None = None) -> list[dict[str, An
     """
     now = now or datetime.now(timezone.utc)
     health = []
-    sources = list(db.scalars(select(DiscoverySource).order_by(DiscoverySource.name)))
+    sources = list(db.scalars(select(DiscoverySource).where(
+        DiscoverySource.enabled.is_(True)).order_by(DiscoverySource.name)))
     # A derived source (such as UniFi clients) reads the same controller as
     # its parent integration; the header folds it into that parent's light.
     parents = {
         (source.kind, source.config_name): source.name
         for source in sources if source.kind in DERIVED_SOURCE_PARENTS.values()
     }
+    sources = [
+        source for source in sources
+        if source.kind not in DERIVED_SOURCE_PARENTS
+        or (DERIVED_SOURCE_PARENTS[source.kind], source.config_name) in parents
+    ]
     for source in sources:
         if source.last_error:
             state, label = "error", "Needs attention"

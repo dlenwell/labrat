@@ -66,8 +66,8 @@ more screenshots, is at `/docs/tour`.
 
 - **Settings** (`/settings`): **Appearance** picks this browser's theme
   (Disco, the default control-room look; Dark; Light; or Match my system)
-  and accent; administrators also get Integrations, Discovery, and Backup and
-  restore.
+  and accent; administrators also get Integrations, Discovery, and Export
+  and import.
 - **Docs** (`/docs`) has these guides, illustrated, plus an API reference
   generated from the running route map.
 

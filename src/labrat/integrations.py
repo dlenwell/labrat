@@ -28,7 +28,7 @@ from urllib.parse import urlsplit
 
 import requests
 import tomlkit
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from labrat.audit import record_audit_event
@@ -37,6 +37,9 @@ from labrat.collector.sources import configured_sources
 from labrat.discovery.models import DiscoverySource, DiscoveredDevice
 from labrat.placement import DevicePlacement
 from labrat.models import User
+from labrat.discovery.neighbor_matches import saved_neighbor_matches
+from labrat.metadata import Attribute
+from labrat.pages.status import DERIVED_SOURCE_PARENTS
 
 from labrat.integration_catalog import CATALOG, CATEGORIES, DEFINITIONS, KINDS
 from labrat.settings_forms import field_views
@@ -200,7 +203,9 @@ def candidate(form: object, config: dict) -> tuple[str, str, dict, bool]:
         else:
             settings[key] = value
     mode = form.get("tls_mode", "verify")
-    if mode == "existing" and current is not None and current.get("verify_tls") is False and same_url:
+    if mode == "disabled":
+        # For appliances reached by IP address with a self-signed
+        # certificate; the connection stays encrypted but trusts any server.
         settings["verify_tls"] = False
         settings.pop("ca_bundle", None)
     elif mode == "verify":
@@ -289,15 +294,15 @@ def connection_health(settings: dict, source: DiscoverySource | None, now: datet
 
 
 def removal_preview(db: Session, source: DiscoverySource | None) -> dict:
-    """Count retained observations and curated inventory without changing rows.
+    """Count the observations a deletion removes and the inventory it keeps.
 
     Args:
         db: An open database session.
         source: The connection's registered source, or None when it has none.
 
     Returns:
-        dict: How many observations, inventory devices, and placements would
-            stay after the connection is deleted.
+        dict: How many observations would be removed, and how many linked
+            inventory devices and placements would stay.
     """
     if source is None:
         return {'observations': 0, 'inventory': 0, 'placements': 0}
@@ -359,8 +364,7 @@ def panel_context(path: Path, db: Session, *, kind: str | None = None, name: str
                   "health": connection_health(settings, source),
                   "removal": removal_preview(db, source) if removing and not is_new else None,
                   "ca_bundle": settings.get("ca_bundle", ""),
-                  "tls_mode": "existing" if settings.get("verify_tls") is False else "verify",
-                  "legacy_tls": settings.get("verify_tls") is False,
+                  "tls_mode": "disabled" if settings.get("verify_tls") is False else "verify",
                   "has_secret": all(bool(settings.get(key)) for key in _secret_fields(kind)),
                   "enabled": source.enabled if source else True}
         if submitted is not None:
@@ -500,7 +504,12 @@ def save_integration(path: Path, form: object, sessions: sessionmaker, actor: Us
 
 
 def delete_integration(path: Path, form: object, sessions: sessionmaker, actor: User) -> None:
-    """Remove credentials and disable collection while preserving all discovery data.
+    """Remove a connection, its source rows, and what it discovered; keep inventory.
+
+    The source row goes too, so its name is free for a new connection.
+    Deleting it cascades to the discovered devices, ports, links, and ignore
+    rules it owns, and saved LLDP port matches that name it are removed.
+    Curated inventory devices and placements are never touched.
 
     Args:
         path: Active private TOML file.
@@ -512,7 +521,7 @@ def delete_integration(path: Path, form: object, sessions: sessionmaker, actor: 
         IntegrationError: Missing confirmation, stale form, or absent connection.
     """
     if form.get('confirm') != 'delete':
-        raise IntegrationError('Confirm that you understand retained devices may remain visible before deleting this integration.')
+        raise IntegrationError("Confirm that you understand this connection's discovered devices are removed before deleting it.")
     kind = _text(form, 'kind', maximum=40, required=True)
     name = _text(form, 'name', maximum=80, required=True)
     if kind not in KINDS:
@@ -531,13 +540,25 @@ def delete_integration(path: Path, form: object, sessions: sessionmaker, actor: 
         source = db.scalar(select(DiscoverySource).where(
             DiscoverySource.kind == kind, DiscoverySource.config_name == name,
         ))
-        retained = removal_preview(db, source)
-        if source is not None:
-            source.enabled = False
+        counts = removal_preview(db, source)
+        # Sources derived from this connection (UniFi clients) go with it.
+        removed = [] if source is None else [source, *db.scalars(select(DiscoverySource).where(
+            DiscoverySource.kind.in_([child for child, parent in DERIVED_SOURCE_PARENTS.items() if parent == kind]),
+            DiscoverySource.config_name == name,
+        ))]
+        removed_ids = {item.id for item in removed}
+        for match in saved_neighbor_matches(db):
+            if match['source_id'] in removed_ids or match['target_source_id'] in removed_ids:
+                db.execute(delete(Attribute).where(Attribute.id == match['id']))
         record_audit_event(db, actor_kind='user', actor_id=actor.id, actor_name=actor.username,
                            action='integration.deleted', subject_kind='discovery_source',
                            subject_id=source.id if source else None,
-                           details={'kind': kind, 'config_name': name, 'retained': retained})
+                           details={'kind': kind, 'config_name': name, 'removed': counts['observations'],
+                                    'kept': {'inventory': counts['inventory'], 'placements': counts['placements']}})
+        for item in removed:
+            db.delete(item)
+        # Discovered rows go by the database's ON DELETE CASCADE.
+        db.flush()
 
 
 def test_connection(kind: str, settings: dict) -> tuple[bool, str]:

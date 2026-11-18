@@ -5,14 +5,13 @@
   {% if integration_message %}<p class="form-error" role="alert">{{ integration_message }}</p>{% endif %}
   <div class="integration-delete-warning">
     <h3>Delete {{ editor.display_name }}?</h3>
-    <p>This removes the saved connection settings and credentials and disables collection. An in-flight request may still finish.</p>
+    <p>This removes the saved connection settings and credentials, and everything this connection discovered: its devices, ports, links, and ignore rules. An in-flight request may still finish.</p>
     <dl class="integration-retained-counts">
-      <dt>Discovered devices kept</dt><dd>{{ editor.removal.observations }}</dd>
+      <dt>Discovered devices removed</dt><dd>{{ editor.removal.observations }}</dd>
       <dt>Inventory devices kept</dt><dd>{{ editor.removal.inventory }}</dd>
       <dt>Placements kept</dt><dd>{{ editor.removal.placements }}</dd>
     </dl>
-    <p>Retained devices can remain visible as stale or “ghost” observations. Their readings will no longer be refreshed by this connection. Inventory, placements, links, and audit history are preserved.</p>
-    <p>Adding the controller again with a different connection name can leave a second set of observations. You can link future observations to your existing inventory in Discovery.</p>
+    <p>Your inventory devices, their placements, and audit history stay. Adding the controller again discovers its devices afresh, and you can link them to your inventory in Discovery. The connection's name becomes free to reuse.</p>
   </div>
   <form method="post" action="{{ url_for('private.integrations.remove') }}" class="integration-delete-form">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
@@ -20,7 +19,7 @@
     <input type="hidden" name="kind" value="{{ editor.kind }}">
     <input type="hidden" name="name" value="{{ editor.name }}">
     <input type="hidden" name="action" value="delete">
-    <label class="integration-delete-acknowledgement"><input type="checkbox" name="confirm" value="delete" required> I understand that retained devices may remain visible.</label>
+    <label class="integration-delete-acknowledgement"><input type="checkbox" name="confirm" value="delete" required> I understand that this connection's discovered devices are removed.</label>
     <div class="device-drawer-footer integration-form-actions">
       <button class="button button-secondary integration-remove-confirm" type="submit">{{ icon('trash') }}Delete integration</button>
       <button class="button button-quiet room-icon-button" type="button" data-integration-cancel aria-label="Cancel" title="Cancel" data-tooltip="Cancel">{{ icon('close') }}</button>

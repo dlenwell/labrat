@@ -6,7 +6,7 @@
 #
 #   web        migrate the database, then serve the app on port 8000
 #   collector  run the read-only collector (extra arguments pass through,
-#              such as --interval 300 or --once)
+#              such as --interval 120 or --once)
 #   anything else runs as given (for example: alembic -c alembic.ini current)
 #
 # On first start, with no config yet, it writes one from the example with

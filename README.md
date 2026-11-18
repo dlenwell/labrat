@@ -62,8 +62,8 @@ gateway; cables leaving the room end on a patch panel along the top.
   in to a device to change it, or sends a UPS a command.
 - It contacts the controllers you connect and, beyond them, only the
   networks you allow in Settings.
-- Credentials stay in `local_config.toml`, never in the database or in
-  inventory backups.
+- Credentials stay in `local_config.toml`, never in the database. A
+  whole-install export includes them, with a warning, to move LabRat.
 - Discovery never moves your equipment: placement and cabling change only
   when you change them.
 

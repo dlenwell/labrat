@@ -8,7 +8,7 @@
 {% block docs_content %}
 <section class="docs-prose">
   <h2>Configured sources</h2>
-  <p>UniFi Network, Proxmox VE, and Pi-hole are the integrations so far. Administrators add and edit these connections in <a href="{{ url_for('docs.setup') }}#setup-integrations-title">Settings → Integrations</a>; LabRat writes them, credentials included, to the private <code>local_config.toml</code>, which is excluded from inventory backups. The collector picks up valid changes before its next full scan. An explicit Test connection checks read-only API access without saving changes or running discovery.</p>
+  <p>UniFi Network, Proxmox VE, and Pi-hole are the integrations so far. Administrators add and edit these connections in <a href="{{ url_for('docs.setup') }}#setup-integrations-title">Settings → Integrations</a>; LabRat writes them, credentials included, to the private <code>local_config.toml</code>; a whole-install export from Settings includes them. The collector picks up valid changes before its next full scan. An explicit Test connection checks read-only API access without saving changes or running discovery.</p>
   <p>Everything else is switched on in <a href="{{ url_for('docs.setup') }}#setup-discovery-title">Settings → Discovery</a>, and service discovery is permission-based: <strong>Network scanning</strong> lists the only subnets LabRat may contact, and nothing outside them is probed, whatever UniFi reports. NUT discovery finds UPS servers there and reads them with list commands only; LabRat never logs in or sends commands to a UPS. MikroTik discovery listens passively for MNDP announcements without sending anything.</p>
   <pre><code>python -m labrat.collector --once
 python -m labrat.collector --list</code></pre>

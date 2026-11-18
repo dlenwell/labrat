@@ -1,0 +1,202 @@
+# Copyright 2026 LabRat contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# A sample Kubernetes deployment: the web app and the read-only collector
+# from one image, in one pod, sharing the database and config volumes.
+# A starting point, like deploy/compose.yaml; docs/setup.md ("Run on
+# Kubernetes") explains each choice. Before applying:
+#
+#   1. Build the image and push it to a registry your cluster can pull from:
+#        docker build -t registry.example.lan/labrat:latest .
+#        docker push registry.example.lan/labrat:latest
+#      then set that name in the three `image:` lines below. `latest` is
+#      pulled again on every start; a fixed tag (a version or commit) makes
+#      an upgrade or a rollback a one-line change instead.
+#   2. Replace labrat.example.lan with the hostname people will open, here
+#      and in the Ingress.
+#   3. kubectl apply -f deploy/kubernetes.yaml
+#
+# The first-time setup code is in `kubectl -n labrat logs deploy/labrat -c web`.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: labrat
+---
+# The SQLite database. Use block storage (ReadWriteOnce, such as Ceph RBD,
+# Longhorn, or a local volume); SQLite's locking is unreliable on NFS and
+# other shared file systems.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: labrat-data
+  namespace: labrat
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+# local_config.toml: written on first start, then edited by Settings.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: labrat-config
+  namespace: labrat
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: labrat
+  namespace: labrat
+spec:
+  # One pod only: both processes write one SQLite file. Recreate stops the
+  # old pod before the new one mounts the volumes.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: labrat
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: labrat
+    spec:
+      # MikroTik discovery (MNDP) hears broadcasts only on the node's own
+      # network segment. To use it, share the node's network, and pin the
+      # pod to a node on the MikroTik's segment (the web app then listens on
+      # that node's port 8000):
+      # hostNetwork: true
+      # dnsPolicy: ClusterFirstWithHostNet
+      # nodeSelector:
+      #   kubernetes.io/hostname: node-on-the-lab-segment
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        # Makes the volumes writable by that user.
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      # Writes the config on first start and migrates the database, so both
+      # containers start against a ready schema.
+      initContainers:
+        - name: migrate
+          image: registry.example.lan/labrat:latest
+          args: ["alembic", "-c", "alembic.ini", "upgrade", "head"]
+          env: &env
+            # Used only when the config is first written; edit
+            # local_config.toml (or Settings) afterwards.
+            - name: LABRAT_ALLOWED_HOSTS
+              value: labrat.example.lan
+            # The Ingress serves HTTPS, so cookies may be HTTPS-only.
+            - name: LABRAT_SECURE_COOKIES
+              value: "true"
+          volumeMounts: &mounts
+            - name: data
+              mountPath: /srv/labrat/data
+            - name: config
+              mountPath: /srv/labrat/config
+          securityContext: &hardened
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+      containers:
+        - name: web
+          image: registry.example.lan/labrat:latest
+          args: ["web"]
+          env: *env
+          ports:
+            - name: http
+              containerPort: 8000
+          # The app accepts only its allowed hosts; probes come from the
+          # kubelet with the pod's address, so they name a loopback host.
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          volumeMounts: *mounts
+          securityContext: *hardened
+        - name: collector
+          image: registry.example.lan/labrat:latest
+          # Full scans every 60 seconds unless the config sets
+          # [collector] interval_seconds; it rereads the config each scan.
+          args: ["collector"]
+          env: *env
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              memory: 512Mi
+          volumeMounts: *mounts
+          securityContext: *hardened
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: labrat-data
+        - name: config
+          persistentVolumeClaim:
+            claimName: labrat-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: labrat
+  namespace: labrat
+spec:
+  selector:
+    app.kubernetes.io/name: labrat
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# HTTPS in front of the app. Set your ingress class and certificate (for
+# example a cert-manager issuer annotation, or an existing TLS secret).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: labrat
+  namespace: labrat
+spec:
+  # ingressClassName: nginx
+  tls:
+    - hosts: [labrat.example.lan]
+      secretName: labrat-tls
+  rules:
+    - host: labrat.example.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: labrat
+                port:
+                  name: http

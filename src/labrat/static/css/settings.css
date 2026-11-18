@@ -2,7 +2,7 @@
  * Copyright 2026 LabRat contributors
  * SPDX-License-Identifier: Apache-2.0
  *
- * Settings page: browser appearance and administrator inventory backups.
+ * Settings page: browser appearance and administrator export and import.
  * All colors, type, and spacing come from tokens in main.css; each theme
  * card's miniature uses that theme's --theme-preview-* tokens.
  */
@@ -333,7 +333,7 @@
 
 
 /* ========================================================================== */
-/* 04. SETTINGS NAVIGATION AND INVENTORY BACKUPS                               */
+/* 04. SETTINGS NAVIGATION AND EXPORT AND IMPORT                               */
 /* ========================================================================== */
 
 .settings-layout {

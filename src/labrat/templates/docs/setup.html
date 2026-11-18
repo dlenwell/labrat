@@ -19,7 +19,7 @@ cp local_config.example.toml local_config.toml</code></pre>
 export LABRAT_UID=$(id -u) LABRAT_GID=$(id -g)
 LABRAT_ALLOWED_HOSTS=labrat.example.lan \
   docker compose -f deploy/compose.yaml up -d --build</code></pre>
-  <p>Then skip to step 4. The repository's <code>docs/setup.md</code>, under <em>Run in containers</em>, covers checking it, permissions, the port, HTTPS, MikroTik discovery, and upgrades.</p>
+  <p>Then skip to step 4. The repository's <code>docs/setup.md</code>, under <em>Run in containers</em>, covers checking it, permissions, the port, HTTPS, MikroTik discovery, and upgrades. For a cluster, <code>deploy/kubernetes.yaml</code> is a sample deployment; <em>Run on Kubernetes</em> in the same file covers storage, probes, upgrades, and which discovery needs the lab's own network segment.</p>
 
   <h2 id="setup-config-title">2. Write the private configuration</h2>
   <p><code>local_config.toml</code> is ignored by Git and holds everything private: the session key, the database path, the browser hosts LabRat accepts, and later your integration credentials. Before the first start:</p>
@@ -35,7 +35,7 @@ gunicorn -c gunicorn.conf.py labrat.app:app</code></pre>
   <p>Run the migration again after each upgrade; Flask never creates tables on its own. The checked-in Gunicorn config listens on <code>127.0.0.1:8000</code>. For a VM, container, or reverse proxy, choose a bind address in your deployment and add its hostname to <code>allowed_hosts</code>.</p>
 
   <h2 id="setup-admin-title">4. Create the administrator</h2>
-  <p>Open LabRat and select <strong>First-time setup</strong> to create the first account, which is the administrator. The form asks for a one-time setup code, which keeps anyone else who reaches the page first from claiming it: LabRat prints <code>LabRat first-time setup code: …</code> to its log when it starts (for the containers, <code>docker compose logs web</code>), and keeps it in the <code>.setup-code</code> file beside the database. Setup closes as soon as that account exists. That account manages integrations, discovery, placement, and backups.</p>
+  <p>Open LabRat and select <strong>First-time setup</strong> to create the first account, which is the administrator. The form asks for a one-time setup code, which keeps anyone else who reaches the page first from claiming it: LabRat prints <code>LabRat first-time setup code: …</code> to its log when it starts (for the containers, <code>docker compose logs web</code>), and keeps it in the <code>.setup-code</code> file beside the database. Setup closes as soon as that account exists. That account manages integrations, discovery, placement, and exports.</p>
 
   <h2 id="setup-integrations-title">5. Connect your controllers</h2>
   <p>Open <strong>Settings</strong> from your name in the header, then <strong>Integrations</strong>. Each connection shows its status, address, and edit and delete buttons; the filter narrows a long list.</p>
@@ -53,7 +53,7 @@ gunicorn -c gunicorn.conf.py labrat.app:app</code></pre>
 </div>
 
 <section class="docs-prose" aria-labelledby="setup-tls-title">
-  <p id="setup-tls-title"><strong>Test connection</strong> checks read-only API access without saving or running discovery. Certificate checking is on by default; under <strong>Certificate settings</strong> you can point at your own CA bundle instead of turning verification off. Saved connections, and their credentials, go into <code>local_config.toml</code>, never the database, and are left out of inventory backups. A running collector picks up the change before its next full scan.</p>
+  <p id="setup-tls-title"><strong>Test connection</strong> checks read-only API access without saving or running discovery. Certificate checking is on by default; under <strong>Certificate settings</strong> you can point at your own CA bundle, or turn checking off for a controller reached by IP address with a self-signed certificate (the connection stays encrypted, but trusts whatever answers at that address). Saved connections, and their credentials, go into <code>local_config.toml</code>, never the database. A running collector picks up the change before its next full scan.</p>
 
   <h2 id="setup-discovery-title">6. Choose what the collector may scan</h2>
   <p><strong>Settings → Discovery</strong> lists the discovery methods beyond your controllers. Each has a switch and an edit button; switching a method off keeps its settings and everything it already found.</p>
@@ -77,13 +77,13 @@ gunicorn -c gunicorn.conf.py labrat.app:app</code></pre>
   <p>The collector is a separate process from the web app. Try one cycle first, then list what it stored:</p>
   <pre><code>python -m labrat.collector --once
 python -m labrat.collector --list</code></pre>
-  <p>Run it without either switch to keep polling (add <code>--interval</code> to set the seconds between full scans). Between scans it also reads internet and UPS status on shorter timers. It reloads <code>local_config.toml</code> before each full scan, so Settings changes need no restart. Run it under your service manager, beside the web app.</p>
+  <p>Run it without either switch to keep polling (full scans every 60 seconds, or what <code>[collector] interval_seconds</code> or <code>--interval</code> sets). Between scans it also reads internet and UPS status on shorter timers. It reloads <code>local_config.toml</code> before each full scan, so Settings changes need no restart. Run it under your service manager, beside the web app.</p>
   <p>Within a minute or two, the <strong>Sources</strong> strip under the header and the Home page show each source's health. A source that fails keeps its last observations, marked stale, instead of dropping them.</p>
 
   <h2 id="setup-place-title">8. Map your lab</h2>
   <p>Add a location and its areas in <a href="{{ url_for('private.locations') }}">Locations</a>, then add racks in an area's Floor plan. In <a href="{{ url_for('private.topology') }}">Discovery</a>, select a device and place it: create a new inventory record (the default) or link it to an existing one, then choose the area and position. The <a href="{{ url_for('docs.tour') }}">tour</a> walks through every page.</p>
 
-  <h2 id="setup-backup-title">9. Back up your inventory</h2>
-  <p><strong>Settings → Backup and restore</strong> downloads your curated inventory as one JSON file: locations, areas, racks, placements, equipment, names, ports, cables, and discovery links. It leaves out accounts, credentials, local configuration, and live observations, which the collector rebuilds. A restore first previews what it would change, and applies only when you confirm.</p>
+  <h2 id="setup-backup-title">9. Move your install</h2>
+  <p><strong>Settings → Export and import</strong> moves a whole install to a new way of hosting it. <strong>Download export</strong> gives one ZIP file with the entire database (inventory, discoveries, accounts, and history) and every integration, credentials included, so store it like a password. On the new install, <strong>Import and replace</strong> replaces all of that with the export's contents and signs you out; sign in with an account from the old install. The new install keeps its own <code>[server]</code>, <code>[database]</code>, and <code>[auth]</code> settings, which describe where it runs. An export from an older LabRat is migrated as it is imported; one from a newer LabRat is refused.</p>
 </section>
 {% endblock %}

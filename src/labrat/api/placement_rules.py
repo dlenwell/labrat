@@ -8,7 +8,7 @@ placement and arrangement, and backups for rack space checks on restore.
 Only explicit user actions reach these; collector data never changes
 placement.
 
-Used by: api.locations, api.rack_devices, api.topology, inventory_backup.
+Used by: api.locations, api.rack_devices, api.topology.
 """
 
 import json

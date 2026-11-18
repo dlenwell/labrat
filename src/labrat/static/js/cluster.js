@@ -26,7 +26,7 @@
     } = window.LabratClusterModel;
     // Disk shelves: plain data from the shelf model, drawn by the widget.
     const Shelves = window.LabratShelfModel;
-    const { shelf } = window.LabratWidgets;
+    const { shelf, scanProgress } = window.LabratWidgets;
     /** Cluster tiles take the compute hue unless they say otherwise. */
     const statTile = (tile) => widgetTile({ hue: "compute", ...tile });
     const app = document.getElementById("cluster-app");
@@ -43,7 +43,7 @@
     const COMPUTE_STYLES = ["cards", "list", "map"];
     /** ZFS and Ceph styles: the drawn shelf or the plain view (a toggle). */
     const ZFS_STYLES = ["shelf", "cards"];
-    /** How often a node screen redraws while visible. */
+    /** How often a node or storage screen redraws while visible. */
     const LIVE_REFRESH_MS = 30000;
     /** When the cluster data was last loaded (ms since the epoch). */
     let loadedAt = 0;
@@ -1595,6 +1595,7 @@
         const health = pool.state || pool.health || "UNKNOWN";
         const tone = health === "ONLINE" ? "on" : health === "DEGRADED" ? "warn" : "alarm";
         const fraction = pool.size ? pool.alloc / pool.size : 0;
+        const running = Shelves.scanProgress(pool.scan, pool.nodeRecord && pool.nodeRecord.sampled_at);
         return el("article", { class: "cluster-card cluster-zfs" }, [
             el("header", { class: "cluster-zfs-heading" }, [
                 el(
@@ -1603,6 +1604,7 @@
                 ),
                 el("h3", { text: pool.name }), el("span", { class: "cluster-muted", text: pool.node }),
             ]),
+            running ? scanProgress(running) : null,
             meter({
                 total: pool.size || 0, used: pool.alloc || 0, label: `${percent(fraction)} allocated`,
                 tone: severity(fraction)
@@ -1615,7 +1617,7 @@
                     "dt", { text: "Fragmentation" }
                 ), el("dd", { text: pool.frag !== null && pool.frag !== undefined ? `${pool.frag}%` : "—" }),
                 el("dt", { text: "Errors" }), el("dd", { text: pool.errors || "—" }),
-                el("dt", { text: "Last scan" }), el("dd", { text: pool.scan || "—" }),
+                running ? null : el("dt", { text: "Last scan" }), running ? null : el("dd", { text: pool.scan || "—" }),
             ]),
             pool.vdevs && pool.vdevs.length ? el("ul", { class: "cluster-vdevs" }, pool.vdevs.map((vdev) => {
                 const errors = (vdev.read || 0) + (vdev.write || 0) + (vdev.cksum || 0);
@@ -1833,12 +1835,14 @@
         render();
     });
     document.getElementById("cluster-refresh").addEventListener("click", load);
-    // Sitting on a node screen, redraw every 30 s while the page is visible
-    // (the collector pulls node and guest state about every 20 s between
-    // scans), and at once on returning to a tab left longer than that.
+    // Sitting on a node or storage screen, redraw every 30 s while the page
+    // is visible (the collector pulls node and guest state about every 20 s
+    // between scans), and at once on returning to a tab left longer than
+    // that, so a scrub or resilver's progress moves without a page reload.
+    const LIVE_VIEWS = ["nodes", "storage"];
     let reloading = false;
     const liveReload = async () => {
-        if (state.view !== "nodes"
+        if (!LIVE_VIEWS.includes(state.view)
             || document.visibilityState !== "visible"
             || reloading
             || Date.now() - loadedAt < LIVE_REFRESH_MS - 1000) {

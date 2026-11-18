@@ -22,9 +22,7 @@
     <a href="{{ url_for('private.settings') }}" {% if panel == 'appearance' %}aria-current="page"{% endif %}>
       <span>Appearance</span><small>Theme and accent</small>
     </a>
-    <a href="{{ url_for('private.widgets') }}">
-      <span>Widgets</span><small>Gallery of charts and panels</small>
-    </a>
+    {# The Widgets gallery (/settings/widgets) is reachable by URL only. #}
     {% if viewer.is_admin %}
     <a href="{{ url_for('private.settings', panel='integrations') }}" {% if panel == 'integrations' %}aria-current="page"{% endif %}>
       <span>Integrations</span><small>Discovery connections</small>
@@ -33,7 +31,7 @@
       <span>Discovery</span><small>Methods and scan scope</small>
     </a>
     <a href="{{ url_for('private.settings', panel='backup') }}" {% if panel == 'backup' %}aria-current="page"{% endif %}>
-      <span>Backup and restore</span><small>Curated inventory</small>
+      <span>Export and import</span><small>Move this install</small>
     </a>
     {% endif %}
   </nav>
@@ -108,87 +106,46 @@
 {% else %}
 <section class="settings-section" aria-labelledby="settings-backup-title">
   <div class="settings-section-heading">
-    <p class="eyebrow">Inventory</p>
-    <h2 id="settings-backup-title">Backup and restore</h2>
-    <p>Keep a copy of the work discovery cannot do for you.</p>
+    <p class="eyebrow">Whole install</p>
+    <h2 id="settings-backup-title">Export and import</h2>
+    <p>Move LabRat to a new way of hosting it, and bring it back exactly as it was.</p>
   </div>
 
-  {% if restored %}
-    <p class="settings-saved" role="status">Inventory restored. Your discovery observations and audit history have been preserved.</p>
-  {% endif %}
   {% if error %}
     <p class="form-error" role="alert">{{ error }}</p>
   {% endif %}
 
-  {% if preview %}
-  <div class="backup-review" aria-labelledby="restore-review-title">
-    <p class="eyebrow">Review before restoring</p>
-    <h3 id="restore-review-title">Restore this inventory backup?</h3>
-    <p>Backup created <time datetime="{{ created_at }}">{{ created_at[:10] }} at {{ created_at[11:16] }} UTC</time>.
-      {% if preview.same_instance %}From this LabRat instance.{% else %}Restoring into an empty inventory.{% endif %}</p>
-    <div class="backup-table-scroll">
-      <table class="backup-summary">
-        <caption class="visually-hidden">Changes that will be made when this backup is restored</caption>
-        <thead><tr><th scope="col">Inventory</th><th scope="col">Add</th><th scope="col">Update</th><th scope="col">Unchanged</th></tr></thead>
-        <tbody>
-          {% for row in preview.rows %}
-          <tr><th scope="row">{{ row.label }}</th><td>{{ row.created }}</td><td>{{ row.updated }}</td><td>{{ row.unchanged }}</td></tr>
-          {% else %}
-          <tr><td colspan="4">This backup has no inventory records.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <p>{{ preview.attributes }} saved attributes will be restored. {{ preview.matched }} discovery associations are available to reconnect.</p>
-    {% if preview.unmatched %}
-      <p class="backup-notice">{{ preview.unmatched }} discovery associations are unavailable here. Equipment will still be restored; link its observations in Discovery when they are available.</p>
-    {% endif %}
-    {% if preview.cleared_placements %}
-      <p class="backup-notice">{{ preview.cleared_placements }} current equipment placements will be cleared because those devices were unplaced in the backup.</p>
-    {% endif %}
-    <p>Backed-up records take their saved values. Additional equipment and places stay in your inventory. Placements and manual group assignments for backed-up equipment return to the backup.</p>
-    <form class="settings-form" method="post" action="{{ url_for('private.backup.restore') }}">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-      <input type="hidden" name="restore_token" value="{{ restore_token }}">
-      <label class="backup-confirm"><input type="checkbox" name="confirm" value="restore" required> I want to apply these inventory changes.</label>
-      <div class="button-row">
-        <button class="button" type="submit">Restore inventory</button>
-        <a class="button button-quiet" href="{{ url_for('private.settings', panel='backup') }}">Cancel</a>
-      </div>
-    </form>
-    <p class="backup-footnote">This preview expires in 15 minutes. If inventory changes, you will need to preview it again.</p>
-  </div>
-  {% else %}
   <div class="backup-actions">
     <article class="backup-action">
       <span class="backup-step" aria-hidden="true">01 / EXPORT</span>
-      <h3>Keep your work</h3>
-      <p>Download your inventory as a file you can keep somewhere safe.</p>
+      <h3>Take everything with you</h3>
+      <p>Download one file with this whole install: inventory, discoveries, accounts, history, and every integration.</p>
+      <p class="backup-notice"><strong>The file contains your integration credentials</strong> (API keys, tokens, passwords) and every account's password hash. Store it like a password, and delete copies you no longer need.</p>
       <form method="post" action="{{ url_for('private.backup.download') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-        <button class="button" type="submit">Download backup</button>
+        <button class="button" type="submit">Download export</button>
       </form>
     </article>
     <article class="backup-action">
-      <span class="backup-step" aria-hidden="true">02 / RESTORE</span>
-      <h3>Bring your inventory back</h3>
-      <p>Choose a backup, then review the changes before applying it.</p>
-      <form class="backup-upload" method="post" enctype="multipart/form-data" action="{{ url_for('private.backup.preview') }}">
+      <span class="backup-step" aria-hidden="true">02 / IMPORT</span>
+      <h3>Replace this install</h3>
+      <p>Import an export to make this LabRat the one you exported. Use it on a new install.</p>
+      <p class="backup-notice"><strong>Everything here is replaced:</strong> inventory, discoveries, accounts, history, and integrations. Nothing here is kept or merged. Afterwards you sign in with an account from the exported install.</p>
+      <form class="backup-upload" method="post" enctype="multipart/form-data" action="{{ url_for('private.backup.restore') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-        <label for="inventory-backup">Inventory backup file</label>
-        <input id="inventory-backup" type="file" name="backup" accept=".json,application/json" required aria-describedby="backup-file-note">
-        <p id="backup-file-note" class="backup-footnote">LabRat inventory backup · JSON · up to 5 MB</p>
-        <button class="button button-secondary" type="submit">Preview restore</button>
+        <label for="instance-export">LabRat export file</label>
+        <input id="instance-export" type="file" name="export" accept=".zip,application/zip" required aria-describedby="export-file-note">
+        <p id="export-file-note" class="backup-footnote">LabRat export · ZIP · up to 256 MB</p>
+        <label class="backup-confirm"><input type="checkbox" name="confirm" value="replace" required> Replace everything in this LabRat with this export.</label>
+        <button class="button button-secondary" type="submit">Import and replace</button>
       </form>
     </article>
   </div>
   <div class="backup-scope">
-    <h3>What your backup includes</h3>
-    <p>Locations, areas, racks, mounting places and layouts. Equipment, display names, placements, manual groups, saved attributes, and inventory interfaces and cables.</p>
-    <p>Accounts, passwords, integration credentials, live discovery data, observation-ignore rules, browser preferences, and audit history are excluded. Configure integrations separately on a fresh installation.</p>
-    <p>Restore into this instance or an empty inventory on a fresh installation. A backup contains your inventory details; keep the downloaded file private.</p>
+    <h3>What stays with this install</h3>
+    <p>Three settings describe where LabRat runs rather than your lab, so an import leaves them as they are: the host names it answers to (<code>[server]</code>), where its database lives (<code>[database]</code>), and its session key and cookie settings (<code>[auth]</code>). The export leaves them out.</p>
+    <p>An export from an older LabRat is updated as it is imported. One from a newer LabRat is refused; update this install first.</p>
   </div>
-  {% endif %}
 </section>
 {% endif %}
   </div>

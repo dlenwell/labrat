@@ -37,8 +37,9 @@
           <label for="integration-tls">Certificate verification</label>
           <select id="integration-tls" name="tls_mode">
             <option value="verify" {% if editor.tls_mode == 'verify' %}selected{% endif %}>Verify the controller certificate</option>
-            {% if editor.legacy_tls %}<option value="existing" {% if editor.tls_mode == 'existing' %}selected{% endif %}>Keep existing setting: verification disabled</option>{% endif %}
+            <option value="disabled" {% if editor.tls_mode == 'disabled' %}selected{% endif %}>Don't verify the certificate</option>
           </select>
+          <small>Not verifying still encrypts the connection, but trusts any server at this address with the credentials. Use it for a controller reached by IP address with a self-signed certificate.</small>
         </div>
         <div class="integration-field">
           <label for="integration-ca">Custom CA bundle <span>(optional)</span></label>

@@ -73,8 +73,9 @@ recognize VMs and containers among network clients.
 
 **Test connection** checks read-only access without saving. Certificate
 checking is on by default; **Certificate settings** accepts your own CA
-bundle. Saved connections and credentials go into `local_config.toml`, never
-the database or inventory backups, and a running collector picks them up
+bundle, or turns checking off for a controller reached by IP address with a
+self-signed certificate. Saved connections and credentials go into `local_config.toml`, never
+the database, and a running collector picks them up
 before its next full scan. Hand-written `[unifi]`, `[proxmox]`, and
 `[integrations.*]` sections still work; see
 [`local_config.example.toml`](../local_config.example.toml) and the
@@ -110,8 +111,8 @@ python -m labrat.collector --once
 python -m labrat.collector --list
 ```
 
-Run it without either switch to keep polling (`--interval` sets the seconds
-between full scans) under your service manager, beside the web app. It
+Run it without either switch to keep polling (full scans every 60 seconds,
+or what `[collector] interval_seconds` or `--interval` sets) under your service manager, beside the web app. It
 reloads `local_config.toml` before each full scan, so Settings changes need
 no restart. A source that fails keeps its last observations, marked stale.
 The collector never creates canonical devices, chooses physical locations,
@@ -122,9 +123,15 @@ or changes canonical cabling.
 Add a location and its areas in **Locations**, add racks in an area's Floor
 plan, then place equipment from **Discovery**: create a new inventory record
 (the default) or link the observation to an existing one.
-**Settings → Backup and restore** downloads the curated inventory as JSON,
-without accounts, credentials, or live observations; a restore previews its
-changes before applying them.
+**Settings → Export and import** moves a whole install to a new way of
+hosting it. **Download export** gives one ZIP file with the entire database
+(inventory, discoveries, accounts, history) and every integration,
+credentials included, so store it like a password. **Import and replace**,
+on the new install, replaces all of that with the export's contents and
+signs you out; sign in with an account from the old install. The new
+install keeps its own `[server]`, `[database]`, and `[auth]` settings,
+which describe where it runs. An export from an older LabRat is migrated
+as it is imported; one from a newer LabRat is refused.
 
 ## Run in containers
 
@@ -172,3 +179,74 @@ Without Compose, `docker build -t labrat .` builds the image, and
 options, such as `collector --once`. Any other command runs as given, for
 example `docker compose -f deploy/compose.yaml run --rm web alembic -c
 alembic.ini current`.
+
+## Run on Kubernetes
+
+`deploy/kubernetes.yaml` is a sample deployment built from the same image:
+one pod with a `migrate` init container, then the `web` and `collector`
+containers, two volumes (data and config), a Service, and an HTTPS
+Ingress. Build the image, push it to a registry your cluster can pull
+from, set that name and your hostname in the file, and apply it:
+
+```sh
+docker build -t registry.example.lan/labrat:latest .
+docker push registry.example.lan/labrat:latest
+kubectl apply -f deploy/kubernetes.yaml
+kubectl -n labrat logs deploy/labrat -c web   # the first-time setup code
+```
+
+- **One pod, one replica.** The web app and the collector share one SQLite
+  file, so they run side by side in one pod, never scaled out. The
+  Deployment uses `Recreate`, so an upgrade stops the old pod before the
+  new one mounts the volumes. Put the data volume on block storage
+  (ReadWriteOnce: Ceph RBD, Longhorn, a local volume); SQLite's locking is
+  unreliable on NFS and other shared file systems.
+- **Start order.** The `migrate` init container writes the config on first
+  start and applies migrations, so both containers start against a ready
+  schema.
+- **Hosts and probes.** LabRat answers only the hostnames in
+  `[server].allowed_hosts`, so the Ingress hostname must be one of them
+  (`LABRAT_ALLOWED_HOSTS` sets it on first start). The kubelet probes the pod
+  by its address, which LabRat refuses, so the probes send `Host: localhost`.
+- **HTTPS** ends at the Ingress; the sample sets `LABRAT_SECURE_COOKIES`,
+  so the first config marks cookies HTTPS-only.
+- **Upgrades and rollback.** With `latest`, push a new image and run
+  `kubectl -n labrat rollout restart deploy/labrat`. With fixed tags, change
+  the three `image:` lines; going back is the previous tag. Migrations only
+  move forward, so export first (**Settings → Export and import**, or a
+  volume snapshot) before an upgrade you may want to undo.
+- **Resources.** The sample requests about 256 MiB for the web app (two
+  Gunicorn workers) and 192 MiB for the collector; tune them to your lab's
+  size.
+
+### Discovery from inside a cluster
+
+Almost everything LabRat reads travels over routed IP, so it works from
+the pod network wherever the cluster can reach the lab:
+
+- **Works as is:** controller and hypervisor APIs (UniFi, Proxmox, and the
+  rest), SNMP, NUT and other probes within `[scan]` ranges, and the clients
+  page's open-port check. Neighbour (LLDP), MAC, and ARP details come from
+  the devices' own tables, so where LabRat runs does not change them.
+- **Source address.** Pod traffic usually leaves with the node's address,
+  not the pod's. Wherever a device or firewall allows LabRat by address (an
+  SNMP access list, a controller's API allow list, a firewall rule), allow
+  every node the pod may run on, or pin the pod to one node.
+- **Network policies.** If the cluster restricts egress, allow the pod to
+  reach your controllers' API ports, SNMP (UDP 161), and NUT (TCP 3493).
+- **Needs the same network segment: MikroTik discovery (MNDP).** It only
+  listens for broadcasts on UDP 5678, and broadcasts do not leave their
+  segment, so a pod on the cluster network never hears them. Choose one:
+  - **Leave MNDP off.** MikroTik devices still appear as LLDP neighbours of
+    the UniFi switches LabRat reads, just with less detail.
+  - **Host networking.** Uncomment `hostNetwork`, `dnsPolicy`, and
+    `nodeSelector` in the sample to put the pod on the network of a node
+    with an interface on the MikroTik's segment. The whole pod shares that
+    node's network, so the web app listens on the node's port 8000, which
+    must be free. The Service and Ingress keep working.
+  - **A second interface.** With a multi-network plugin such as Multus, give
+    the pod a macvlan interface on the MikroTik's VLAN, so the pod hears its
+    broadcasts without sharing the node's network.
+
+  A pod moved to another node by host networking or a second interface
+  hears that node's segment, so pin it with `nodeSelector` or affinity.
