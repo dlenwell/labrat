@@ -32,8 +32,7 @@ See ``docs/database-schema.md`` for an entity-relationship diagram and examples.
 
 Used by: api.clients, api.locations, api.placement_rules, api.rack_devices,
 api.topology, app, auth.providers, auth.session, collector.__main__,
-integrations, inventory_backup, pages.activity, pages.navigation,
-pages.private, pages.public.
+integrations, pages.activity, pages.navigation, pages.private, pages.public.
 """
 
 from datetime import datetime

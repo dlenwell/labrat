@@ -6,7 +6,8 @@
 These are curated identity mappings, not telemetry or static cable placements.
 The collector creates a cable only while the corresponding neighbor is observed.
 
-Used by: api.observation_actions, api.topology, collector.links.
+Used by: api.observation_actions, api.topology, collector.links,
+integrations.
 """
 
 from sqlalchemy import select

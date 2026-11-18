@@ -17,8 +17,7 @@ collector.links, collector.nut_wired, collector.proxmox_clients,
 collector.proxmox_cluster, collector.proxmox_live, collector.runner,
 collector.sources, collector.store, collector.unifi_network,
 collector.wireless_clients, discovery.observation_ignores,
-discovery_settings, integrations, inventory_backup, pages.private,
-pages.status.
+discovery_settings, integrations, pages.private, pages.status.
 """
 
 from datetime import datetime

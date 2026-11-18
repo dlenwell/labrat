@@ -183,7 +183,7 @@ def profile() -> ResponseReturnValue:
 @private_bp.get("/settings")
 @login_required
 def settings() -> ResponseReturnValue:
-    """Render Settings with appearance and administrator inventory backups.
+    """Render Settings with appearance and the administrator panels.
 
     Returns:
         ResponseReturnValue: Authenticated settings HTML.
@@ -210,7 +210,6 @@ def settings() -> ResponseReturnValue:
         panel=panel,
         integration_saved=request.args.get("saved") == "integration",
         integration_removed=request.args.get("saved") == "removed",
-        restored=request.args.get("saved") == "restore",
         themes=theme_choices(),
         accents=accent_choices(),
         saved=request.args.get("saved") == "appearance",

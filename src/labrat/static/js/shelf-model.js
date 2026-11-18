@@ -273,6 +273,71 @@
     }
 
     /**
+     * A length of time, short: "16 h 3 min", "2 d 4 h", "12 min".
+     * @param {number} seconds Duration.
+     * @returns {string} The text.
+     */
+    function span(seconds) {
+        const minutes = Math.max(0, Math.round(seconds / 60));
+        const days = Math.floor(minutes / 1440);
+        const hours = Math.floor((minutes % 1440) / 60);
+        const rest = minutes % 60;
+        if (days) {
+            return hours ? `${days} d ${hours} h` : `${days} d`;
+        }
+        if (hours) {
+            return rest ? `${hours} h ${rest} min` : `${hours} h`;
+        }
+        return minutes ? `${minutes} min` : "under a minute";
+    }
+
+    /**
+     * A scrub or resilver still running, from ZFS's scan line: how far it
+     * is and when it should end. ZFS's estimate is as of the sample, so the
+     * time left counts down from the sample time.
+     * @param {string|null} scan Such as "resilver in progress since Tue Nov 17
+     *     12:40:56 2026 10.6T / 49.5T scanned at 1.31G/s, 6.18T / 49.5T issued
+     *     at 786M/s 751G resilvered, 12.50% done, 16:03:13 to go".
+     * @param {string|null} [sampledAt] ISO time the line was read.
+     * @param {number} [now] Current time in milliseconds (tests).
+     * @returns {{kind: string, fraction: number, label: string, left: string,
+     *     detail: string, tone: string}|null} Progress, or null when no scan
+     *     is running.
+     */
+    function scanProgress(scan, sampledAt = null, now = Date.now()) {
+        const line = (scan || "").replace(/\s+/g, " ").trim();
+        const kind = /^(scrub|resilver)\w* in progress\b/i.exec(line);
+        const done = /([\d.]+)% done/.exec(line);
+        if (!kind || !done) {
+            return null;
+        }
+        const fraction = Math.min(1, Math.max(0, Number(done[1]) / 100));
+        const resilver = kind[1].toLowerCase() === "resilver";
+        const togo = /(?:(\d+) days? )?(\d+):(\d\d):(\d\d) to go/.exec(line);
+        let left = "No estimate yet";
+        if (togo) {
+            const seconds = Number(togo[1] || 0) * 86400 + Number(togo[2]) * 3600 + Number(togo[3]) * 60 + Number(togo[4]);
+            const sampled = sampledAt ? Date.parse(sampledAt) : NaN;
+            const finish = (Number.isNaN(sampled) ? now : sampled) + seconds * 1000;
+            const remaining = (finish - now) / 1000;
+            const end = new Date(finish).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
+            left = remaining > 0 ? `About ${span(remaining)} left · done around ${end}` : "Past its estimate; finishing";
+        }
+        const issued = /(\S+) \/ (\S+) issued(?: at (\S+?))?,?(?= |$)/.exec(line);
+        const fixed = /(\S+) (resilvered|repaired)\b/.exec(line);
+        const detail = [
+            issued ? `${issued[1]} of ${issued[2]} issued${issued[3] ? ` at ${issued[3]}` : ""}` : null,
+            fixed ? `${fixed[1]} ${fixed[2]}` : null,
+        ].filter(Boolean).join(" · ");
+        return {
+            kind: resilver ? "Resilvering" : "Scrubbing",
+            fraction, label: `${Number(done[1]).toFixed(1)}% done`, left, detail,
+            // A resilver means a pool short of full redundancy; a scrub is routine.
+            tone: resilver ? "warn" : "on",
+        };
+    }
+
+    /**
      * A ZFS member as a bay.
      * @param {object} member Member from {@link members}.
      * @param {object} pool Its pool.
@@ -327,6 +392,7 @@
         });
         const health = pool.state || pool.health || "UNKNOWN";
         const fraction = pool.size ? pool.alloc / pool.size : 0;
+        const running = scanProgress(pool.scan, node.sampled_at);
         const last = scrub(pool.scan);
         const named = [...groups.keys()].filter((group) => group !== pool.name);
         const count = [...groups.values()].reduce((total, list) => total + list.length, 0);
@@ -346,7 +412,9 @@
                         "Fragmentation", pool.frag !== null && pool.frag !== undefined ? `${pool.frag}%` : "—"
                     ], ["Dedup", pool.dedup ? `${pool.dedup}×` : "—"],
                 ],
-                lines: [{ tone: last.tone, label: "Last scrub", text: last.text }],
+                // A running scan shows as the progress bar instead.
+                progress: running,
+                lines: running ? [] : [{ tone: last.tone, label: "Last scrub", text: last.text }],
                 found, note: pool.status,
             },
             chassis: [{
@@ -767,6 +835,6 @@
     window.LabratShelfModel = Object.freeze({
         zfsShelf, cephPoolShelf, cephClusterShelf, clusterDrives, drivesByNode, chassisByNode,
         // For tests and other models.
-        members, scrub, osdIssues, osdDisks, osdLatency, latencySpec, fillSpec, storageSlots,
+        members, scrub, scanProgress, osdIssues, osdDisks, osdLatency, latencySpec, fillSpec, storageSlots,
     });
 })();

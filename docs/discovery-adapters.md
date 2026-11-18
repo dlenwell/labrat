@@ -35,18 +35,19 @@ connections in the shared drawer. Connection names can be changed without
 changing source identities or losing observations. Compact rows show the
 latest collector result with a lamp; open a connection for the complete
 message and timestamps. Deleting a connection requires confirmation and
-removes its saved credentials while disabling collection. Existing inventory,
-placements, discovery observations, and audit history are retained. Those
-observations may remain visible as stale/ghost devices; adding the controller
-again with a different connection name may produce another observation set.
+removes its saved credentials and everything it discovered (devices, ports,
+links, and ignore rules), freeing its name for reuse. Curated inventory,
+placements, and audit history are kept; adding the controller again
+discovers its devices afresh, to be linked to inventory in Discovery.
 
 The same private TOML file is used by the web UI and collector, including
 an explicit `LABRAT_CONFIG` path. UI saves preserve comments and unrelated
 settings and replace the file atomically with owner-only permissions.
 The collector reloads valid source settings before its next full scan.
-There is no integration credential table or separate secret store. The
-inventory backup does not contain these credentials; keep configuration
-and any certificate files separately when migrating an installation.
+There is no integration credential table or separate secret store. A
+whole-install export (**Settings → Export and import**) carries these
+credentials with the database; certificate files named by `ca_bundle` are
+not in it, so copy those separately when moving an installation.
 
 
 Existing single-controller sections work directly (no database registration or
@@ -85,8 +86,13 @@ an integration in Settings. An in-flight request can finish after disabling.
 
 **TLS:** HTTPS and certificate validation are required by default. For an
 internal CA, add `ca_bundle = "/absolute/path/to/ca.pem"` inside the source's
-section. Only temporarily for local diagnosis, `verify_tls = false` can disable
-validation; this is not recommended for normal operation.
+section. A controller reached by IP address with a self-signed certificate
+cannot pass validation, because the certificate does not name the address;
+for that case `verify_tls = false` (or **Don't verify the certificate** under
+**Certificate settings** in Settings) turns validation off. The connection
+stays encrypted, but LabRat then sends the credentials to whatever answers
+at that address, so prefer giving the controller a DNS name and a matching
+certificate where you can.
 
 ## Subnet and firewall evidence
 
@@ -462,7 +468,8 @@ announcing interface's name and MAC. Each device (keyed by software ID)
 becomes an observation named by its identity; each announcing interface
 becomes a port. No credentials are needed, but broadcasts do not cross VLANs
 or routed firewalls, so the collector must share a segment with the
-MikroTik's discovery interfaces. A MikroTik also heard as a UniFi LLDP
+MikroTik's discovery interfaces (in containers or Kubernetes, see "Run on
+Kubernetes" in `docs/setup.md`). A MikroTik also heard as a UniFi LLDP
 neighbor appears once per source until linked to one inventory device.
 
 ### Network UPS Tools (NUT), via service discovery (optional)

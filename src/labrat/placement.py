@@ -13,7 +13,7 @@ legacy placement columns retained for compatibility during the transition.
 New placement editing should use these tables as the source of truth.
 
 Used by: api.locations, api.placement_rules, api.rack_devices, integrations,
-inventory_backup, pages.activity, pages.private.
+pages.activity, pages.private.
 """
 
 from datetime import datetime

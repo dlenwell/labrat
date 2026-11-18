@@ -298,12 +298,41 @@
     }
 
     /**
-     * The health box beside the shelves: state, facts, a pool key, status
-     * lines, then every warning and note (worst first).
+     * A running scrub or resilver: its name and share done over a bar, then
+     * the time left and what it has worked through.
+     * @param {object} progress `kind`, `fraction`, `label`, `left`, `detail`,
+     *     `tone` (`on` or `warn`).
+     * @returns {HTMLElement} The block.
+     */
+    function scanProgress(progress) {
+        const bar = el("span", {
+            class: `shelf-progress-bar is-${progress.tone}`, role: "progressbar",
+            "aria-label": `${progress.kind}: ${progress.label}`, "aria-valuemin": "0", "aria-valuemax": "100",
+            "aria-valuenow": String(Math.round(progress.fraction * 1000) / 10),
+        });
+        const fill = el("span", { class: "shelf-progress-fill" });
+        fill.style.width = `${progress.fraction * 100}%`;
+        bar.append(fill);
+        return el("section", { class: `shelf-progress is-${progress.tone}` }, [
+            el("p", { class: "shelf-progress-heading" }, [
+                lamp(progress.tone, progress.kind), el("strong", { text: progress.kind }),
+                el("span", { class: "shelf-progress-share", text: progress.label }),
+            ]),
+            bar,
+            el("p", { class: "shelf-progress-line", text: progress.left }),
+            progress.detail ? el("p", { class: "shelf-progress-line is-muted", text: progress.detail }) : null,
+        ]);
+    }
+
+    /**
+     * The health box beside the shelves: state, a running scan's progress,
+     * facts, a pool key, status lines, then every warning and note (worst
+     * first).
      * @param {object} spec `state`, `tone`, `title`, `subtitle`, `meter`
      *     (meter options), `facts` (`[term, value]`), `key` (`{slot,
      *     label}` pool colours), `keyTitle`, `lines` (`{tone, label,
-     *     text}`), `found` (`{tone, text}`), `note`.
+     *     text}`), `found` (`{tone, text}`), `note`, `progress` (see
+     *     {@link scanProgress}).
      * @returns {HTMLElement} The box.
      */
     function shelfHealth(spec) {
@@ -319,6 +348,7 @@
                 el("h3", { text: spec.title || "" }),
                 spec.subtitle ? el("p", { class: "widget-muted", text: spec.subtitle }) : null,
             ]),
+            spec.progress ? scanProgress(spec.progress) : null,
             spec.meter ? meter(spec.meter) : null,
             (spec.facts || []).length ? el(
                 "dl", { class: "widget-facts" },
@@ -431,7 +461,7 @@
         ) : el("div", { class: "shelf-pool is-bare" }, [stack]);
     }
 
-    Object.assign(W, { shelf, shelfHealth, bayStrip, shelfInternals: { bayLayout, worst, readoutCount } });
+    Object.assign(W, { shelf, shelfHealth, scanProgress, bayStrip, shelfInternals: { bayLayout, worst, readoutCount } });
     W.WIDGETS.shelf = (data, options) => shelf(data, options);
     W.WIDGETS.bayStrip = (data) => bayStrip(data || []);
 })();

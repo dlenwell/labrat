@@ -17,6 +17,7 @@ import test_step4c as fixture
 from labrat.audit import AuditEvent
 from labrat.collector import __main__ as cli
 from labrat.discovery.models import DiscoverySource, DiscoveredDevice
+from labrat.metadata import Attribute, InventoryObject
 from labrat.integration_catalog import DEFINITIONS, load_catalog
 from labrat.integrations import IntegrationError, candidate, read_settings, test_connection, connection_health
 from labrat.models import User, Device, Room, Site
@@ -221,18 +222,17 @@ class IntegrationTests(unittest.TestCase):
             self.assertEqual(self.client.post('/settings/integrations/' + action, data=self.form()).status_code, 403)
         self.assertNotIn(b'Discovery connections', self.client.get('/settings').data)
 
-    def test_existing_disabled_tls_can_be_preserved_or_upgraded_only(self):
-        """A legacy diagnosis setting is retained only at its existing destination."""
-        self.seed_legacy()
-        self.path.write_text(self.path.read_text().replace('wan_interval_seconds = 45', 'wan_interval_seconds = 45\nverify_tls = false'))
-        form = self.form(name='default', is_new='0', api_key='', tls_mode='existing')
+    def test_tls_verification_can_be_turned_off_and_back_on(self):
+        """A connection can skip certificate checks (an appliance by IP) and later verify again."""
+        self.assertEqual(self.save(self.form(tls_mode='disabled', ca_bundle='/ignored/ca.pem')).status_code, 302)
+        saved = read_settings(self.path)[1]['integrations']['unifi']['primary']
+        self.assertIs(saved['verify_tls'], False)
+        self.assertNotIn('ca_bundle', saved)
+        editor = self.client.get('/settings?panel=integrations&kind=unifi&name=primary').get_data(as_text=True)
+        self.assertIn('<option value="disabled" selected>', editor)
+        form = self.form(name='primary', is_new='0', api_key='', tls_mode='verify')
         self.assertEqual(self.save(form).status_code, 302)
-        self.assertFalse(read_settings(self.path)[1]['unifi']['verify_tls'])
-        form = self.form(name='default', is_new='0', api_key='', tls_mode='verify')
-        self.assertEqual(self.save(form).status_code, 302)
-        self.assertTrue(read_settings(self.path)[1]['unifi']['verify_tls'])
-        form = self.form(name='default', is_new='0', api_key='', tls_mode='existing')
-        self.assertEqual(self.save(form).status_code, 400)
+        self.assertIs(read_settings(self.path)[1]['integrations']['unifi']['primary']['verify_tls'], True)
 
     def test_network_errors_are_sanitized(self):
         """No HTTP exception, token, address, or response body is returned verbatim."""
@@ -372,8 +372,8 @@ class IntegrationTests(unittest.TestCase):
         return {'_csrf_token': self.csrf, 'revision': read_settings(self.path)[2],
                 'kind': 'unifi', 'name': name, 'action': 'delete', 'confirm': 'delete'}
 
-    def test_delete_preview_and_confirm_preserve_inventory_and_observations(self):
-        """Remove credentials and stop collection while retaining all existing data."""
+    def test_delete_removes_source_and_observations_but_keeps_inventory(self):
+        """Remove credentials, source rows, and observations; keep curated inventory."""
         self.seed_legacy()
         self.assertEqual(self.save(self.form(name='default', is_new='0', api_key='')).status_code, 302)
         with self.factory.begin() as db:
@@ -395,11 +395,20 @@ class IntegrationTests(unittest.TestCase):
             db.add(DevicePlacement(device_id=device.id, container_id=place.id, position_json='{"x":0.5,"y":0.5}'))
             db.flush()
             observation_id = observed.id
+            owner_id = db.scalar(select(InventoryObject.id).where(InventoryObject.device_id == device.id))
+            db.add(Attribute(owner_id=owner_id, key='note', value='{"str":"kept"}'))
+            db.add(Attribute(owner_id=owner_id, key='discovery.lldp_port_match', value=json.dumps({'json': {
+                'source_id': source.id, 'target_source_id': source.id, 'chassis_id': 'example-chassis', 'port_id': '1',
+                'target_device_remote_id': 'device-a', 'target_port_remote_id': '1'}})))
+            clients = DiscoverySource(name='Clients · unifi:default', kind='unifi_clients', config_name='default')
+            db.add(clients)
+            db.flush()
+            clients_id = clients.id
             before_audit = list(db.scalars(select(AuditEvent.id)))
         original = self.path.read_bytes()
         preview = self.client.get('/settings?panel=integrations&kind=unifi&name=default&action=delete')
         self.assertEqual(preview.status_code, 200)
-        self.assertIn(b'ghost', preview.data)
+        self.assertIn(b'Discovered devices removed</dt><dd>1', preview.data)
         self.assertIn(b'Inventory devices kept</dt><dd>1', preview.data)
         self.assertNotIn(b'test-legacy-key', preview.data)
         self.assertEqual(self.path.read_bytes(), original)
@@ -412,16 +421,19 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(config['proxmox']['token_secret'], 'test-compute-secret')
         self.assertNotIn(b'test-legacy-key', self.path.read_bytes())
         with self.factory() as db:
-            self.assertFalse(db.get(DiscoverySource, source_id).enabled)
-            self.assertIsNotNone(db.get(DiscoveredDevice, observation_id))
+            self.assertIsNone(db.get(DiscoverySource, source_id))
+            self.assertIsNone(db.get(DiscoverySource, clients_id), 'derived sources go with their controller')
+            self.assertIsNone(db.get(DiscoveredDevice, observation_id))
+            self.assertIsNone(db.scalar(select(Attribute).where(Attribute.key == 'discovery.lldp_port_match')))
+            self.assertIsNotNone(db.scalar(select(Attribute).where(Attribute.key == 'note')))
             self.assertIsNotNone(db.get(Device, device_id))
             self.assertIsNotNone(db.get(DevicePlacement, device_id))
             event = db.scalar(select(AuditEvent).where(AuditEvent.action == 'integration.deleted'))
-            self.assertEqual(json.loads(event.details_json)['retained'], {'observations': 1, 'inventory': 1, 'placements': 1})
+            self.assertEqual(json.loads(event.details_json)['removed'], 1)
+            self.assertEqual(json.loads(event.details_json)['kept'], {'inventory': 1, 'placements': 1})
+        # The name is free again: a new connection under it registers cleanly.
         from labrat.collector.sources import sync_configured_sources
-        sync_configured_sources(self.factory, {'unifi': {'url': 'https://controller.example', 'api_key': 'test-old-key'}})
-        with self.factory() as db:
-            self.assertFalse(db.get(DiscoverySource, source_id).enabled, 'A cached configuration cannot revive the removed source')
+        self.assertEqual(sync_configured_sources(self.factory, {'unifi': {'url': 'https://controller.example', 'api_key': 'test-new-key'}}), 1)
 
     def test_named_delete_keeps_siblings_and_requires_confirmation_and_revision(self):
         """Deleting one named connection leaves other integrations and settings intact."""

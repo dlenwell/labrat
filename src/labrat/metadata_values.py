@@ -6,8 +6,7 @@
 Every stored value has exactly one type key. This is a serialization contract,
 not an instruction to put changing telemetry measurements in attributes.
 
-Used by: api.observation_actions, discovery.neighbor_matches,
-inventory_backup.
+Used by: api.observation_actions, discovery.neighbor_matches.
 """
 
 import json

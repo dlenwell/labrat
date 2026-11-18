@@ -9,6 +9,9 @@
   <h1 id="signin-title">Sign in to LabRat.</h1>
   <p class="intro">Use your local administrator account.</p>
 
+  {% if request.args.get('imported') and not error %}
+    <p class="intro" role="status"><strong>Import complete.</strong> Sign in with an account from the install you exported.</p>
+  {% endif %}
   {% if error %}
     <p class="form-error" role="alert">{{ error }}</p>
   {% endif %}

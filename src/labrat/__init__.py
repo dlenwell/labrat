@@ -6,8 +6,6 @@
 This package provides the backend components for LabRat, including
 the Flask web application, infrastructure inventory, and eventually
 the background discovery and telemetry collectors.
-
-Used by: collector.__main__, inventory_backup.
 """
 
-__version__ = "0.5.2"
+__version__ = "0.5.3"

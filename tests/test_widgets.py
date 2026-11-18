@@ -27,9 +27,10 @@ class WidgetGalleryTests(unittest.TestCase):
         self.assertIn("js/widget-feeds.js", live)
         self.assertEqual(self.client.get("/settings/widgets/other").status_code, 404)
 
-    def test_settings_links_to_the_gallery(self):
-        """Settings lists the gallery for every viewer."""
-        self.assertIn('href="/settings/widgets"', self.client.get("/settings").get_data(as_text=True))
+    def test_gallery_is_reached_by_url_only(self):
+        """Settings no longer lists the gallery, but its address still opens it."""
+        self.assertNotIn('href="/settings/widgets"', self.client.get("/settings").get_data(as_text=True))
+        self.assertEqual(self.client.get("/settings/widgets").status_code, 200)
 
     def test_gallery_needs_sign_in(self):
         """A signed-out visitor never sees the gallery."""

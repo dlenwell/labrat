@@ -140,6 +140,27 @@ assert.match(Z.scrub('scrub repaired 0B in 13:44:07 with 2 errors on Sun Nov  8 
 assert.equal(Z.scrub('scrub repaired 0B in 13:44:07 with 2 errors on Sun Nov  8 14:08:09 2026').tone, 'warn');
 assert.equal(Z.scrub(null).tone, 'off');
 
+// A running scan: share done, time left counted from the sample, and work done.
+const resilverLine = 'resilver in progress since Tue Nov 17 12:40:56 2026 10.6T / 49.5T scanned at 1.31G/s, '
+  + '6.18T / 49.5T issued at 786M/s 751G resilvered, 12.50% done, 16:03:13 to go';
+const sampled = '2026-11-17T15:00:00Z';
+const resilver = Z.scanProgress(resilverLine, sampled, Date.parse(sampled) + 3 * 60 * 1000);
+assert.equal(resilver.kind, 'Resilvering');
+assert.equal(resilver.tone, 'warn');
+assert.equal(resilver.fraction, 0.125);
+assert.equal(resilver.label, '12.5% done');
+assert.match(resilver.left, /^About 16 h left · done around /);
+assert.equal(resilver.detail, '6.18T of 49.5T issued at 786M/s · 751G resilvered');
+const scrubbing = Z.scanProgress('scrub in progress since Sun Nov  8 00:24:01 2026 3.2T / 20T scanned, 1.1T / 20T issued, 0B repaired, 5.50% done, 2 days 04:00:00 to go', sampled, Date.parse(sampled));
+assert.equal(scrubbing.kind, 'Scrubbing');
+assert.equal(scrubbing.tone, 'on');
+assert.match(scrubbing.left, /^About 2 d 4 h left/);
+assert.equal(scrubbing.detail, '1.1T of 20T issued · 0B repaired');
+assert.equal(Z.scanProgress('scrub in progress since Sun Nov  8 2026 0B / 20T scanned, 0B / 20T issued, 0.00% done, no estimated completion time').left, 'No estimate yet');
+assert.equal(Z.scanProgress(resilverLine, sampled, Date.parse(sampled) + 17 * 3600 * 1000).left, 'Past its estimate; finishing');
+assert.equal(Z.scanProgress('scrub repaired 0B in 13:44:07 with 0 errors on Sun Nov  8 14:08:09 2026'), null);
+assert.equal(Z.scanProgress(null), null);
+
 // Ceph pool colours: fixed by raw use; an OSD carries the pools whose rule keeps to its class.
 const cephData = {
   osd_list: [{ id: 1, device_class: 'hdd' }, { id: 2, device_class: 'nvme' }],

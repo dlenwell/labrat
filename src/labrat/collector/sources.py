@@ -10,7 +10,8 @@ re-enabled, or reset when the file changes; disabling a source in the database
 is an intentional operator decision.
 
 Used by: api.clients, collector.__main__, collector.access_collection,
-collector.proxmox_live, collector.runner, discovery_settings, integrations.
+collector.proxmox_live, collector.runner, discovery_settings,
+instance_transfer, integrations.
 """
 
 from collections.abc import Mapping

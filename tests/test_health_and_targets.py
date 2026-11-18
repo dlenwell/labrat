@@ -48,14 +48,14 @@ class HealthAndTargetTests(unittest.TestCase):
             self.assertEqual(_rate_label(rate), label)
 
     def test_source_health_waiting_stale_and_error(self):
-        """All registered sources remain visible and errors outrank prior success."""
+        """Enabled sources are listed, switched-off ones are not, and errors outrank prior success."""
         waiting = source_health(self.db, self.now)
         self.assertEqual(next(x for x in waiting if x['name'] == 'LLDP')['label'], 'Awaiting UniFi discovery')
         self.source.last_success_at = self.now - timedelta(hours=1)
         self.source.last_error = 'Collection failed: TimeoutError'
         self.proxmox.enabled = False
         health = source_health(self.db, self.now)
-        self.assertEqual(next(x for x in health if x['name'] == self.proxmox.name)['state'], 'waiting')
+        self.assertNotIn(self.proxmox.name, [x['name'] for x in health])
         self.assertEqual(next(x for x in health if x['name'] == self.source.name)['state'], 'error')
         self.assertEqual(next(x for x in health if x['name'] == 'LLDP')['state'], 'error')
         self.assertFalse(next(x for x in health if x['name'] == 'LLDP')['fresh'])
@@ -63,6 +63,17 @@ class HealthAndTargetTests(unittest.TestCase):
         self.source.last_success_at = self.now
         health = source_health(self.db, self.now)
         self.assertEqual(next(x for x in health if x['name'] == 'LLDP')['label'], 'No LLDP neighbors observed')
+
+    def test_deleted_integration_and_its_clients_leave_the_header(self):
+        """A switched-off controller takes its derived clients source with it."""
+        self.db.add(DiscoverySource(name='Clients · unifi:test', kind='unifi_clients', config_name='test'))
+        self.db.flush()
+        self.assertIn('Clients · unifi:test', [x['name'] for x in source_health(self.db, self.now)])
+        self.source.enabled = False
+        names = [x['name'] for x in source_health(self.db, self.now)]
+        self.assertNotIn('unifi:test', names)
+        self.assertNotIn('Clients · unifi:test', names)
+        self.assertEqual([light['name'] for light in header_sources(source_health(self.db, self.now))], ['proxmox'])
 
     def test_header_folds_shared_endpoints_and_pins_wan(self):
         """Fold clients into their controller, keep LLDP apart, shorten names, and put WAN first."""

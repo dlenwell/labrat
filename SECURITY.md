@@ -34,8 +34,9 @@ Knowing the intended deployment helps judge a report:
   reverse proxy or VPN if it must be reachable from elsewhere.
 - Integrations use read-only credentials, and the collector only reads.
   It never logs in to a device to change it or sends it commands.
-- Credentials live in `local_config.toml`, never in the database, and are
-  left out of inventory backups.
+- Credentials live in `local_config.toml`, never in the database. An
+  administrator's whole-install export (to move LabRat) includes them and
+  every account's password hash; the Settings page warns before download.
 - Beyond the controllers it is configured to read, the collector only
   contacts addresses inside the networks an administrator allows in
   Settings.
