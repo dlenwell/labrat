@@ -1,0 +1,27 @@
+{
+ "metadata": {
+  "subsystems": [],
+  "system": {
+   "message": "No pending messages",
+   "status": "WARNING",
+   "title": "System"
+  },
+  "translations": {
+   "dialogCloseButton": "Close",
+   "dialogTitle": "System Status"
+  }
+ },
+ "subsystems": {
+  "diskspace": {
+   "isBanner": false,
+   "location": null,
+   "message": "Disk space on the root filesystem is nearly full (2.10G or 80% used, 0.52G available). Please consider cleaning up or expanding storage.",
+   "persistent": true,
+   "priority": 5,
+   "status": "WARNING",
+   "statusCode": 0,
+   "timestamp": null,
+   "title": "Disk Space"
+  }
+ }
+}

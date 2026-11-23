@@ -2,7 +2,11 @@
 /**
  * @file The Networks page (templates/private/networks.html).
  *
- * Reads /api/v1/network once and draws one of six tabs: Overview (health,
+ * Reads /api/v1/network once, using each source's shared `network` form
+ * (api/network_shape.py: source-scoped IDs and normalized words, so any
+ * router source, UniFi or OPNsense, draws the same way; a picker chooses
+ * the router when there are several, and a tab whose section the router
+ * does not report says so), and draws one of six tabs: Overview (health,
  * tiles, donuts, DNS sinkholes such as Pi-hole), Zones (a firewall zone
  * graph where a zone shows where it can and cannot route, with every
  * exception; a zone matrix; the rules), Networks (VLANs, subnets, DHCP,
@@ -18,7 +22,9 @@
         el, svg, bytes, uptime, ago, sum, tally, lamp, tip, meter, severity, statTile, stats, row, panel,
         donut, rate, splitBars, sinkholes, columnGroups,
     } = window.LabratWidgets;
-    const { accessPoints, channelGroups } = window.LabratNetworkModel;
+    const {
+        accessPoints, channelGroups, sectionState, gatewayView, ruleGroups, readoutState, peerState,
+    } = window.LabratNetworkModel;
     const app = document.getElementById("networks-app");
     if (!app) {
         return;
@@ -33,18 +39,55 @@
         zone: params.get("zone") || null,
         direction: "out",
         clients: params.get("sub") || "all",
+        source: params.get("source") || readPreference("labrat.networks.source", null),
     };
+    const sourcePicker = document.getElementById("networks-source");
+
+    /** The shared section each tab draws; a source without it shows a note. */
+    const TAB_SECTIONS = { zones: "zones", networks: "networks", wifi: "wifi", devices: "devices", clients: "clients" };
 
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
 
     /**
-     * The current source's snapshot and derived views.
-     * @returns {object|null} The source entry with a snapshot.
+     * The chosen source with a network in the shared form, else the first.
+     * @returns {object|null} The source entry.
      */
     function current() {
-        return data ? data.sources.find((source) => source.snapshot) || null : null;
+        const ready = data ? data.sources.filter((source) => source.network) : [];
+        return ready.find((source) => String(source.id) === String(state.source)) || ready[0] || null;
+    }
+
+    /**
+     * A source's name for people: its display name without the kind prefix.
+     * @param {object} source Source entry.
+     * @returns {string} Such as "Edge firewall".
+     */
+    function sourceName(source) {
+        return (source.network && source.network.site) || String(source.name || "").replace(/^[a-z_]+:/, "");
+    }
+
+    /** Offer each source with a network, when there is more than one. */
+    function fillSourcePicker() {
+        const ready = data.sources.filter((source) => source.network);
+        const chosen = current();
+        sourcePicker.replaceChildren(...ready.map((source) => el("option", {
+            value: String(source.id), text: `${sourceName(source)} (${source.network.source.kind === "opnsense" ? "OPNsense" : "UniFi"})`,
+        })));
+        if (chosen) {
+            sourcePicker.value = String(chosen.id);
+        }
+        document.getElementById("networks-source-field").hidden = ready.length < 2;
+    }
+
+    /**
+     * A normalized word as the source reported it, for tooltips.
+     * @param {string|null} word Such as "online" or "allow".
+     * @returns {string|null} The word in capitals.
+     */
+    function shout(word) {
+        return word ? word.toUpperCase() : word;
     }
 
     /**
@@ -60,35 +103,25 @@
     }
 
     /**
-     * A device's kind from its features.
-     * @param {object} device Curated device.
+     * A device's kind for display.
+     * @param {object} device Shared-form device.
      * @returns {string} Gateway, access point, switch, or other.
      */
     function deviceKind(device) {
-        const features = device.features || [];
-        if (/dream machine|gateway|udm|usg|uxg/i.test(device.model || "")) {
-            return "Gateway";
-        }
-        if (features.includes("accessPoint")) {
-            return "Access point";
-        }
-        if (features.includes("switching")) {
-            return "Switch";
-        }
-        return "Other";
+        return { gateway: "Gateway", access_point: "Access point", switch: "Switch" }[device.kind] || "Other";
     }
 
     /**
-     * Join zone, network, and device names for lookups.
-     * @param {object} snapshot Curated snapshot.
+     * Join zone, network, gateway, and device names for lookups.
+     * @param {object} snapshot Shared-form network.
      * @returns {object} Maps by ID.
      */
     function indexes(snapshot) {
         const zones = new Map(snapshot.zones.map((zone) => [zone.id, zone]));
         const networks = new Map(snapshot.networks.map((network) => [network.id, network]));
         const devices = new Map(snapshot.devices.map((device) => [device.id, device]));
-        const wans = new Map((snapshot.wans || []).map((wan) => [wan.id, wan]));
-        return { zones, networks, devices, wans };
+        const gateways = new Map((snapshot.gateways || []).map((gateway) => [gateway.id, gateway]));
+        return { zones, networks, devices, gateways };
     }
 
     // ------------------------------------------------------------------
@@ -101,12 +134,12 @@
      * @param {object} source Source entry.
      */
     function drawOverview(root, source) {
-        const snapshot = source.snapshot;
+        const snapshot = source.network;
         const clients = snapshot.clients || [];
-        const wired = clients.filter((client) => client.type === "WIRED");
-        const wireless = clients.filter((client) => client.type === "WIRELESS");
-        const online = snapshot.devices.filter((device) => device.state === "ONLINE");
-        const userPolicies = snapshot.policies.filter((policy) => policy.origin === "USER_DEFINED");
+        const wired = clients.filter((client) => client.connection === "wired");
+        const wireless = clients.filter((client) => client.connection === "wireless");
+        const online = snapshot.devices.filter((device) => device.state === "online");
+        const userPolicies = snapshot.policies.filter((policy) => policy.origin === "user");
         const health = el("div", { class: "net-health" }, (snapshot.health || []).map((item) => {
             const tone = item.status === "ok"
                 ? "on"
@@ -155,7 +188,7 @@
                 label: "Networks", value: String(snapshot.networks.length), hue: "network",
                 caption: `${new Set(snapshot.networks.map((network) => network.vlan)).size} VLANs`
             }),
-            statTile({ label: "Zones", value: String(snapshot.zones.length), hue: "network", caption: `${snapshot.zones.filter((zone) => zone.origin === "USER_DEFINED").length} your own` }),
+            statTile({ label: "Zones", value: String(snapshot.zones.length), hue: "network", caption: `${snapshot.zones.filter((zone) => zone.origin === "user").length} your own` }),
             statTile({
                 label: "Firewall policies", value: String(snapshot.policies.length), hue: "network",
                 caption: `${userPolicies.length} yours · ${snapshot.policies.length - userPolicies.length} built in`
@@ -187,24 +220,157 @@
                 { hue: "network" }
             ),
             panel("Policies", [donut([
-                { label: "Your allows", value: userPolicies.filter((policy) => policy.action === "ALLOW").length },
-                { label: "Your blocks", value: userPolicies.filter((policy) => policy.action !== "ALLOW").length },
+                { label: "Your allows", value: userPolicies.filter((policy) => policy.action === "allow").length },
+                { label: "Your blocks", value: userPolicies.filter((policy) => policy.action !== "allow").length },
                 { label: "Built in", value: snapshot.policies.length - userPolicies.length, tone: "muted" },
             ], {
                 label: "Firewall policies by origin and action", centre: String(snapshot.policies.length),
                 caption: "policies"
             })], { hue: "network" }),
         ]);
-        root.replaceChildren(health, sinkholePanel(source), tiles, donuts, topClients(clients));
+        root.replaceChildren(...[
+            health, gatewayPanel(snapshot), vpnPanel(snapshot), sinkholePanel(snapshot.sinkholes),
+            servicesPanel(snapshot), carpPanel(snapshot), tiles, donuts, topClients(clients),
+        ].filter(Boolean));
+    }
+
+    /**
+     * A readout's header note when it is not current: why, and from when.
+     * @param {object} state readoutState's result.
+     * @returns {string} Such as "last refresh failed; last known from 5 min ago".
+     */
+    function staleNote(state) {
+        return `${state.note}${state.since ? `; last known from ${ago(state.since)}` : ""}`;
+    }
+
+    /**
+     * A panel saying a readout could not be read at all (a first failure),
+     * so a failed read never looks like an empty one.
+     * @param {string} title Panel title.
+     * @returns {HTMLElement} The panel.
+     */
+    function unreadPanel(title) {
+        return panel(title, [el("p", { class: "cluster-empty", text: "This could not be read." })], { hue: "network" });
+    }
+
+    /**
+     * The WireGuard peers panel: last handshake, transfer, and keepalive.
+     * A reading that is not current is last known: grey lamps, standing as
+     * of the reading's own time, and no live count.
+     * @param {object} snapshot Shared-form network.
+     * @returns {HTMLElement|null} The panel, or null without peers.
+     */
+    function vpnPanel(snapshot) {
+        const peers = snapshot.vpn || [];
+        const state = readoutState(snapshot, "vpn");
+        if (!peers.length) {
+            return state.unread ? unreadPanel("WireGuard") : null;
+        }
+        const at = state.current ? Date.now() : Date.parse(state.since || "") || Date.now();
+        const table = el("table", { class: "cluster-list" });
+        table.append(el("thead", {}, [el("tr", {}, ["Peer", "Endpoint", "Last handshake", "Transfer", "Keepalive"]
+            .map((name) => el("th", { scope: "col", text: name })))]));
+        table.append(el("tbody", {}, peers.map((peer) => {
+            const standing = peerState(peer, at);
+            return el("tr", {}, [
+                el("td", { class: "cluster-list-name" }, [lamp(state.current ? standing.tone : "off",
+                    `${state.current ? "" : "last known: "}${standing.label}`), el("strong", { text: peer.name || "unnamed" })]),
+                el("td", { class: "cluster-list-ip", text: peer.endpoint || "—" }),
+                el("td", { text: peer.handshake ? ago(new Date(peer.handshake * 1000).toISOString()) : "never" }),
+                el("td", { text: `${bytes(peer.rx_bytes)} in · ${bytes(peer.tx_bytes)} out` }),
+                el("td", { text: peer.keepalive ? `${peer.keepalive} s` : "off" }),
+            ]);
+        })));
+        return panel("WireGuard", [el("div", { class: "cluster-list-scroll", tabindex: 0 }, [table])], {
+            hue: "network", aside: state.current
+                ? `${peers.filter((peer) => peerState(peer, at).key === "recent").length} of ${peers.length} recently connected`
+                : staleNote(state),
+        });
+    }
+
+    /**
+     * The services panel: which of the router's services run (last known,
+     * without warnings, when the reading is not current).
+     * @param {object} snapshot Shared-form network.
+     * @returns {HTMLElement|null} The panel, or null when none are reported.
+     */
+    function servicesPanel(snapshot) {
+        const services = snapshot.services || [];
+        const state = readoutState(snapshot, "services");
+        if (!services.length) {
+            return state.unread ? unreadPanel("Services") : null;
+        }
+        const stopped = services.filter((service) => !service.running);
+        return panel("Services", [el("p", { class: "net-flags" }, services.map((service) => el("span", {
+            class: `cluster-pill${service.running || !state.current ? "" : " is-warning"}`,
+            text: service.description || service.name,
+            title: `${state.current ? "" : "last known: "}${service.running ? "running" : "not running"}`,
+        })))], {
+            hue: "network",
+            aside: !state.current ? staleNote(state) : stopped.length ? `${stopped.length} not running` : `all ${services.length} running`,
+        });
+    }
+
+    /**
+     * The CARP panel: each virtual IP's state on this node, with the IP
+     * aliases on its VHID (last known, without warnings, when not current).
+     * @param {object} snapshot Shared-form network.
+     * @returns {HTMLElement|null} The panel, or null without virtual IPs.
+     */
+    function carpPanel(snapshot) {
+        const carp = snapshot.carp;
+        const state = readoutState(snapshot, "carp");
+        if (!carp || !(carp.vips || []).length) {
+            return state.unread ? unreadPanel("High availability (CARP)") : null;
+        }
+        return panel("High availability (CARP)", [el("p", { class: "net-flags" }, carp.vips.map((vip) => el("span", {
+            class: `cluster-pill${vip.state === "master" || !state.current ? "" : " is-warning"}`,
+            text: `${vip.address || vip.interface} · VHID ${vip.vhid ?? "?"} · ${state.current ? "" : "last known "}${vip.state || "unknown"}`,
+            title: (vip.aliases || []).length ? `Aliases on this VHID: ${vip.aliases.join(", ")}` : "",
+        })))], {
+            hue: "network",
+            aside: !state.current ? staleNote(state) : carp.maintenance ? "maintenance mode" : `demotion ${carp.demotion ?? 0}`,
+        });
+    }
+
+    /**
+     * The WAN gateways panel, for a source that reports gateway status
+     * (OPNsense's dpinger), from gatewayView: state, latency, and loss; an
+     * unmonitored gateway shows its status without readings, never zero,
+     * and is not counted as up; stale rows are last known and greyed. A
+     * first failure says the status could not be read.
+     * @param {object} snapshot Shared-form network.
+     * @returns {HTMLElement|null} The panel, or null when the source reports
+     *     no gateway status.
+     */
+    function gatewayPanel(snapshot) {
+        const view = gatewayView(snapshot, ago);
+        const section = (snapshot.sections || {}).gateways;
+        if (!view.rows.length) {
+            return snapshot.source.kind === "opnsense" && section && section.status === "failed"
+                ? panel("Gateways", [el("p", { class: "cluster-empty", text: "Gateway status could not be read." })], { hue: "network" })
+                : null;
+        }
+        const table = el("table", { class: "cluster-list" });
+        table.append(el("thead", {}, [el("tr", {}, ["Gateway", "Address", "Interface", "Latency", "Loss"]
+            .map((name) => el("th", { scope: "col", text: name })))]));
+        table.append(el("tbody", {}, view.rows.map(({ gateway, tone, label, showDefault }) => el("tr", {}, [
+            el("td", { class: "cluster-list-name" }, [lamp(tone, label), el("strong", { text: gateway.name }),
+                showDefault ? el("span", { class: "cluster-pill", text: "default" }) : null].filter(Boolean)),
+            el("td", { class: "cluster-list-ip", text: gateway.address || "—" }),
+            el("td", { text: gateway.interface || "—" }),
+            el("td", { text: gateway.monitored && typeof gateway.delay_ms === "number" ? `${gateway.delay_ms} ms` : "not monitored" }),
+            el("td", { text: gateway.monitored && typeof gateway.loss_pct === "number" ? `${gateway.loss_pct}%` : "—" }),
+        ]))));
+        return panel("Gateways", [el("div", { class: "cluster-list-scroll", tabindex: 0 }, [table])], { hue: "network", aside: view.aside });
     }
 
     /**
      * The DNS sinkholes panel: custom DNS servers and likely Pi-holes.
-     * @param {object} source Source entry.
+     * @param {Array<object>} items Sinkhole entries.
      * @returns {HTMLElement} The panel.
      */
-    function sinkholePanel(source) {
-        const items = source.sinkholes || [];
+    function sinkholePanel(items) {
         return panel("DNS sinkholes", [sinkholes(items)],
             {
                 hue: "network",
@@ -238,28 +404,99 @@
     // ------------------------------------------------------------------
 
     /**
-     * Draw the Zones tab with its Graph, Matrix, and Rules subtabs.
+     * The Zones tab's subtab for a source: a router without verdicts
+     * (OPNsense) has Zones and Rules, never a graph or matrix of paths it
+     * cannot know; others have Graph, Matrix, and Rules.
+     * @param {object} source Source entry.
+     * @returns {{verdicts: boolean, styles: Array<string>, style: string}} The choices and the current one.
+     */
+    function zoneStyle(source) {
+        const verdicts = !(source.network.capabilities && source.network.capabilities.verdicts === false);
+        const styles = verdicts ? ["graph", "matrix", "rules"] : ["zones", "rules"];
+        return { verdicts, styles, style: styles.includes(state.zoneStyle) ? state.zoneStyle : styles[verdicts ? 0 : 1] };
+    }
+
+    /**
+     * Draw the Zones tab: Graph, Matrix, and Rules subtabs, or, for a router
+     * without verdicts, Zones and Rules.
      * @param {HTMLElement} root Tab panel.
      * @param {object} source Source entry.
      */
     function drawZones(root, source) {
-        if (!["graph", "matrix", "rules"].includes(state.zoneStyle)) {
-            state.zoneStyle = "graph";
-        }
+        const { verdicts, style } = zoneStyle(source);
         const strip = window.LabratViewFrame.placeSubtabs({
-            label: "Zone views", tab: app.querySelector('[data-tab="zones"]'), current: state.zoneStyle,
-            items: [
+            label: "Zone views", tab: app.querySelector('[data-tab="zones"]'), current: style,
+            items: verdicts ? [
                 { key: "graph", label: "Graph" }, { key: "matrix", label: "Matrix" },
-                { key: "rules", label: "Rules", detail: String(source.snapshot.policies.length) }
+                { key: "rules", label: "Rules", detail: String(source.network.policies.length) }
+            ] : [
+                { key: "zones", label: "Zones", detail: String(source.network.zones.length) },
+                { key: "rules", label: "Rules", detail: String(source.network.policies.length) }
             ],
             onSelect: (key) => { state.zoneStyle = key; writePreference("labrat.networks.zoneStyle", key); render(); },
         });
-        const body = state.zoneStyle === "matrix"
-            ? zoneMatrix(source)
-            : state.zoneStyle === "rules"
-            ? rulesList(source)
-            : zoneGraph(source);
-        root.replaceChildren(...(strip ? [strip] : []), body);
+        let body;
+        const shown = (source.network.sections || {})[style === "rules" ? "policies" : "zones"];
+        if (shown && shown.status === "not_available") {
+            body = el("p", { class: "cluster-empty", text: `${sourceName(source)} does not report this. Choose the other subtab, another router, or another tab.` });
+        } else if (!verdicts) {
+            body = style === "zones" ? zoneMembers(source) : reportedRules(source);
+        } else {
+            body = style === "matrix" ? zoneMatrix(source) : style === "rules" ? rulesList(source) : zoneGraph(source);
+        }
+        // OPNsense evaluates rules in an order the shared form does not
+        // model, so it carries no verdicts: say so instead of guessing.
+        const note = verdicts ? null : el("p", { class: "cluster-muted", text: "Effective reachability is not available for this router: its rules are listed as reported, in evaluation order, without verdicts." });
+        root.replaceChildren(...(strip ? [strip] : []), ...(note ? [note] : []), body);
+    }
+
+    /**
+     * A verdict-less router's zones: interface groups and lone interfaces,
+     * each with its networks (an interface in two groups is in both).
+     * @param {object} source Source entry.
+     * @returns {HTMLElement} The panel.
+     */
+    function zoneMembers(source) {
+        const snapshot = source.network;
+        const { networks } = indexes(snapshot);
+        const cards = snapshot.zones.map((zone) => el("article", { class: "cluster-card net-network" }, [
+            el("header", { class: "net-network-heading" }, [
+                el("h3", { text: zone.name }),
+                el("span", { class: "cluster-pill", text: zone.kind === "group" ? "group" : "interface" }),
+            ]),
+            el("p", { class: "cluster-muted", text: zone.networks.map((id) => (networks.get(id) || {}).name
+                || id.split(":").pop()).join(", ") || "no members" }),
+        ]));
+        return panel("Zones", [el("div", { class: "net-network-grid" }, cards)], { hue: "network", aside: "interface groups and interfaces" });
+    }
+
+    /**
+     * A verdict-less router's rules, grouped by evaluation stage (ruleGroups).
+     * @param {object} source Source entry.
+     * @returns {HTMLElement} The panel.
+     */
+    function reportedRules(source) {
+        const groups = ruleGroups(source.network);
+        const table = el("table", { class: "cluster-list net-rules" });
+        table.append(el("thead", {}, [el("tr", {}, ["Rule", "On", "Direction", "Reported match", "Notes"]
+            .map((name) => el("th", { scope: "col", text: name })))]));
+        const body = el("tbody");
+        for (const group of groups) {
+            body.append(el("tr", { class: "net-rules-stage" }, [el("th", { scope: "colgroup", colspan: 5, text: `${group.label} (${group.rules.length})` })]));
+            for (const rule of group.rules) {
+                body.append(el("tr", { class: rule.enabled ? "" : "is-stopped" }, [
+                    el("td", {}, [lamp(rule.enabled ? (rule.action === "pass" ? "on" : "alarm") : "off", rule.action || "unknown"),
+                        el("span", { text: ` ${rule.name || "unnamed"}` })]),
+                    el("td", { text: (rule.interface_names || []).join(", ") || "every interface" }),
+                    el("td", { text: rule.direction || "—" }),
+                    el("td", { class: "net-rule-match", text: rule.match, title: rule.match }),
+                    el("td", {}, rule.marks.map((mark) => el("span", { class: "cluster-pill is-warning", text: mark }))),
+                ]));
+            }
+        }
+        table.append(body);
+        const own = groups.filter((group) => group.scope !== "system").reduce((total, group) => total + group.rules.length, 0);
+        return panel("Rules", [el("div", { class: "cluster-list-scroll", tabindex: 0 }, [table])], { hue: "network", aside: `${own} yours, in evaluation order` });
     }
 
     /**
@@ -285,14 +522,14 @@
      * @returns {HTMLElement} The view.
      */
     function zoneGraph(source) {
-        const snapshot = source.snapshot;
-        const { networks, wans } = indexes(snapshot);
-        const zones = [...snapshot.zones].sort((a, b) => (b.network_ids.length - a.network_ids.length)
+        const snapshot = source.network;
+        const { networks, gateways } = indexes(snapshot);
+        const zones = [...snapshot.zones].sort((a, b) => (b.networks.length - a.networks.length)
             || a.name.localeCompare(b.name));
         if (!state.zone || !zones.some((zone) => zone.id === state.zone)) {
             state.zone = (zones.find((zone) => zone.name === "Internal") || zones[0] || {}).id || null;
         }
-        const paths = new Map(source.paths.map((path) => [`${path.source}>${path.destination}`, path]));
+        const paths = new Map(source.network.paths.map((path) => [`${path.source}>${path.destination}`, path]));
         const width = 1040;
         const height = 640;
         const cx = width / 2;
@@ -381,11 +618,11 @@
         }
         for (const zone of zones) {
             const { x, y } = position.get(zone.id);
-            const member = zone.network_ids.map((id) => networks.get(id) || (wans.get(id) ? {
-                name: wans.get(id).name, vlan: null
+            const member = zone.networks.map((id) => networks.get(id) || (gateways.get(id) ? {
+                name: gateways.get(id).name, vlan: null
             } : null)).filter(Boolean);
             const self = paths.get(`${zone.id}>${zone.id}`);
-            const group = svg("g", { class: `net-zone${zone.id === selected ? " is-selected" : ""}${zone.origin === "USER_DEFINED" ? " is-user" : ""}`, tabindex: 0, role: "button", "aria-pressed": String(zone.id === selected), "aria-label": `${zone.name}: ${member.length} networks` });
+            const group = svg("g", { class: `net-zone${zone.id === selected ? " is-selected" : ""}${zone.origin === "user" ? " is-user" : ""}`, tabindex: 0, role: "button", "aria-pressed": String(zone.id === selected), "aria-label": `${zone.name}: ${member.length} networks` });
             group.append(svg("rect", { x: x - box.w / 2, y: y - box.h / 2, width: box.w, height: box.h, rx: 10 }));
             const title = svg("text", { class: "net-zone-name", x: x - box.w / 2 + 12, y: y - box.h / 2 + 22 });
             title.textContent = zone.name;
@@ -407,7 +644,7 @@
                 );
                 group.append(dot);
             }
-            tip(group, [zone.name, `${zone.origin === "USER_DEFINED" ? "Your zone" : "Built-in zone"}`, ...member.map((network) => `${network.name}${network.vlan ? ` (VLAN ${network.vlan})` : ""}`),
+            tip(group, [zone.name, `${zone.origin === "user" ? "Your zone" : "Built-in zone"}`, ...member.map((network) => `${network.name}${network.vlan ? ` (VLAN ${network.vlan})` : ""}`),
                 self ? `Inside the zone: ${self.verdict}${self.exceptions.length ? `, ${self.exceptions.length} exceptions` : ""}` : ""].filter(Boolean));
             const pick = () => {
                 if (state.zone !== zone.id) {
@@ -468,8 +705,8 @@
      * @returns {HTMLElement} The panel.
      */
     function zoneDetail(source, selected, outward) {
-        const snapshot = source.snapshot;
-        const rows = source.paths.filter((path) => (outward ? path.source : path.destination) === selected)
+        const snapshot = source.network;
+        const rows = source.network.paths.filter((path) => (outward ? path.source : path.destination) === selected)
             .sort((a, b) => (a.verdict === b.verdict ? 0 : a.verdict === "allow" ? -1 : 1));
         const describe = (path) => {
             const other = zoneName(snapshot, outward ? path.destination : path.source);
@@ -515,8 +752,8 @@
      * @returns {HTMLElement} The panel.
      */
     function zoneMatrix(source) {
-        const zones = source.snapshot.zones;
-        const paths = new Map(source.paths.map((path) => [`${path.source}>${path.destination}`, path]));
+        const zones = source.network.zones;
+        const paths = new Map(source.network.paths.map((path) => [`${path.source}>${path.destination}`, path]));
         const table = el("table", { class: "cluster-matrix net-matrix" });
         table.append(el(
             "thead", {},
@@ -571,10 +808,10 @@
      * @returns {HTMLElement} The panel.
      */
     function rulesList(source) {
-        const snapshot = source.snapshot;
-        const rules = [...snapshot.policies].sort((a, b) => ((a.origin === "USER_DEFINED") === (b.origin === "USER_DEFINED")
-            ? (a.index || 0) - (b.index || 0)
-            : a.origin === "USER_DEFINED"
+        const snapshot = source.network;
+        const rules = [...snapshot.policies].sort((a, b) => ((a.origin === "user") === (b.origin === "user")
+            ? (a.order || 0) - (b.order || 0)
+            : a.origin === "user"
             ? -1
             : 1));
         const table = el("table", { class: "cluster-list net-rules" });
@@ -596,7 +833,7 @@
                 rule.protocol || "", rule.states ? rule.states.join("/").toLowerCase() : "",
             ].filter(Boolean).join(" · ");
             body.append(el("tr", { class: rule.enabled ? "" : "is-stopped" }, [
-                el("td", {}, [lamp(rule.enabled ? (rule.action === "ALLOW" ? "on" : "alarm") : "off", rule.enabled ? rule.action : "disabled"), el("span", { text: ` ${rule.name || "unnamed"}` })]),
+                el("td", {}, [lamp(rule.enabled ? (rule.action === "allow" ? "on" : "alarm") : "off", rule.enabled ? shout(rule.action) : "disabled"), el("span", { text: ` ${rule.name || "unnamed"}` })]),
                 el(
                     "td", { text: zoneName(snapshot, rule.source.zone) }
                 ), el("td", { text: zoneName(snapshot, rule.destination.zone) }),
@@ -604,12 +841,12 @@
                     "td", { text: (rule.action || "").toLowerCase() }
                 ), el("td", { class: "net-rule-match", text: matches || "everything", title: matches }),
                 el(
-                    "td", { class: "is-number", text: String(rule.index ?? "") }
-                ), el("td", { text: rule.origin === "USER_DEFINED" ? "yours" : "built in" }),
+                    "td", { class: "is-number", text: String(rule.order ?? "") }
+                ), el("td", { text: rule.origin === "user" ? "yours" : "built in" }),
             ]));
         }
         table.append(body);
-        return panel("Rules", [el("div", { class: "cluster-list-scroll", tabindex: 0 }, [table])], { hue: "network", aside: `${rules.filter((rule) => rule.origin === "USER_DEFINED").length} of yours first` });
+        return panel("Rules", [el("div", { class: "cluster-list-scroll", tabindex: 0 }, [table])], { hue: "network", aside: `${rules.filter((rule) => rule.origin === "user").length} of yours first` });
     }
 
     // ------------------------------------------------------------------
@@ -622,8 +859,8 @@
      * @param {object} source Source entry.
      */
     function drawNetworks(root, source) {
-        const snapshot = source.snapshot;
-        const sinkholes = new Map((source.sinkholes || []).map((item) => [item.ip, item]));
+        const snapshot = source.network;
+        const sinkholes = new Map((snapshot.sinkholes || []).map((item) => [item.ip, item]));
         const ipNumber = (ip) => (ip || "").split(".").reduce((total, part) => total * 256 + Number(part), 0);
         const cards = [...snapshot.networks].sort((a, b) => (a.vlan || 0) - (b.vlan || 0)).map((network) => {
             const clients = snapshot.clients.filter((client) => client.network === network.name);
@@ -633,13 +870,13 @@
                 el("header", { class: "net-network-heading" }, [
                     el("span", { class: "net-vlan", text: network.vlan ? `VLAN ${network.vlan}` : "no VLAN" }),
                     el("h3", { text: network.name }),
-                    el("span", { class: "cluster-pill", text: zoneName(snapshot, network.zone_id) }),
+                    el("span", { class: "cluster-pill", text: zoneName(snapshot, network.zone) }),
                 ]),
                 el(
                     "p",
                     {
                         class: "net-cidr",
-                        text: network.cidr || (network.management === "UNMANAGED" ? "unmanaged" : "no subnet")
+                        text: network.cidr || (network.management === "unmanaged" ? "unmanaged" : "no subnet")
                     }
                 ),
                 size ? el("div", { class: "cluster-capacity-row net-capacity" }, [
@@ -650,9 +887,9 @@
                     }),
                     el("span", { class: "cluster-node-figure", text: `${clients.length}/${size}` }),
                 ]) : el("p", { class: "cluster-muted", text: `${clients.length} client${clients.length === 1 ? "" : "s"}` }),
-                el("dl", { class: "cluster-facts" }, [
+                el("dl", { class: "widget-facts" }, [
                     el("dt", { text: "Gateway" }), el("dd", { text: network.gateway || "—" }),
-                    el("dt", { text: "DHCP" }), el("dd", { text: dhcp.mode ? `${dhcp.mode.toLowerCase()}${dhcp.start ? ` ${dhcp.start}–${dhcp.stop}` : ""}` : "—" }),
+                    el("dt", { text: "DHCP" }), el("dd", { text: dhcp.mode ? `${dhcp.mode.toLowerCase()}${dhcp.start ? ` ${dhcp.start}–${dhcp.stop}` : ""}${dhcp.serving === false ? " (configured, no leases seen)" : ""}` : "—" }),
                     el(
                         "dt", { text: "DNS" }
                     ), el("dd", {}, (dhcp.dns || []).length ? dhcp.dns.map((server) => el("span", {
@@ -683,8 +920,8 @@
      * @param {object} source Source entry.
      */
     function drawWifi(root, source) {
-        const snapshot = source.snapshot;
-        const wireless = snapshot.clients.filter((client) => client.type === "WIRELESS");
+        const snapshot = source.network;
+        const wireless = snapshot.clients.filter((client) => client.connection === "wireless");
         const aps = accessPoints(snapshot);
         const ssids = el("div", { class: "net-ssids" }, (snapshot.wifi || []).map((item) => {
             const count = wireless.filter((client) => client.essid === item.name).length;
@@ -707,13 +944,13 @@
             tone: index >= 3 ? (index === 4 ? "alarm" : "warning") : null,
         }));
         const apCards = el("div", { class: "net-network-grid" }, aps.map((device) => {
-            const count = snapshot.clients.filter((client) => client.uplink_device === device.id
-                && client.type === "WIRELESS").length;
-            return el("article", { class: `cluster-card net-device${device.state === "ONLINE" ? "" : " is-stopped"}` }, [
+            const count = snapshot.clients.filter((client) => client.uplink === device.id
+                && client.connection === "wireless").length;
+            return el("article", { class: `cluster-card net-device${device.state === "online" ? "" : " is-stopped"}` }, [
                 el(
                     "header", { class: "net-network-heading" },
                     [
-                        lamp(device.state === "ONLINE" ? "on" : "alarm", device.state), el("h3", { text: device.name }),
+                        lamp(device.state === "online" ? "on" : "alarm", shout(device.state)), el("h3", { text: device.name }),
                         el("span", { class: "cluster-pill", text: `${count} clients` })
                     ]
                 ),
@@ -759,7 +996,7 @@
                     [donut(
                         tally(
                             wireless,
-                            (client) => (snapshot.devices.find((device) => device.id === client.uplink_device)
+                            (client) => (snapshot.devices.find((device) => device.id === client.uplink)
                                 || { name: "unknown" }).name
                         ),
                         { label: "Wireless clients by access point", pie: true }
@@ -767,7 +1004,7 @@
                     { hue: "network" }
                 ),
             ]),
-            panel("Access points", [apCards], { hue: "network", aside: `${aps.filter((device) => device.state === "ONLINE").length} of ${aps.length} online` }),
+            panel("Access points", [apCards], { hue: "network", aside: `${aps.filter((device) => device.state === "online").length} of ${aps.length} online` }),
             neighbourhood(snapshot),
         );
     }
@@ -776,7 +1013,7 @@
      * The Wi-Fi neighbourhood: neighbouring networks per channel, one chart
      * per band on one scale, with your own APs' channels lit, so a crowded
      * channel stands out. Only counts are kept; neighbours' names are not.
-     * @param {object} snapshot Curated snapshot.
+     * @param {object} snapshot Shared-form network.
      * @returns {HTMLElement} The panel.
      */
     function neighbourhood(snapshot) {
@@ -802,19 +1039,19 @@
      * @param {object} source Source entry.
      */
     function drawDevices(root, source) {
-        const snapshot = source.snapshot;
+        const snapshot = source.network;
         const { devices } = indexes(snapshot);
         const children = new Map();
         for (const device of snapshot.devices) {
-            const parent = device.uplink_device && devices.has(device.uplink_device) ? device.uplink_device : "root";
+            const parent = device.uplink && devices.has(device.uplink) ? device.uplink : "root";
             children.set(parent, (children.get(parent) || []).concat(device));
         }
         const tree = el("ul", { class: "net-tree" });
         const walk = (parent, depth, list) => {
             for (const device of (children.get(parent) || []).sort((a, b) => a.name.localeCompare(b.name))) {
-                const clients = snapshot.clients.filter((client) => client.uplink_device === device.id).length;
+                const clients = snapshot.clients.filter((client) => client.uplink === device.id).length;
                 const item = el("li", { class: `net-tree-row depth-${Math.min(depth, 5)}`, tabindex: 0 }, [
-                    lamp(device.state === "ONLINE" ? "on" : "alarm", device.state), el("strong", { text: device.name }),
+                    lamp(device.state === "online" ? "on" : "alarm", shout(device.state)), el("strong", { text: device.name }),
                     el("span", { class: "cluster-muted", text: ` ${deviceKind(device).toLowerCase()} · ${device.model || ""}` }),
                     el("span", { class: "net-tree-clients", text: `${clients} clients` }),
                 ]);
@@ -831,19 +1068,19 @@
         walk("root", 0, tree);
         const cards = el("div", { class: "net-network-grid" }, snapshot.devices.filter((device) => (device.ports
             || []).length).map((device) => {
-            const up = device.ports.filter((port) => port.state === "UP").length;
+            const up = device.ports.filter((port) => port.state === "up").length;
             const strip = el("div", {
                 class: "net-ports", role: "img", "aria-label": `${up} of ${device.ports.length} ports up`
             }, device.ports.map((port) => {
                 const pip = el("span", { class: `net-port is-${(port.state || "unknown").toLowerCase()} speed-${port.speed >= 10000 ? "10g" : port.speed >= 2500 ? "2g" : port.speed >= 1000 ? "1g" : port.speed ? "slow" : "none"}`, tabindex: 0 });
-                tip(pip, [`Port ${port.idx}`, `${port.state || "unknown"}${port.speed ? ` · ${port.speed >= 1000 ? `${port.speed / 1000} Gb/s` : `${port.speed} Mb/s`}` : ""}`, port.connector || "", port.poe ? `PoE ${port.poe.toLowerCase()}` : ""].filter(Boolean));
+                tip(pip, [`Port ${port.idx}`, `${shout(port.state) || "unknown"}${port.speed ? ` · ${port.speed >= 1000 ? `${port.speed / 1000} Gb/s` : `${port.speed} Mb/s`}` : ""}`, port.connector || "", port.poe ? `PoE ${port.poe.toLowerCase()}` : ""].filter(Boolean));
                 return pip;
             }));
-            return el("article", { class: `cluster-card net-device${device.state === "ONLINE" ? "" : " is-stopped"}` }, [
+            return el("article", { class: `cluster-card net-device${device.state === "online" ? "" : " is-stopped"}` }, [
                 el(
                     "header", { class: "net-network-heading" },
                     [
-                        lamp(device.state === "ONLINE" ? "on" : "alarm", device.state), el("h3", { text: device.name }),
+                        lamp(device.state === "online" ? "on" : "alarm", shout(device.state)), el("h3", { text: device.name }),
                         el("span", { class: "cluster-pill", text: `${up}/${device.ports.length} up` })
                     ]
                 ),
@@ -879,20 +1116,20 @@
                 panel("Firmware and state", [donut([
                     {
                         label: "Online, current",
-                        value: snapshot.devices.filter((device) => device.state === "ONLINE"
+                        value: snapshot.devices.filter((device) => device.state === "online"
                             && !device.updatable).length,
                         tone: "ok"
                     },
                     {
                         label: "Online, update available",
-                        value: snapshot.devices.filter((device) => device.state === "ONLINE"
+                        value: snapshot.devices.filter((device) => device.state === "online"
                             && device.updatable).length,
                         tone: "warning"
                     },
                     {
-                        label: "Offline", value: snapshot.devices.filter((device) => device.state !== "ONLINE").length,
+                        label: "Offline", value: snapshot.devices.filter((device) => device.state !== "online").length,
                         tone: "alarm",
-                      detail: snapshot.devices.filter((device) => device.state !== "ONLINE").map((device) => device.name).join(", ") },
+                      detail: snapshot.devices.filter((device) => device.state !== "online").map((device) => device.name).join(", ") },
                 ], {
                     label: "Devices by state and firmware", centre: String(snapshot.devices.length), caption: "devices"
                 })], { hue: "network" }),
@@ -908,12 +1145,12 @@
      * @param {object} source Source entry.
      */
     function drawClients(root, source) {
-        const snapshot = source.snapshot;
+        const snapshot = source.network;
         const { devices } = indexes(snapshot);
         const all = snapshot.clients;
         const filters = {
-            all: () => true, wired: (client) => client.type === "WIRED",
-            wifi: (client) => client.type === "WIRELESS", guests: (client) => Boolean(client.guest),
+            all: () => true, wired: (client) => client.connection === "wired",
+            wifi: (client) => client.connection === "wireless", guests: (client) => Boolean(client.guest),
         };
         if (!(state.clients in filters)) {
             state.clients = "all";
@@ -942,15 +1179,19 @@
         ));
         const body = el("tbody");
         for (const client of rows) {
-            const via = devices.get(client.uplink_device);
+            const via = devices.get(client.uplink);
             body.append(el("tr", {}, [
                 el(
                     "td", { class: "cluster-list-name" },
-                    [lamp("on", "connected"), el("strong", { text: client.name || client.hostname || client.mac })]
+                    [client.state === "lease" ? lamp("off", "lease only")
+                        : lamp("on", client.state === "seen" ? "seen by router" : "connected"),
+                    el("strong", { text: client.name || client.hostname || client.mac })]
                 ),
                 el("td", { class: "cluster-list-ip", text: client.ip || "—" }),
                 el("td", { text: client.network || "—" }),
-                el("td", { text: client.type === "WIRELESS" ? `${client.essid || "Wi-Fi"} · ${wifiGeneration(client.radio)}` : `wired${client.wired_rate ? ` · ${client.wired_rate >= 1000 ? `${client.wired_rate / 1000} Gb/s` : `${client.wired_rate} Mb/s`}` : ""}` }),
+                el("td", { text: client.connection === "other"
+                    ? (client.state === "lease" ? "lease only" : "seen by router")
+                    : client.connection === "wireless" ? `${client.essid || "Wi-Fi"} · ${wifiGeneration(client.radio)}` : `wired${client.wired_rate ? ` · ${client.wired_rate >= 1000 ? `${client.wired_rate / 1000} Gb/s` : `${client.wired_rate} Mb/s`}` : ""}` }),
                 el("td", { text: via ? via.name : "—" }),
                 el("td", { class: "cluster-list-meter" }, typeof client.satisfaction === "number" ? [meter({
                     total: 100, used: client.satisfaction, label: `Satisfaction ${client.satisfaction}%`,
@@ -958,7 +1199,7 @@
                 }),
                     el(
                         "span",
-                        { text: client.type === "WIRELESS"
+                        { text: client.connection === "wireless"
                             && typeof client.signal === "number"
                             ? `${client.signal} dBm`
                             : `${client.satisfaction}%` }
@@ -1004,19 +1245,40 @@
         if (!source) {
             summaryLine.textContent = data ? "No UniFi network snapshot yet" : "Loading…";
             if (data) {
-                document.getElementById(`networks-view-${state.view}`).replaceChildren(el(
-                    "p",
-                    {
-                        class: "cluster-empty",
-                        text: "The collector has not stored a UniFi network snapshot yet. It refreshes every five minutes."
-                    }
-                ));
+                const note = el("p", {
+                    class: "cluster-empty",
+                    text: "The collector has not stored a UniFi network snapshot yet. It refreshes every five minutes."
+                });
+                // Pi-holes set up in Settings need no UniFi: show them anyway.
+                const piholes = state.view === "overview" && (data.piholes || []).length
+                    ? sinkholePanel(data.piholes) : null;
+                document.getElementById(`networks-view-${state.view}`).replaceChildren(...[note, piholes].filter(Boolean));
             }
             return;
         }
-        const snapshot = source.snapshot;
-        summaryLine.textContent = `${snapshot.site.name || source.name} · ${snapshot.networks.length} networks · ${snapshot.clients.length} clients · sampled ${ago(snapshot.sampled_at)}${snapshot.available === false ? " (stale)" : ""}`;
-        drawers[state.view](document.getElementById(`networks-view-${state.view}`), source);
+        const snapshot = source.network;
+        summaryLine.textContent = `${sourceName(source)} · ${snapshot.networks.length} networks · ${snapshot.clients.length} clients · sampled ${ago(snapshot.sampled_at)}${snapshot.available ? "" : " (stale)"}`;
+        // The Rules subtab shows the rules (policies), not the zones.
+        const sectionName = state.view === "zones" && zoneStyle(source).style === "rules" ? "policies" : TAB_SECTIONS[state.view];
+        const section = (snapshot.sections || {})[sectionName];
+        // The Zones tab keeps its subtabs and says so inside the one that
+        // is not reported (drawZones), so the other stays reachable.
+        if (section && section.status === "not_available" && state.view !== "zones") {
+            window.LabratViewFrame.placeSubtabs({ label: "Subtabs", items: [] });
+            document.getElementById(`networks-view-${state.view}`).replaceChildren(el("p", {
+                class: "cluster-empty", text: `${sourceName(source)} does not report this. Choose another router, or another tab.`,
+            }));
+            return;
+        }
+        const root = document.getElementById(`networks-view-${state.view}`);
+        drawers[state.view](root, source);
+        // A failed refresh keeps the last reading: say so, with its time.
+        const freshness = sectionState(section);
+        if (section && !freshness.current && section.status !== "not_available") {
+            root.prepend(el("p", { class: "view-notice", role: "status", text: freshness.since
+                ? `The last refresh of this part failed: showing the reading from ${ago(freshness.since)}.`
+                : "This part could not be read." }));
+        }
     }
 
     /**
@@ -1031,6 +1293,7 @@
             notice.textContent = "The network data could not be loaded. Try Refresh.";
             return;
         }
+        fillSourcePicker();
         render();
     }
 
@@ -1058,6 +1321,14 @@
             wide = window.innerWidth > 640;
             render();
         }
+    });
+    sourcePicker.addEventListener("change", () => {
+        state.source = sourcePicker.value;
+        writePreference("labrat.networks.source", state.source);
+        const url = new URL(window.location.href);
+        url.searchParams.set("source", state.source);
+        window.history.replaceState(window.history.state, "", url);
+        render();
     });
     document.getElementById("networks-refresh").addEventListener("click", load);
     render();

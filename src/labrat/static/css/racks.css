@@ -576,25 +576,8 @@
     display: none;
 }
 
-.rack-form-feedback {
-    margin: 0.35rem 0 0;
-    padding: 0.65rem 0.75rem;
-    border: 1px solid color-mix(in srgb, var(--color-status-error) 55%, transparent);
-    border-radius: var(--radius-control);
-    background: var(--color-status-error-surface);
-    color: var(--color-text-primary);
-    font-size: 0.82rem;
-}
-
-.rack-form-feedback[hidden] {
-    display: none;
-}
-
-.rack-form-feedback[data-state="success"] {
-    border-color: color-mix(in srgb, var(--color-status-ok) 55%, transparent);
-    background: var(--color-status-ok-surface);
-    color: var(--color-text-primary);
-}
+/* The manual-device form's feedback uses .device-form-feedback
+   (device-details.css), like the drawer's forms. */
 
 .rack-manual-position-fields {
     display: grid;

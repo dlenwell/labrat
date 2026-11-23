@@ -100,13 +100,80 @@ assert.equal(D.match(data, { observations: [{ id: 7, client: { virtualization: {
 
 // Wi-Fi channels: one group per band in band order, your own channels marked.
 const N = window.LabratNetworkModel;
+// Section freshness: a failed refresh with a kept reading is not current.
+assert.deepEqual({ ...N.sectionState({ status: 'complete', sampled_at: 't1' }) }, { current: true, label: null, since: null });
+assert.equal(N.sectionState({ status: 'partial', sampled_at: 't1' }).current, true);
+assert.deepEqual({ ...N.sectionState({ status: 'failed', sampled_at: 't0' }) }, { current: false, label: 'last refresh failed', since: 't0' });
+assert.deepEqual({ ...N.sectionState({ status: 'failed', sampled_at: null }) }, { current: false, label: 'could not be read', since: null });
+assert.equal(N.sectionState(undefined).label, 'not reported');
+// Rules in reported order, as consecutive runs of one stage: automatic
+// rules before and after the owner's stay where they are.
+const policies = [
+  { order: 0, scope: 'system', name: 'default deny', quick: false, enabled: true, source: {}, destination: {} },
+  { order: 1, scope: 'floating', name: 'block bad host', quick: true, enabled: true, protocol: 'TCP', ip_version: 'inet', source: { values: [] }, destination: { values: ['203.0.113.250'], ports: ['22'], negate: true } },
+  { order: 2, scope: 'interface', name: 'allow v4', quick: false, enabled: true, ip_version: 'inet', protocol: 'any', source: { values: ['lan'], ports: [] }, destination: { values: [], ports: [] } },
+  { order: 3, scope: 'interface', name: 'allow v6', quick: false, enabled: true, ip_version: 'inet6', protocol: 'any', source: { values: ['lan'], ports: [] }, destination: { values: [], ports: [] } },
+  { order: 4, scope: 'interface', name: 'old', quick: null, enabled: false, legacy: true, source: {}, destination: {} },
+  { order: 5, scope: 'system', name: 'let out', enabled: true, source: {}, destination: {} },
+];
+const stages = N.ruleGroups({ policies: [...policies].reverse() });
+assert.equal(stages.map((stage) => stage.scope).join(), 'system,floating,interface,system');
+assert.equal(stages[2].rules.map((rule) => rule.name).join(), 'allow v4,allow v6,old');
+assert.equal(stages[2].rules[0].marks.join(), 'not quick');
+assert.equal(stages[2].rules[2].marks.join(), 'not yet migrated,disabled');
+assert.equal(stages[1].rules[0].match, 'IPv4 TCP from any to not 203.0.113.250 port 22');
+// Identical rules but for their address family read differently.
+assert.equal(stages[2].rules[0].match, 'IPv4 any protocol from lan to any');
+assert.equal(stages[2].rules[1].match, 'IPv6 any protocol from lan to any');
+// Overview readouts: current, a failed section (last known), a failed poll, a first failure.
+const ok = { status: 'complete', sampled_at: 't1' };
+assert.equal(N.readoutState({ available: true, sections: { vpn: ok } }, 'vpn').current, true);
+let readout = N.readoutState({ available: true, sections: { vpn: { status: 'failed', sampled_at: 't0' } } }, 'vpn');
+assert.equal([readout.current, readout.note, readout.since, readout.unread].join(), 'false,last refresh failed,t0,false');
+readout = N.readoutState({ available: false, sections: { vpn: ok } }, 'vpn');
+assert.equal([readout.current, readout.note, readout.since].join(), 'false,latest poll failed,t1');
+readout = N.readoutState({ available: true, sections: { vpn: { status: 'failed', sampled_at: null } } }, 'vpn');
+assert.equal([readout.current, readout.unread].join(), 'false,true');
+// WireGuard peers: keepalive peers go stale; others go idle; some never connected.
+const at = 1_800_000_000_000;
+assert.equal(N.peerState({ handshake: null }, at).key, 'never');
+assert.equal(N.peerState({ handshake: at / 1000 - 60, keepalive: 25 }, at).key, 'recent');
+assert.equal(N.peerState({ handshake: at / 1000 - 400, keepalive: 25 }, at).key, 'stale');
+assert.equal(N.peerState({ handshake: at / 1000 - 400, keepalive: null }, at).key, 'idle');
+// Gateways: unmonitored ones are never "up"; stale rows are last known.
+const gw = (extra = {}) => ({ name: 'WAN_DHCP', status: 'none', label: 'Online', monitored: false, default: true, ...extra });
+const fresh = { available: true, sections: { gateways: { status: 'complete', sampled_at: 't1' } } };
+let view = N.gatewayView({ ...fresh, gateways: [gw(), gw({ name: 'WAN_DHCP6' })] });
+assert.equal(view.aside, '2 not monitored');
+assert.equal(view.rows[0].label, 'Online (not monitored)');
+assert.equal(view.rows[0].tone, 'off');
+assert.equal(view.rows[0].showDefault, true);
+view = N.gatewayView({ ...fresh, gateways: [gw({ monitored: true }), gw({ name: 'B', monitored: true, status: 'down', label: 'Offline' }), gw({ name: 'C' })] });
+assert.equal(view.aside, '1 of 2 monitored up · 1 not monitored');
+assert.deepEqual(view.rows.map((row) => row.tone), ['on', 'alarm', 'off']);
+// The gateway section failed: last known, greyed, no default badge.
+view = N.gatewayView({ available: true, sections: { gateways: { status: 'failed', sampled_at: 't0' } }, gateways: [gw({ monitored: true })] });
+assert.equal(view.current, false);
+assert.equal(view.rows[0].label, 'last known: Online');
+assert.equal(view.rows[0].showDefault, false);
+assert.equal(view.aside, 'last refresh failed; last known from t0');
+// The whole latest poll failed while the cached section says complete.
+view = N.gatewayView({ ...fresh, available: false, gateways: [gw({ monitored: true })] });
+assert.deepEqual([view.current, view.rows[0].tone, view.rows[0].showDefault], [false, 'off', false]);
+assert.equal(view.aside, 'latest poll failed; last known from t1');
 const groups = N.channelGroups({
   neighbours: [{ band: '5', channel: 36, count: 2 }, { band: '2.4', channel: 6, count: 4 }, { band: '2.4', channel: 1, count: 1 }],
-  devices: [{ features: ['accessPoint'], radios: [{ band: 2.4, channel: 6 }, { band: 5.8, channel: 149 }] }, { features: [], radios: [{ band: 2.4, channel: 1 }] }],
+  devices: [{ kind: 'access_point', roles: ['access_point'], radios: [{ band: 2.4, channel: 6 }, { band: 5.8, channel: 149 }] }, { kind: 'switch', roles: ['switch'], radios: [{ band: 2.4, channel: 1 }] }],
 });
 assert.equal(groups.map((group) => group.label).join(), '2.4 GHz,5 GHz');
 assert.equal(groups[0].rows.map((row) => `${row.label}:${row.value}:${row.mark}`).join(), '6:4:true,1:1:false');
 assert.equal(groups[1].rows[0].mark, false);
+// A console that routes and broadcasts Wi-Fi still marks its channels.
+const consoleGroups = N.channelGroups({
+  neighbours: [{ band: '2.4', channel: 11, count: 3 }],
+  devices: [{ kind: 'gateway', roles: ['gateway', 'access_point'], radios: [{ band: 2.4, channel: 11 }] }],
+});
+assert.equal(consoleGroups[0].rows[0].mark, true);
 assert.equal(N.bandName(6.0), '6');
 assert.equal(N.channelGroups({}).length, 0);
 

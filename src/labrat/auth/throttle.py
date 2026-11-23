@@ -13,7 +13,7 @@ and each worker counts on its own; that is enough to make guessing slow
 without a shared store. Behind a reverse proxy every client shares the
 proxy's address, so the per-username count does most of the work.
 
-Used by: app, pages.public.
+Used by: app, pages.private, pages.public.
 """
 
 from collections import OrderedDict

@@ -8,18 +8,60 @@
 {% block docs_content %}
 <section class="docs-prose">
   <h2>Configured sources</h2>
-  <p>UniFi Network, Proxmox VE, and Pi-hole are the integrations so far. Administrators add and edit these connections in <a href="{{ url_for('docs.setup') }}#setup-integrations-title">Settings → Integrations</a>; LabRat writes them, credentials included, to the private <code>local_config.toml</code>; a whole-install export from Settings includes them. The collector picks up valid changes before its next full scan. An explicit Test connection checks read-only API access without saving changes or running discovery.</p>
-  <p>Everything else is switched on in <a href="{{ url_for('docs.setup') }}#setup-discovery-title">Settings → Discovery</a>, and service discovery is permission-based: <strong>Network scanning</strong> lists the only subnets LabRat may contact, and nothing outside them is probed, whatever UniFi reports. NUT discovery finds UPS servers there and reads them with list commands only; LabRat never logs in or sends commands to a UPS. MikroTik discovery listens passively for MNDP announcements without sending anything.</p>
+  <p>UniFi Network, Proxmox VE, Pi-hole, and OPNsense are the integrations so far. Administrators add and edit these connections in <a href="{{ url_for('docs.setup') }}#setup-integrations-title">Settings → Integrations</a>; LabRat writes them, credentials included, to the private <code>local_config.toml</code>; a whole-install export from Settings includes them. The collector picks up valid changes before its next full scan. An explicit Test connection checks read-only API access without saving changes or running discovery.</p>
+  <p>Everything else is switched on in <a href="{{ url_for('docs.setup') }}#setup-discovery-title">Settings → Discovery</a>, and service discovery is permission-based: <strong>Network scanning</strong> lists the only subnets LabRat may contact, and nothing outside them is probed, whatever UniFi reports. NUT discovery finds UPS servers there and reads them with list commands only; LabRat never logs in or sends commands to a UPS. MikroTik discovery listens passively for MNDP announcements without sending anything. Announcements do not cross routers, so the collector hears only MikroTiks on its own network segment; for others, run the <a href="#discovery-mndp-listener-title">standalone listener</a> on their segment.</p>
   <pre><code>python -m labrat.collector --once
 python -m labrat.collector --list</code></pre>
   <p><code>--once</code> performs one cycle and exits. <code>--list</code> reads the stored cache without contacting controllers. Running the command without either switch polls repeatedly at the configured interval.</p>
 
   <h2>What each adapter reads</h2>
   <p>Proxmox records physical cluster nodes and physical Ethernet interfaces where the API exposes them, using its interface <code>active</code> flag as port link status. Duplicate-MAC aliases and interfaces Proxmox marks as not existing are excluded. UniFi records adopted physical network equipment and ports from its local Integration API. Explicit down state wins over a positive reported speed; negotiated speed is used as link evidence when the source does not provide explicit state. The packaged model-profile catalog supplies known connector layouts offline; unknown connector types remain unclassified. Virtual machines, containers, and generic MAC-learning tables remain outside physical discovery. Connected UniFi clients are collected separately from infrastructure.</p>
+  <p>OPNsense records the firewall as one device with its network cards as ports, and keeps its health: version, uptime, load, memory, disks, and per-card counters. OPNsense has no read-only API role, so the user behind its API key should hold only the privileges in <a href="#discovery-opnsense-title">OPNsense permissions</a> below; LabRat sends <code>GET</code> requests to a fixed list of endpoints and keeps only the fields it shows. Alias contents, credentials, and blocklist entries are never kept, only names and counts.</p>
 
-  <p>Beyond equipment and ports, Proxmox also feeds the Cluster page: each node's load, memory, history, storage, drives with their SMART readings, ZFS pools, Ceph health and OSDs, services, certificates, and pending updates, plus its guests. While a node's screen is open, LabRat reloads that data every 30 seconds. UniFi feeds the Networks page with its networks, Wi-Fi, firewall zones and policies, devices, and clients. Pi-hole, when added, adds its statistics to the DNS sinkholes on Networks. All of it is read-only.</p>
+  <p>Beyond equipment and ports, Proxmox also feeds the Cluster page: each node's load, memory, history, storage, drives with their SMART readings, ZFS pools, Ceph health and OSDs, services, certificates, and pending updates, plus its guests. While a node's screen is open, LabRat reloads that data every 30 seconds. UniFi feeds the Networks page with its networks, Wi-Fi, firewall zones and policies, devices, and clients. OPNsense feeds it too: its networks and VLANs with DHCP (dnsmasq or Kea), WAN gateways, firewall rules in evaluation order, interface groups as zones, WireGuard peers, services, CARP state, and its DNS blocklist, and its gateways, VPN peers, and CARP addresses can raise Observations watchlist conditions. Pi-hole, when added, adds its statistics to the DNS sinkholes on Networks. All of it is read-only.</p>
+  <h2 id="discovery-opnsense-title">OPNsense permissions</h2>
+  <p>OPNsense has no read-only API role: a privilege grants a whole page, and a page's privilege covers its actions as well as its reads.</p>
+  <ol>
+    <li>Create a group (System → Access → Groups) with only the privileges below, and a user in it with a long random password you never use. Never give it Firmware, Backup, System: Settings, or User Manager.</li>
+    <li>On that user, add an API key. The key and secret go in Settings → Integrations.</li>
+    <li>Limit the web interface, and so the API, to the address LabRat collects from, with a firewall rule or the web interface's listen interfaces.</li>
+  </ol>
+  <p><strong>Required.</strong> <em>Lobby: Dashboard</em> (every user has it) gives the system information a poll cannot complete without: name, version, uptime, load, memory, and disks. <em>System: Status</em> lets <strong>Test connection</strong> check the key.</p>
+  <p><strong>Optional</strong>, by what each lets LabRat show. A missing one shows its part as not available and changes nothing else. Those marked * also allow changes on that page, so leave them out unless you want that part.</p>
+  <div class="docs-table-scroll">
+    <table class="docs-route-table">
+      <thead><tr><th scope="col">Privilege</th><th scope="col">Shows</th></tr></thead>
+      <tbody>
+        <tr><td>Status: Interfaces*</td><td>the network cards and their link</td></tr>
+        <tr><td>Diagnostics: Netstat</td><td>per-card counters</td></tr>
+        <tr><td>Diagnostics: ARP Table*, NDP Table*</td><td>clients seen on each network</td></tr>
+        <tr><td>Diagnostics: Routing tables*</td><td>which gateway is the default</td></tr>
+        <tr><td>System: Gateways*</td><td>gateway status, latency, and loss</td></tr>
+        <tr><td>Services: Dnsmasq DNS/DHCP: Settings*</td><td>dnsmasq's ranges, reservations, and leases</td></tr>
+        <tr><td>Services: DHCP: Kea(v4)*</td><td>Kea's subnets, reservations, and leases</td></tr>
+        <tr><td>Services: Unbound*</td><td>the DNS resolver's settings and blocklists</td></tr>
+        <tr><td>Status: DNS Overview</td><td>whether the DNS blocklist is on</td></tr>
+        <tr><td>Firewall: Rules [new]*</td><td>the firewall rules</td></tr>
+        <tr><td>Firewall: Aliases*, Groups*</td><td>alias names and sizes, interface groups (zones)</td></tr>
+        <tr><td>VPN: WireGuard: Status</td><td>WireGuard peers, handshakes, and transfer</td></tr>
+        <tr><td>Status: Services*</td><td>which services run</td></tr>
+        <tr><td>Interfaces: Virtual IPs: Status*</td><td>CARP state</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="discovery-mndp-listener-title">MikroTik on another segment</h2>
+  <p>When the collector cannot sit on the MikroTiks' segment (a Kubernetes pod, or a VM on another VLAN), run the standalone listener on a machine that can, and let it report over the API:</p>
+  <ol>
+    <li>In <strong>Settings → API tokens</strong>, create a token with the <em>Submit MikroTik announcements</em> permission, and copy it: it is shown once. That token can do nothing else.</li>
+    <li>On a host on that segment with LabRat installed (from a checkout, or the container image), run:
+      <pre><code>LABRAT_API_TOKEN=labrat_… python -m labrat.collector.mndp_push --url https://labrat.example.lan</code></pre>
+      <code>--token-file</code> reads the token from a file instead; <code>--ca-file</code> trusts a private certificate authority; <code>--once</code> reports once and exits.</li>
+  </ol>
+  <p>It listens exactly as the collector does, sending no MNDP probes, and reports what it hears over HTTPS to <code>POST /api/v1/machine/mndp</code> (see the <a href="{{ url_for('docs.api') }}">API reference</a>).</p>
+
   <h2>Browse client devices</h2>
-  <p>Discovery has two views: <strong>Infrastructure</strong> keeps the infrastructure map focused, while <strong>Clients</strong> lists wired and Wi-Fi endpoints reported by UniFi. Search by name, address, or manufacturer. The toolbar toggles show or hide VMs and containers, Wi-Fi, and wired clients (each toggle's tooltip gives its count), and can narrow the list to unplaced or not-connected clients. Click a column header to sort (Address does not sort, since a VM can list several); headers stay visible while scrolling. A VM with several network cards is one row. Known server interfaces are hidden by default; turn on <strong>Show server interfaces</strong> to reveal them. VMs and containers are not placed or added to inventory. Exact Proxmox guest MAC matches show VM or container icons and their hosting nodes when the API token has <code>VM.Audit</code> access on <code>/vms</code>. Device icons follow the controller's reported classification, and lamps distinguish current, stale, and unavailable observations.</p>
+  <p>Discovery has two views: <strong>Infrastructure</strong> keeps the infrastructure map focused, while <strong>Clients</strong> lists wired and Wi-Fi endpoints reported by UniFi, and the devices an OPNsense firewall has seen. A router knows a device used an address, not where it is plugged in, so its clients are <strong>Seen by router</strong> (still in its ARP or NDP tables) or <strong>Lease only</strong>, never connected; a device both report is one row, with its switch or access point first. Search by name, address, or manufacturer. The toolbar toggles show or hide VMs and containers, Wi-Fi, wired clients, and devices seen only by a router (each toggle's tooltip gives its count), and can narrow the list to unplaced or not-connected clients. Click a column header to sort (Address does not sort, since a VM can list several); headers stay visible while scrolling. A VM with several network cards is one row. Known server interfaces are hidden by default; turn on <strong>Show server interfaces</strong> to reveal them. VMs and containers are not placed or added to inventory. Exact Proxmox guest MAC matches show VM or container icons and their hosting nodes when the API token has <code>VM.Audit</code> access on <code>/vms</code>. Device icons follow the controller's reported classification, and lamps distinguish current, stale, and unavailable observations.</p>
   <p>Select a client to inspect its reported identity, network, radio, traffic, and connection evidence in the side drawer. You can explicitly add it to inventory without placing it, choose your own display name, or place it using the same area and position forms as other equipment. A scan cannot overwrite your name or move the device. Placed clients appear in area views; Wi-Fi associations remain separate from physical cables.</p>
   <p>Administrators can open <strong>Open ports</strong> for a quick check of 34 common TCP ports. This requires a fresh client address, an enabled reporting connection, Network scanning switched on, and an address or CIDR explicitly allowed in Settings → Discovery. Discovered subnet and firewall information does not grant permission. The check sends no application payloads, does not check UDP or every port, and cannot identify services from an open port alone. Closed, filtered, and unreachable outcomes are not distinguished.</p>
 

@@ -26,10 +26,18 @@ import requests
 
 from labrat.coerce import number, text
 from labrat.collector.contracts import DeviceObservation, DiscoveryBatch
-from labrat.collector.http import controller_url, required_string, tls_verification
+from labrat.collector.http import controller_url, tls_verification
 
 #: Seconds before one Pi-hole request gives up.
 TIMEOUT_SECONDS = 10
+
+
+class MissingCredential(PermissionError):
+    """The Pi-hole needs a password or API token and none is configured."""
+
+
+class NotPihole(ValueError):
+    """The address answered, but not recognisably as Pi-hole v6 or v5."""
 
 
 
@@ -83,8 +91,14 @@ class PiholeAdapter:
         Raises:
             PermissionError: The password was refused.
         """
-        payload = self._request("POST", f"{root}/api/auth", settings,
-                                json={"password": required_string(settings, "password")})
+        try:
+            payload = self._request("POST", f"{root}/api/auth", settings,
+                                    json={"password": self._credential(settings)})
+        except requests.HTTPError as exc:
+            # v6 answers a wrong password with 401 (and 429 after too many).
+            if exc.response is not None and exc.response.status_code in (401, 403, 429):
+                raise PermissionError("Pi-hole refused the application password") from None
+            raise
         session = payload.get("session") if isinstance(payload, dict) else None
         if not isinstance(session, dict) or not session.get("valid") or not session.get("sid"):
             raise PermissionError("Pi-hole refused the application password")
@@ -102,6 +116,86 @@ class PiholeAdapter:
             self._request("DELETE", f"{root}/api/auth", settings, headers={"X-FTL-SID": sid})
         except requests.RequestException:
             pass  # The session expires on its own.
+
+    def _v6_session(self, root: str, settings: Mapping[str, Any]) -> dict | None:
+        """Ask whether this is a v6 Pi-hole, sending no credential.
+
+        Pi-hole v6 answers ``GET /api/auth`` with a ``session`` object:
+        HTTP 401 and ``valid: false`` when a password is set, or 200 and
+        ``valid: true`` when the Pi-hole has none. Anything else (a v5
+        Pi-hole has no ``/api``) is not v6. The credential is only sent once
+        the version is known, so a v6 password never goes into a v5-style
+        query string.
+
+        Args:
+            root: The Pi-hole's root URL.
+            settings: The private settings, for TLS verification.
+
+        Returns:
+            dict | None: The session object for v6, or None for anything else.
+
+        Raises:
+            requests.RequestException: The Pi-hole cannot be reached at all.
+        """
+        response = self.session.request("GET", f"{root}/api/auth", timeout=TIMEOUT_SECONDS,
+                                        verify=tls_verification(settings), allow_redirects=False)
+        if response.status_code not in (200, 401):
+            return None
+        try:
+            payload = response.json()
+        except ValueError:
+            return None
+        session = payload.get("session") if isinstance(payload, dict) else None
+        return session if isinstance(session, dict) and "valid" in session else None
+
+    def _v5_versions(self, root: str, settings: Mapping[str, Any]) -> dict | None:
+        """Ask whether this is a v5 Pi-hole, sending no credential.
+
+        v5 answers ``GET /admin/api.php?versions`` without a token, with its
+        component versions. Only that positive answer lets the adapter send
+        the API token, which v5 takes as a query parameter; a proxy error,
+        a redirect, or another server's page is not v5.
+
+        Args:
+            root: The Pi-hole's root URL.
+            settings: The private settings, for TLS verification.
+
+        Returns:
+            dict | None: The versions answer, or None when this is not v5.
+
+        Raises:
+            requests.RequestException: The Pi-hole cannot be reached at all.
+        """
+        response = self.session.request("GET", f"{root}/admin/api.php", params={"versions": ""},
+                                        timeout=TIMEOUT_SECONDS, verify=tls_verification(settings),
+                                        allow_redirects=False)
+        if response.status_code != 200:
+            return None
+        try:
+            payload = response.json()
+        except ValueError:
+            return None
+        if isinstance(payload, dict) and ("core_current" in payload or "FTL_current" in payload):
+            return payload
+        return None
+
+    @staticmethod
+    def _credential(settings: Mapping[str, Any]) -> str:
+        """Return the configured password or token, which this Pi-hole needs.
+
+        Args:
+            settings: The private settings.
+
+        Returns:
+            str: The credential.
+
+        Raises:
+            MissingCredential: None is configured.
+        """
+        value = settings.get("password")
+        if not isinstance(value, str) or not value.strip():
+            raise MissingCredential("This Pi-hole needs its application password")
+        return value.strip()
 
     # -- reads ------------------------------------------------------------
 
@@ -123,13 +217,17 @@ class PiholeAdapter:
             PermissionError: The credential was refused.
         """
         root = controller_url(settings)
+        probe = self._v6_session(root, settings)
+        if probe is None:
+            # Fail closed: the credential is sent only to a confirmed v5.
+            versions = self._v5_versions(root, settings)
+            if versions is None:
+                raise NotPihole("The address did not answer like Pi-hole v6 or v5")
+            return self._snapshot_v5(root, settings, versions)
+        # A Pi-hole without a password is open to every reader: no session.
+        sid = None if probe.get("valid") is True else self._sign_in(root, settings)
         try:
-            self._request("GET", f"{root}/api/auth", settings)
-        except requests.RequestException:
-            return self._snapshot_v5(root, settings)
-        sid = self._sign_in(root, settings)
-        try:
-            headers = {"X-FTL-SID": sid, "Accept": "application/json"}
+            headers = {"Accept": "application/json", **({"X-FTL-SID": sid} if sid else {})}
 
             def get(path: str) -> Any:
                 return self._request("GET", f"{root}/api{path}", settings, headers=headers)
@@ -139,8 +237,10 @@ class PiholeAdapter:
             gravity = summary.get("gravity") if isinstance(summary.get("gravity"), dict) else {}
             clients = summary.get("clients") if isinstance(summary.get("clients"), dict) else {}
             history = (get("/history") or {}).get("history") or []
+            # Pi-hole leaves a client's name empty when it has no hostname
+            # for it; its address names it then.
             top = lambda path, key: [  # noqa: E731 - small local reader
-                {"name": text(row.get(key), 200), "count": number(row.get("count"))}
+                {"name": text(row.get(key), 200) or text(row.get("ip"), 200), "count": number(row.get("count"))}
                 for row in ((get(path) or {}).get("domains" if key == "domain" else "clients") or [])[:10]
                 if isinstance(row, dict)]
             version = get("/info/version") or {}
@@ -162,14 +262,16 @@ class PiholeAdapter:
                 "top_clients": top("/stats/top_clients?count=10", "name"),
             }
         finally:
-            self._sign_out(root, settings, sid)
+            if sid:
+                self._sign_out(root, settings, sid)
 
-    def _snapshot_v5(self, root: str, settings: Mapping[str, Any]) -> dict:
+    def _snapshot_v5(self, root: str, settings: Mapping[str, Any], versions: Mapping[str, Any]) -> dict:
         """Read a v5 Pi-hole's summary with its API token.
 
         Args:
-            root: The Pi-hole's root URL.
+            root: The Pi-hole's root URL, already confirmed as v5.
             settings: Private settings holding ``password`` (the API token).
+            versions: Its credential-free versions answer.
 
         Returns:
             dict: The same shape as v6, with fewer fields filled.
@@ -177,12 +279,12 @@ class PiholeAdapter:
         Raises:
             PermissionError: When Pi-hole refuses the API token.
         """
-        token = required_string(settings, "password")
+        token = self._credential(settings)
         summary = self._request("GET", f"{root}/admin/api.php", settings, params={"summaryRaw": "", "auth": token}) or {}
         if not isinstance(summary, dict) or "dns_queries_today" not in summary:
             raise PermissionError("Pi-hole refused the API token")
         return {
-            "api": "v5", "version": None, "blocking": text(summary.get("status"), 20),
+            "api": "v5", "version": text(versions.get("core_current"), 40), "blocking": text(summary.get("status"), 20),
             "queries": {
                 "total": number(summary.get("dns_queries_today")), "blocked": number(summary.get("ads_blocked_today")),
                 "percent_blocked": number(summary.get("ads_percentage_today")), "cached": number(summary.get("queries_cached")),
@@ -227,6 +329,8 @@ class PiholeAdapter:
         """
         try:
             snapshot = self.snapshot(settings)
+        except MissingCredential:
+            return False, "This Pi-hole needs its application password (or, for v5, its API token)."
         except PermissionError:
             return False, "Pi-hole refused the application password or API token."
         except requests.exceptions.SSLError:

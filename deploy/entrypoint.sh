@@ -4,7 +4,8 @@
 #
 # Container entrypoint for the sample image.
 #
-#   web        migrate the database, then serve the app on port 8000
+#   web        serve the app on port 8000; it shows a holding page at once
+#              and migrates the database itself (LABRAT_MIGRATE_ON_START)
 #   collector  run the read-only collector (extra arguments pass through,
 #              such as --interval 120 or --once)
 #   anything else runs as given (for example: alembic -c alembic.ini current)
@@ -55,9 +56,11 @@ fi
 case "${1:-web}" in
     web)
         [ "$#" -gt 0 ] && shift
-        alembic -c alembic.ini upgrade head
+        # The startup gate migrates under a lock while the holding page
+        # answers, so a long migration never looks like a dead server.
+        export LABRAT_MIGRATE_ON_START="${LABRAT_MIGRATE_ON_START:-1}"
         # No control socket: its default path is in the read-only work dir.
-        exec gunicorn --bind 0.0.0.0:8000 --workers "${LABRAT_WORKERS:-2}" \
+        exec gunicorn -c gunicorn.conf.py --bind 0.0.0.0:8000 --workers "${LABRAT_WORKERS:-2}" \
             --no-control-socket \
             --access-logfile - --error-logfile - "$@" labrat.app:app
         ;;

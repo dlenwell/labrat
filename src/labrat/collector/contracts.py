@@ -9,9 +9,9 @@ infrastructure diagram. Adapter-returned IDs are scoped to their source configur
 port references are scoped to the remote IDs in the same batch.
 
 Used by: collector.adapters.mndp, collector.adapters.nut,
-collector.adapters.pihole, collector.adapters.proxmox,
-collector.adapters.unifi, collector.clients, collector.runner,
-collector.store.
+collector.adapters.opnsense, collector.adapters.pihole,
+collector.adapters.proxmox, collector.adapters.unifi, collector.clients,
+collector.runner, collector.sightings, collector.store.
 """
 
 from dataclasses import dataclass, field

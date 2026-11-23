@@ -6,7 +6,9 @@
 # A starting point, like deploy/compose.yaml; docs/setup.md ("Run on
 # Kubernetes") explains each choice. Before applying:
 #
-#   1. Build the image and push it to a registry your cluster can pull from:
+#   1. Use a published release image (ghcr.io/<owner>/labrat:<version>,
+#      docs/setup.md), or build the image and push it to a registry your
+#      cluster can pull from:
 #        docker build -t registry.example.lan/labrat:latest .
 #        docker push registry.example.lan/labrat:latest
 #      then set that name in the three `image:` lines below. `latest` is
@@ -84,12 +86,13 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      # Writes the config on first start and migrates the database, so both
-      # containers start against a ready schema.
+      # Writes the config on first start, so the two containers never race
+      # to create it. The web container migrates the database itself while
+      # it shows a holding page; the collector waits for the new schema.
       initContainers:
-        - name: migrate
+        - name: config
           image: registry.example.lan/labrat:latest
-          args: ["alembic", "-c", "alembic.ini", "upgrade", "head"]
+          args: ["true"]
           env: &env
             # Used only when the config is first written; edit
             # local_config.toml (or Settings) afterwards.
@@ -117,9 +120,12 @@ spec:
               containerPort: 8000
           # The app accepts only its allowed hosts; probes come from the
           # kubelet with the pod's address, so they name a loopback host.
+          # Both use /api/v1/live, which answers while LabRat starts or
+          # migrates: the Service then shows the holding page instead of
+          # nothing, and a long migration never restarts the pod.
           readinessProbe:
             httpGet:
-              path: /api/v1/health
+              path: /api/v1/live
               port: http
               httpHeaders:
                 - name: Host
@@ -127,7 +133,7 @@ spec:
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /api/v1/health
+              path: /api/v1/live
               port: http
               httpHeaders:
                 - name: Host

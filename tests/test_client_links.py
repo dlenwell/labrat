@@ -3,6 +3,7 @@
 
 """Exercise targeted client-based cable inference without network access."""
 
+import json
 import time
 import unittest
 from unittest.mock import patch
@@ -179,6 +180,98 @@ class ClientLinkTests(unittest.TestCase):
         self.unknown_nic()
         self.adapter.unknown_message = "api.err.NoPermission"
         self.assertIsNone(self.collect())
+
+    def own_chassis(self, neighbors):
+        """File the NIC behind its own server's LLDP chassis, as some controllers do.
+
+        The server's other NIC (down, so never looked up) supplies the chassis
+        MAC; the client record names it as the NIC's switch.
+
+        Args:
+            neighbors: The switch's ``lldp_neighbors`` details.
+
+        Returns:
+            DiscoveredDevice: The switch, current as of ``SNAPSHOT``.
+        """
+        if self.db.scalar(select(DiscoveredPort).where(DiscoveredPort.remote_id == "nic1")) is None:
+            self.db.add(DiscoveredPort(discovered_device_id=self.nic.discovered_device_id, remote_id="nic1",
+                                       name="nic1", mac="00:11:22:33:44:66", link_up=False))
+        switch = self.db.get(DiscoveredDevice, self.switch_port.discovered_device_id)
+        switch.details_json = json.dumps({"site_id": "site", "lldp_neighbors": neighbors})
+        self.unifi.last_success_at = switch.last_seen_at = self.SNAPSHOT
+        self.db.flush()
+        self.adapter.record["sw_mac"] = "00:11:22:33:44:66"
+        return switch
+
+    SNAPSHOT = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    HEARD = {"chassis_id": "00:11:22:33:44:66", "port_id": "", "local_port": "5"}
+
+    def second_switch(self, seen_at, neighbors):
+        """Add another switch on the site whose LLDP table hears neighbors.
+
+        Args:
+            seen_at: When the source last reported it.
+            neighbors: Its ``lldp_neighbors`` details.
+        """
+        other = DiscoveredDevice(source_id=self.unifi.id, remote_id="other-switch", name="Other", category="switch",
+                                 identifiers_json='{"mac":"aa:bb:cc:dd:ee:01"}', last_seen_at=seen_at,
+                                 details_json=json.dumps({"site_id": "site", "lldp_neighbors": neighbors}))
+        self.db.add(other); self.db.flush()
+        self.db.add(DiscoveredPort(discovered_device_id=other.id, remote_id="5", name="Port 5", link_up=True))
+        self.db.flush()
+
+    def test_nic_filed_behind_its_own_chassis_takes_the_port_hearing_it(self):
+        """Resolve the controller's own-chassis answer through the switch's LLDP table."""
+        self.own_chassis([{"chassis_id": "00:11:22:33:44:66", "port_id": "", "local_port": "5"}])
+        self.assertEqual(self.collect(), {tuple(sorted((self.nic.id, self.switch_port.id)))})
+
+    def test_own_chassis_needs_one_agreeing_port(self):
+        """Refuse when LLDP disagrees with the record's port or hears the chassis twice."""
+        self.own_chassis([{"chassis_id": "00:11:22:33:44:66", "port_id": "", "local_port": "6"}])
+        self.assertEqual(self.collect(), set())
+        self.own_chassis([{"chassis_id": "00:11:22:33:44:66", "port_id": "", "local_port": "5"},
+                          {"chassis_id": "00:11:22:33:44:66", "port_id": "", "local_port": "6"}])
+        self.assertEqual(self.collect(), set())
+        self.own_chassis([])
+        self.assertEqual(self.collect(), set())
+
+    def test_chassis_of_another_server_is_not_resolved(self):
+        """A NIC filed behind some other server's chassis is not this case."""
+        self.own_chassis([{"chassis_id": "00:11:22:33:44:66", "port_id": "", "local_port": "5"}])
+        other = DiscoveredDevice(source_id=self.proxmox.id, remote_id="other", name="Other", category="server")
+        self.db.add(other); self.db.flush()
+        nic1 = self.db.scalar(select(DiscoveredPort).where(DiscoveredPort.remote_id == "nic1"))
+        nic1.discovered_device_id = other.id; self.db.flush()
+        self.assertEqual(self.collect(), set())
+
+
+    def test_own_chassis_uses_only_current_online_switches(self):
+        """Ignore LLDP rows kept by a switch outside the latest snapshot or reported offline."""
+        pair = {tuple(sorted((self.nic.id, self.switch_port.id)))}
+        switch = self.own_chassis([self.HEARD])
+        switch.last_seen_at = self.SNAPSHOT - timedelta(days=1); self.db.flush()
+        self.assertEqual(self.collect(), set(), "a stale switch alone")
+        switch.last_seen_at = self.SNAPSHOT
+        switch.details_json = json.dumps({"site_id": "site", "state": "OFFLINE", "lldp_neighbors": [self.HEARD]})
+        self.db.flush()
+        self.assertEqual(self.collect(), set(), "an offline switch")
+        self.own_chassis([self.HEARD])
+        self.second_switch(self.SNAPSHOT - timedelta(days=1), [self.HEARD])
+        self.assertEqual(self.collect(), pair, "a stale switch beside a current one")
+
+    def test_repeated_rows_for_one_port_are_one_sighting(self):
+        self.own_chassis([self.HEARD, dict(self.HEARD)])
+        self.assertEqual(self.collect(), {tuple(sorted((self.nic.id, self.switch_port.id)))})
+
+    def test_own_chassis_refused_when_lldp_names_another_nic(self):
+        """A remote port ID naming the server's other NIC overrides the fallback."""
+        pair = {tuple(sorted((self.nic.id, self.switch_port.id)))}
+        for port_id in ("nic1", "ifname:NIC1", "00:11:22:33:44:66"):
+            self.own_chassis([dict(self.HEARD, port_id=port_id)])
+            self.assertEqual(self.collect(), set(), port_id)
+        for port_id in ("nic0", "00:11:22:33:44:55", "unknown-port"):
+            self.own_chassis([dict(self.HEARD, port_id=port_id)])
+            self.assertEqual(self.collect(), pair, port_id)
 
     def test_timeout_retains_previous_inference(self):
         pair = tuple(sorted((self.nic.id, self.switch_port.id)))

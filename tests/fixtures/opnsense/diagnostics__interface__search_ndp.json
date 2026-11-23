@@ -1,0 +1,56 @@
+{
+ "current": 1,
+ "rowCount": 7,
+ "rows": [
+  {
+   "intf": "em0",
+   "intf_description": "LAN",
+   "ip": "fe80::ff:fe00:1%em0",
+   "mac": "02:00:00:00:00:01",
+   "manufacturer": ""
+  },
+  {
+   "intf": "em1",
+   "intf_description": "WAN",
+   "ip": "fe80::2%em1",
+   "mac": "02:00:00:00:00:09",
+   "manufacturer": ""
+  },
+  {
+   "intf": "em1",
+   "intf_description": "WAN",
+   "ip": "2001:db8::ff:fe00:2",
+   "mac": "02:00:00:00:00:02",
+   "manufacturer": ""
+  },
+  {
+   "intf": "em1",
+   "intf_description": "WAN",
+   "ip": "fe80::ff:fe00:2%em1",
+   "mac": "02:00:00:00:00:02",
+   "manufacturer": ""
+  },
+  {
+   "intf": "em2",
+   "intf_description": "DHCPLAB",
+   "ip": "2001:db8:1::1",
+   "mac": "02:00:00:00:00:03",
+   "manufacturer": ""
+  },
+  {
+   "intf": "em2",
+   "intf_description": "DHCPLAB",
+   "ip": "fe80::ff:fe00:1001%em2",
+   "mac": "02:00:00:00:10:01",
+   "manufacturer": ""
+  },
+  {
+   "intf": "em2",
+   "intf_description": "DHCPLAB",
+   "ip": "fe80::ff:fe00:3%em2",
+   "mac": "02:00:00:00:00:03",
+   "manufacturer": ""
+  }
+ ],
+ "total": 7
+}

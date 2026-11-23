@@ -8,14 +8,15 @@ default. API credentials are placed in HTTP headers, never URLs or persisted
 observation data. Redirects are disabled so a controller cannot forward those
 headers to a different host. Exceptions are sanitized by the collector runner.
 
-Used by: collector.access_collection, collector.adapters.pihole,
-collector.adapters.proxmox, collector.adapters.unifi,
-collector.client_links, collector.clients, collector.nut_wired,
-collector.proxmox_clients, collector.proxmox_cluster,
+Used by: collector.access_collection, collector.adapters.opnsense,
+collector.adapters.pihole, collector.adapters.proxmox,
+collector.adapters.unifi, collector.client_links, collector.clients,
+collector.nut_wired, collector.proxmox_clients, collector.proxmox_cluster,
 collector.unifi_network, collector.wireless_clients, integrations.
 """
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+import logging
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -99,6 +100,31 @@ def required_string(settings: Mapping[str, Any], field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"Integration requires a nonempty {field}")
     return value.strip()
+
+
+def optional_read(errors: dict, source: str, part: str, read: Callable[[], Any], default: Any = None) -> Any:
+    """Run one optional read, recording a generic failure instead of raising.
+
+    Telemetry collectors read many independent parts (a node's ZFS pools,
+    a site's Wi-Fi); one part failing must not fail the rest, and the
+    failure is kept as a label, never the exception's text.
+
+    Args:
+        errors: Map of part name to a short failure label, updated in place.
+        source: The source's name for the log line, such as ``Proxmox``.
+        part: Name of the part being read.
+        read: Callable that performs the read.
+        default: Value returned when the read fails.
+
+    Returns:
+        Any: The read's result, or ``default``.
+    """
+    try:
+        return read()
+    except Exception as exc:  # Optional telemetry must never fail collection.
+        logging.getLogger(__name__).info("%s %s unavailable (%s)", source, part, type(exc).__name__)
+        errors[part] = "unavailable"
+        return default
 
 
 def tls_verification(settings: Mapping[str, Any]) -> bool | str:

@@ -54,8 +54,12 @@ def load_catalog() -> tuple[tuple[dict, ...], tuple[dict, ...]]:
         test = entry["test"]
         if not test["path"].startswith("/") or test["path"].startswith("//") or any(ord(c) < 32 for c in test["path"]):
             raise ValueError("A connection test must use a controller-relative path")
+        # The generic header test fills its template from required fields;
+        # an adapter-driven test reads the settings itself, so its secret may
+        # be optional (a Pi-hole without a password).
+        template_fields = names if test.get("style") == "adapter" else required_names
         for _literal, field_name, format_spec, conversion in Formatter().parse(test["auth_template"]):
-            if field_name is not None and (field_name not in required_names or format_spec or conversion):
+            if field_name is not None and (field_name not in template_fields or format_spec or conversion):
                 raise ValueError("Connection test references an unknown credential field")
     return categories, integrations
 

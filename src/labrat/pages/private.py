@@ -12,13 +12,17 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Any
 
-from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
+from argon2 import PasswordHasher, Type
+from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for
 from flask.typing import ResponseReturnValue
 from sqlalchemy import func, select
 
-from labrat.auth.session import current_user, login_required, require_csrf, session_factory
+from labrat.audit import record_audit_event
+from labrat.auth.providers import new_password_problem
+from labrat.auth.session import current_user, login_required, require_csrf, session_factory, sign_in
+from labrat.auth.throttle import throttle_keys
 from labrat.discovery.models import DiscoveredDevice, DiscoveredLink, DiscoverySource
-from labrat.models import AuthIdentity, Device, DeviceClass, LocalCredential, Rack, Room, Site
+from labrat.models import AuthIdentity, Device, DeviceClass, LocalCredential, Rack, Room, Site, User
 from labrat.pages.activity import recent_user_activity
 from labrat.placement import DevicePlacement, PlacementContainer
 from labrat.themes import (
@@ -27,12 +31,14 @@ from labrat.themes import (
 )
 
 from labrat.pages.settings_backup import backup_bp
+from labrat.pages.settings_tokens import tokens_bp, tokens_context
 from labrat.pages.settings_integrations import integrations_bp, settings_context
 from labrat.integrations import IntegrationError
 from labrat.pages.settings_discovery import discovery_bp, settings_context as discovery_context
 
 private_bp = Blueprint("private", __name__)
 private_bp.register_blueprint(backup_bp)
+private_bp.register_blueprint(tokens_bp)
 private_bp.register_blueprint(integrations_bp)
 private_bp.register_blueprint(discovery_bp)
 
@@ -145,13 +151,12 @@ def observations() -> ResponseReturnValue:
     return render_template("private/observations.html", rooms=rooms)
 
 
-@private_bp.get("/profile")
-@login_required
-def profile() -> ResponseReturnValue:
-    """Render the signed-in user's account details and recent changes.
+def _profile_page(password_error: str | None = None, status: int = 200) -> ResponseReturnValue:
+    """Render the signed-in user's profile, optionally with a password error.
 
-    Shows how the account signs in (provider names only, never secrets) and
-    the user's newest audited inventory changes.
+    Args:
+        password_error: Why a password change was refused, if it was.
+        status: HTTP status for the response.
 
     Returns:
         ResponseReturnValue: Authenticated profile HTML.
@@ -159,9 +164,8 @@ def profile() -> ResponseReturnValue:
     viewer = current_user()
     now = datetime.now(timezone.utc)
     with session_factory()() as db:
-        sign_in_methods = []
-        if db.get(LocalCredential, viewer.id) is not None:
-            sign_in_methods.append("Local password")
+        has_password = db.get(LocalCredential, viewer.id) is not None
+        sign_in_methods = ["Local password"] if has_password else []
         sign_in_methods.extend(
             provider for provider in db.scalars(
                 select(AuthIdentity.provider)
@@ -175,9 +179,78 @@ def profile() -> ResponseReturnValue:
         "private/profile.html",
         member_since=viewer.created_at.date().isoformat() if viewer.created_at else None,
         sign_in_methods=sign_in_methods,
+        has_password=has_password,
+        password_error=password_error,
+        password_changed=request.args.get("password") == "changed" and password_error is None,
         activity=activity,
         change_count=change_count,
-    )
+    ), status
+
+
+@private_bp.get("/profile")
+@login_required
+def profile() -> ResponseReturnValue:
+    """Render the signed-in user's account details and recent changes.
+
+    Shows how the account signs in (provider names only, never secrets), a
+    form to change a local password, and the user's newest audited changes.
+
+    Returns:
+        ResponseReturnValue: Authenticated profile HTML.
+    """
+    return _profile_page()
+
+
+@private_bp.post("/profile/password")
+@login_required
+def change_password() -> ResponseReturnValue:
+    """Replace the signed-in user's local password after checking the current one.
+
+    Wrong current passwords count toward the same throttle as failed
+    sign-ins, so a borrowed session cannot guess its way to the password.
+    A change ends the account's other sessions and keeps this one.
+
+    Returns:
+        ResponseReturnValue: Redirect to the profile, or the profile with an error.
+    """
+    require_csrf()
+    viewer = current_user()
+    current = request.form.get("current_password", "")
+    new = request.form.get("new_password", "")
+    confirm = request.form.get("confirm_password", "")
+    throttle = current_app.extensions["labrat_signin_throttle"]
+    keys = throttle_keys(viewer.username, request.remote_addr)
+    if throttle.blocked(keys):
+        return _profile_page("Too many wrong passwords. Wait a few minutes, then try again.", 429)
+    with session_factory()() as db:
+        if db.get(LocalCredential, viewer.id) is None:
+            abort(404)
+    error = new_password_problem(new, confirm)
+    if error is None and new == current:
+        error = "Choose a password different from your current one."
+    with session_factory().begin() as db:
+        verified = current_app.extensions["labrat_auth_providers"].get("local").authenticate(
+            db, {"username": viewer.username, "password": current}
+        )
+        if verified is None:
+            throttle.record_failure(keys)
+            error = "Your current password is not right."
+        if error is None:
+            throttle.clear(keys)
+            new_hash = PasswordHasher(type=Type.ID).hash(new)
+    if error is not None:
+        return _profile_page(error, 400)
+    with session_factory().begin() as db:
+        db.get(LocalCredential, viewer.id).password_hash = new_hash
+        db.get(User, viewer.id).session_version += 1
+        record_audit_event(
+            db, actor_kind="user", actor_id=viewer.id, actor_name=viewer.username,
+            action="auth.password.changed", subject_kind="user", subject_id=viewer.id,
+            details={"name": viewer.username},
+        )
+    # Other browsers carry the old session version and are now signed out.
+    sign_in(viewer.id)
+    return redirect(url_for("private.profile", password="changed"))
 
 
 @private_bp.get("/settings")
@@ -189,11 +262,13 @@ def settings() -> ResponseReturnValue:
         ResponseReturnValue: Authenticated settings HTML.
     """
     panel = request.args.get("panel", "appearance")
-    if panel not in {"appearance", "backup", "integrations", "discovery"}:
+    if panel not in {"appearance", "backup", "integrations", "discovery", "tokens"}:
         abort(404)
-    if panel in {"backup", "integrations", "discovery"} and not current_user().is_admin:
+    if panel in {"backup", "integrations", "discovery", "tokens"} and not current_user().is_admin:
         abort(403)
     context = {}
+    if panel == "tokens":
+        context = tokens_context()
     if panel == "integrations":
         try:
             context = settings_context()
@@ -210,9 +285,11 @@ def settings() -> ResponseReturnValue:
         panel=panel,
         integration_saved=request.args.get("saved") == "integration",
         integration_removed=request.args.get("saved") == "removed",
+        integration_identity=request.args.get("saved") == "identity",
         themes=theme_choices(),
         accents=accent_choices(),
         saved=request.args.get("saved") == "appearance",
+        token_revoked=request.args.get("saved") == "revoked",
     )
 
 

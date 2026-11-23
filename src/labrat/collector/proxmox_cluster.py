@@ -33,7 +33,7 @@ from urllib.parse import quote
 from sqlalchemy import select
 
 from labrat.coerce import integer, json_object, number, text
-from labrat.collector.http import controller_url, required_string, tls_verification
+from labrat.collector.http import controller_url, optional_read, required_string, tls_verification
 from labrat.discovery.models import DiscoveredDevice
 
 _LOGGER = logging.getLogger(__name__)
@@ -880,25 +880,6 @@ def _rebooted_since(cached: tuple, uptime: int | None, now: float) -> bool:
     return uptime + 120 < then + (now - cached[0])
 
 
-def _attempt(errors: dict, part: str, read: Callable[[], Any], default: Any = None) -> Any:
-    """Run one optional read, recording a generic failure instead of raising.
-
-    Args:
-        errors: Map of part name to a short failure label, updated in place.
-        part: Name of the part being read.
-        read: Callable that performs the read.
-        default: Value returned when the read fails.
-
-    Returns:
-        Any: The read's result, or ``default``.
-    """
-    try:
-        return read()
-    except Exception as exc:  # Optional telemetry must never fail collection.
-        _LOGGER.info("Proxmox %s unavailable (%s)", part, type(exc).__name__)
-        errors[part] = "unavailable"
-        return default
-
 
 def cluster_snapshot(adapter: Any, settings: dict, clock: Callable[[], float] = time.monotonic,
                      hardware: dict | None = None) -> dict:
@@ -953,9 +934,9 @@ def cluster_snapshot(adapter: Any, settings: dict, clock: Callable[[], float] = 
             "used": _integer(row.get("disk")), "total": _integer(row.get("maxdisk")),
         })
 
-    status_rows = _attempt(cluster_errors, "cluster", lambda: reader.rows("/cluster/status", MAX_NODES + 8), [])
+    status_rows = optional_read(cluster_errors, "Proxmox", "cluster", lambda: reader.rows("/cluster/status", MAX_NODES + 8), [])
     summary = next((row for row in status_rows if row.get("type") == "cluster"), None)
-    storage_config = _attempt(cluster_errors, "storage", lambda: [
+    storage_config = optional_read(cluster_errors, "Proxmox", "storage", lambda: [
         {
             "storage": _text(row.get("storage"), 120), "type": _text(row.get("type"), 40),
             "shared": bool(_flag(row.get("shared"))), "disabled": bool(_flag(row.get("disable"))),
@@ -969,7 +950,7 @@ def cluster_snapshot(adapter: Any, settings: dict, clock: Callable[[], float] = 
     online = [name for name, node in nodes.items() if node["status"] == "online"]
     for name in online:
         node, encoded = nodes[name], quote(name, safe="")
-        status = _attempt(node["errors"], "status", lambda: reader.get(f"/nodes/{encoded}/status"))
+        status = optional_read(node["errors"], "Proxmox", "status", lambda: reader.get(f"/nodes/{encoded}/status"))
         if isinstance(status, dict):
             cpuinfo = status.get("cpuinfo") if isinstance(status.get("cpuinfo"), dict) else {}
             swap = status.get("swap") if isinstance(status.get("swap"), dict) else {}
@@ -982,25 +963,25 @@ def cluster_snapshot(adapter: Any, settings: dict, clock: Callable[[], float] = 
                 "swap_used": _integer(swap.get("used")), "swap_total": _integer(swap.get("total")),
                 "pve_version": _text(status.get("pveversion"), 80),
             })
-        node["history"] = _attempt(node["errors"], "history", lambda: _history(
+        node["history"] = optional_read(node["errors"], "Proxmox", "history", lambda: _history(
             reader.rows(f"/nodes/{encoded}/rrddata?timeframe=day&cf=AVERAGE", 4000)), [])
-        node["zfs"] = _attempt(node["errors"], "zfs", lambda: _zfs_pools(reader, name), [])
+        node["zfs"] = optional_read(node["errors"], "Proxmox", "zfs", lambda: _zfs_pools(reader, name), [])
         # Packages and services change with maintenance, so they are read
         # every refresh; a failed read keeps the last good one.
         last = hardware.get(name)[1] if hardware is not None and name in hardware else {}
         maintenance = {
-            "services": _attempt(node["errors"], "services", lambda: _services(
+            "services": optional_read(node["errors"], "Proxmox", "services", lambda: _services(
                 reader.rows(f"/nodes/{encoded}/services", 128)), last.get("services")),
-            "versions": _attempt(node["errors"], "versions", lambda: _versions(
+            "versions": optional_read(node["errors"], "Proxmox", "versions", lambda: _versions(
                 reader.rows(f"/nodes/{encoded}/apt/versions", 1024)), last.get("versions")),
         }
         cached = hardware.get(name) if hardware is not None else None
         if cached is None or clock() - cached[0] >= HARDWARE_REFRESH_SECONDS or _rebooted_since(cached, node.get("uptime"), clock()):
             previous = cached[1] if cached else {}
             parts = {
-                "disks": _attempt(node["errors"], "disks", lambda: _disks(reader, name, clock), previous.get("disks")),
-                "pci": _attempt(node["errors"], "pci", lambda: _pci(reader, name), previous.get("pci")),
-                "certificates": _attempt(node["errors"], "certificates", lambda: _certificates(
+                "disks": optional_read(node["errors"], "Proxmox", "disks", lambda: _disks(reader, name, clock), previous.get("disks")),
+                "pci": optional_read(node["errors"], "Proxmox", "pci", lambda: _pci(reader, name), previous.get("pci")),
+                "certificates": optional_read(node["errors"], "Proxmox", "certificates", lambda: _certificates(
                     reader.rows(f"/nodes/{encoded}/certificates/info", 32)), previous.get("certificates")),
                 "hardware_sampled_at": datetime.now(timezone.utc).isoformat(),
             }
@@ -1043,7 +1024,7 @@ def cluster_snapshot(adapter: Any, settings: dict, clock: Callable[[], float] = 
         name, vmid, kind = _text(row.get("node"), 160), _integer(row.get("vmid")), row.get("type")
         last = histories.get(vmid)
         if (last is None or clock() - last[0] >= GUEST_HISTORY_REFRESH_SECONDS) and clock() < budget:
-            points = _attempt({}, "guest_history", lambda: _guest_history(reader.rows(
+            points = optional_read({}, "Proxmox", "guest_history", lambda: _guest_history(reader.rows(
                 f"/nodes/{quote(name, safe='')}/{kind}/{vmid}/rrddata?timeframe=day&cf=AVERAGE", 4000)))
             last = (clock(), points if points is not None else (last[1] if last else None))
             histories[vmid] = last
@@ -1054,25 +1035,25 @@ def cluster_snapshot(adapter: Any, settings: dict, clock: Callable[[], float] = 
     uses_ceph = any(row.get("type") in CEPH_STORAGE_TYPES for row in storage_config) or any(
         item.get("type") in CEPH_STORAGE_TYPES for node in nodes.values() for item in node["storage"])
     if uses_ceph and online:
-        ceph = _attempt(cluster_errors, "ceph", lambda: _ceph_status(reader.get("/cluster/ceph/status")))
+        ceph = optional_read(cluster_errors, "Proxmox", "ceph", lambda: _ceph_status(reader.get("/cluster/ceph/status")))
         if ceph is not None:
             # Every node reports the whole OSD tree; ask the first that answers.
             for name in online:
-                tree = _attempt({}, "ceph_osds", lambda: reader.get(f"/nodes/{quote(name, safe='')}/ceph/osd"))
+                tree = optional_read({}, "Proxmox", "ceph_osds", lambda: reader.get(f"/nodes/{quote(name, safe='')}/ceph/osd"))
                 if tree is not None:
                     ceph["osd_list"] = _osds(tree)
-                    ceph["pool_list"] = _attempt(cluster_errors, "ceph_pools", lambda: _ceph_pools(
+                    ceph["pool_list"] = optional_read(cluster_errors, "Proxmox", "ceph_pools", lambda: _ceph_pools(
                         reader.rows(f"/nodes/{quote(name, safe='')}/ceph/pool", 256)), [])
                     break
             else:
                 cluster_errors["ceph_osds"] = "unavailable"
 
-    tasks = _attempt(cluster_errors, "tasks", lambda: _tasks(reader.rows("/cluster/tasks", 2000), time.time()))
-    unprotected = _attempt(cluster_errors, "backups", lambda: sorted(
+    tasks = optional_read(cluster_errors, "Proxmox", "tasks", lambda: _tasks(reader.rows("/cluster/tasks", 2000), time.time()))
+    unprotected = optional_read(cluster_errors, "Proxmox", "backups", lambda: sorted(
         vmid for vmid in (_integer(row.get("vmid")) for row in reader.rows("/cluster/backup-info/not-backed-up", 1024))
         if vmid is not None))
     if ceph is not None:
-        ceph["flags"] = _attempt(cluster_errors, "ceph_flags", lambda: sorted(
+        ceph["flags"] = optional_read(cluster_errors, "Proxmox", "ceph_flags", lambda: sorted(
             _text(row.get("name"), 40) for row in reader.rows("/cluster/ceph/flags", 64)
             if _flag(row.get("value")) and _text(row.get("name"), 40)), [])
     cluster = {

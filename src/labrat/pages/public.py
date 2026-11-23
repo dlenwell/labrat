@@ -34,6 +34,7 @@ from labrat.auth.session import (
     sign_in,
 )
 from labrat.audit import record_audit_event
+from labrat.auth.providers import new_password_problem
 from labrat.auth.setup_code import ensure_setup_code, remove_setup_code, setup_code_matches
 from labrat.auth.throttle import throttle_keys
 from labrat.models import AuthIdentity, LocalCredential, User
@@ -55,11 +56,7 @@ def _validate_admin_form(username: str, password: str, confirm: str) -> str | No
     """
     if not _USERNAME_PATTERN.fullmatch(username):
         return "Use 3–64 characters: letters, numbers, dots, hyphens, or underscores."
-    if not 12 <= len(password) <= 1024:
-        return "Choose a password between 12 and 1024 characters."
-    if password != confirm:
-        return "Passwords do not match."
-    return None
+    return new_password_problem(password, confirm)
 
 
 @public_bp.get("/")

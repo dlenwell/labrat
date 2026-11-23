@@ -22,9 +22,11 @@ Enable it in ``local_config.toml``::
 Observations are source-scoped like any other: a MikroTik also seen as a
 UniFi LLDP neighbor appears once per source until linked to one inventory
 device.
+
+Used by: api.machine, collector.__main__, collector.mndp_push.
 """
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 import socket
 import struct
 import time
@@ -102,7 +104,56 @@ def category_for_board(board: str | None) -> str:
     return "router"
 
 
-def _listen(seconds: float, port: int = 5678) -> list[bytes]:
+def batch_from_announcements(announcements: Iterable[Mapping[str, Any]]) -> DiscoveryBatch:
+    """Turn decoded MNDP announcements into one discovery batch.
+
+    The collector's own listener and a standalone listener reporting over
+    the API (``api/machine.py``) both end here, so a MikroTik looks the
+    same whichever heard it. Devices are keyed by RouterOS's software ID
+    (one per device), falling back to identity plus board. Each announcing
+    interface becomes a port. Port lists are never complete, because MNDP
+    only covers the interfaces that announce.
+
+    Args:
+        announcements: Fields as :func:`decode_packet` returns them.
+
+    Returns:
+        DiscoveryBatch: MikroTik devices and their announcing interfaces.
+    """
+    heard: dict[str, dict[str, Any]] = {}
+    interfaces: dict[str, dict[str, str | None]] = {}
+    for fields in announcements:
+        identity = fields.get("identity")
+        if not identity:
+            continue
+        key = fields.get("software_id") or f"{identity}|{fields.get('board', '')}"
+        remote_id = f"mndp:{key}"
+        heard[remote_id] = {**heard.get(remote_id, {}), **fields}
+        if fields.get("interface"):
+            interfaces.setdefault(remote_id, {})[fields["interface"]] = fields.get("mac")
+    devices = []
+    ports = []
+    for remote_id, fields in sorted(heard.items()):
+        devices.append(DeviceObservation(
+            remote_id=remote_id,
+            name=fields["identity"],
+            category=category_for_board(fields.get("board")),
+            identifiers={key: fields[key] for key in ("mac", "software_id") if fields.get(key)},
+            details={
+                "platform": "mndp", "vendor": "MikroTik",
+                "model": fields.get("board"),
+                "version": fields.get("version"),
+                "uptime_hours": (fields["uptime_seconds"] // 3600
+                                 if "uptime_seconds" in fields else None),
+                "ports_complete": False,
+            },
+        ))
+        for name, mac in sorted(interfaces.get(remote_id, {}).items()):
+            ports.append(PortObservation(device_remote_id=remote_id, remote_id=name, name=name, mac=mac))
+    return DiscoveryBatch(devices=tuple(devices), ports=tuple(ports))
+
+
+def listen_for_packets(seconds: float, port: int = 5678) -> list[bytes]:
     """Collect MNDP packets for a while without sending anything.
 
     Args:
@@ -141,15 +192,13 @@ class MndpAdapter:
         Args:
             listen: Callable taking a duration and returning raw packets.
         """
-        self.listen = listen if listen is not None else _listen
+        self.listen = listen if listen is not None else listen_for_packets
 
     def poll(self, settings: Mapping[str, Any]) -> DiscoveryBatch:
         """Listen for the configured window and report each MikroTik heard.
 
-        Devices are keyed by RouterOS's software ID (one per device), falling
-        back to identity plus board. Each announcing interface becomes a
-        port. Port lists are never complete, because MNDP only covers the
-        interfaces that announce.
+        See :func:`batch_from_announcements` for how announcements become
+        devices and ports.
 
         Args:
             settings: The ``[mndp]`` section; ``listen_seconds`` is optional.
@@ -163,35 +212,4 @@ class MndpAdapter:
         seconds = settings.get("listen_seconds", DEFAULT_LISTEN_SECONDS)
         if type(seconds) is not int or not MIN_LISTEN_SECONDS <= seconds <= MAX_LISTEN_SECONDS:
             raise ValueError("[mndp] listen_seconds must be an integer from 5 to 300")
-        heard: dict[str, dict[str, Any]] = {}
-        interfaces: dict[str, dict[str, str | None]] = {}
-        for packet in self.listen(seconds):
-            fields = decode_packet(packet)
-            identity = fields.get("identity")
-            if not identity:
-                continue
-            key = fields.get("software_id") or f"{identity}|{fields.get('board', '')}"
-            remote_id = f"mndp:{key}"
-            heard[remote_id] = {**heard.get(remote_id, {}), **fields}
-            if fields.get("interface"):
-                interfaces.setdefault(remote_id, {})[fields["interface"]] = fields.get("mac")
-        devices = []
-        ports = []
-        for remote_id, fields in sorted(heard.items()):
-            devices.append(DeviceObservation(
-                remote_id=remote_id,
-                name=fields["identity"],
-                category=category_for_board(fields.get("board")),
-                identifiers={key: fields[key] for key in ("mac", "software_id") if fields.get(key)},
-                details={
-                    "platform": "mndp", "vendor": "MikroTik",
-                    "model": fields.get("board"),
-                    "version": fields.get("version"),
-                    "uptime_hours": (fields["uptime_seconds"] // 3600
-                                     if "uptime_seconds" in fields else None),
-                    "ports_complete": False,
-                },
-            ))
-            for name, mac in sorted(interfaces.get(remote_id, {}).items()):
-                ports.append(PortObservation(device_remote_id=remote_id, remote_id=name, name=name, mac=mac))
-        return DiscoveryBatch(devices=tuple(devices), ports=tuple(ports))
+        return batch_from_announcements(decode_packet(packet) for packet in self.listen(seconds))

@@ -6,15 +6,37 @@
  */
 "use strict";
 
+/** Evidence word on a router's client sightings (collector/sightings.py). */
+const SIGHTING = "router-sighting";
+
 /**
- * Return a node's client observations, the primary one first: a currently
- * reported one before any Not seen, then the newest sample.
+ * Whether a client observation is a router sighting: an address in use on a
+ * network, never an attachment.
+ * @param {object} client - Client metadata.
+ * @returns {boolean} True for a sighting.
+ */
+function isSighting(client) {
+    return client?.evidence === SIGHTING;
+}
+
+/** Rank of each condition when choosing a row's primary observation. */
+const CONDITION_RANK = {connected: 0, lease: 1, stale: 2, not_seen: 3};
+
+/**
+ * Return a node's client observations, the primary one first: current
+ * evidence first (a connected attachment or a fresh sighting; then a lease;
+ * then stale or unavailable; Not seen last), an attachment (switch or
+ * access point) before a router sighting at the same rank, then the newest
+ * sample. An old attachment stays in the list as history.
  * @param {object} node - Cached graph node with source observations.
+ * @param {number} [now] - Current epoch milliseconds, injectable in tests.
  * @returns {object[]} Client observations, primary first.
  */
-function clientObservations(node) {
+function clientObservations(node, now = Date.now()) {
+    const rank = (o) => CONDITION_RANK[clientCondition(o.client, now).key] ?? 2;
     return [...(node.observations || [])].filter((o) => o.client).sort((a, b) =>
-        (a.client.state === "not_seen") - (b.client.state === "not_seen")
+        rank(a) - rank(b)
+        || isSighting(a.client) - isSighting(b.client)
         || String(b.client.sampled_at).localeCompare(String(a.client.sampled_at)));
 }
 
@@ -32,17 +54,33 @@ function clientObservation(node) {
  *
  * A Proxmox guest with several network cards appears to UniFi as several
  * clients (one per MAC, each with its own address); an exact guest match
- * (same source and VM ID) is the same device. Nodes are never merged on
- * names or addresses. The merged row keeps every observation, so details
+ * (same source and VM ID) is the same device. A router's sightings of a MAC
+ * (one per network it was seen on) join the row with that MAC. Nodes are
+ * never merged on names or addresses. The merged row keeps every observation, so details
  * list each card; an inventory-linked node supplies identity and placement.
  * @param {object[]} nodes - Client graph nodes.
  * @returns {object[]} Rows: original nodes, or merged copies.
  */
 function mergeClientNodes(nodes) {
     const groups = new Map();
-    for (const node of nodes) {
+    const byMac = new Map();
+    const macOf = (node) => String(clientObservation(node)?.client?.mac_address || "").toLowerCase();
+    const sightingOnly = (node) => clientObservations(node).every((o) => isSighting(o.client));
+    for (const node of nodes.filter((item) => !sightingOnly(item))) {
         const guest = clientObservation(node)?.client?.virtualization;
         const key = guest && guest.vmid != null ? `guest:${guest.source_id}:${guest.vmid}` : `node:${node.id}`;
+        groups.set(key, [...(groups.get(key) || []), node]);
+        for (const observation of clientObservations(node)) {
+            const mac = String(observation.client.mac_address || "").toLowerCase();
+            if (mac && !byMac.has(mac)) byMac.set(mac, key);
+        }
+    }
+    // A router sighting joins the row of the same MAC (its attachment, or its
+    // sightings on other networks); merging is display only.
+    for (const node of nodes.filter(sightingOnly)) {
+        const mac = macOf(node);
+        const key = byMac.get(mac) || (mac ? `mac:${mac}` : `node:${node.id}`);
+        if (mac && !byMac.has(mac)) byMac.set(mac, key);
         groups.set(key, [...(groups.get(key) || []), node]);
     }
     return [...groups.values()].map((group) => {
@@ -55,15 +93,18 @@ function mergeClientNodes(nodes) {
 }
 
 /**
- * List a row's addresses: each card's IP, or its MAC when it has none. IPs
- * come first (primary card first), then bare MACs. Duplicates are dropped.
+ * List a row's addresses: each card's IP (seen IPv4, else seen IPv6, else a
+ * router lease's), or its MAC when it has none. IPs come first (primary
+ * card first), then bare MACs. Duplicates are dropped.
  * @param {object} node - Client node or merged row.
  * @returns {string[]} Addresses.
  */
 function clientAddresses(node) {
     const cards = clientObservations(node).map((o) => o.client);
+    // An address seen in use (IPv4, else IPv6), else a router lease's.
+    const address = (c) => c.ip_address || (c.ipv6 || [])[0] || c.lease?.ip;
     return [...new Set([
-        ...cards.map((c) => c.ip_address), ...cards.filter((c) => !c.ip_address).map((c) => c.mac_address)
+        ...cards.map(address), ...cards.filter((c) => !address(c)).map((c) => c.mac_address)
     ].filter(Boolean))];
 }
 
@@ -99,6 +140,14 @@ function clientIcon(client) {
 function clientCondition(client, now = Date.now()) {
     if (!client.source_enabled || client.collection_error) return {key: "stale", label: "Unavailable", lamp: "warning"};
     if (client.state === "not_seen") return {key: "not_seen", label: "Not seen", lamp: "waiting"};
+    if (isSighting(client)) {
+        // A router saw the address in use (ARP or NDP), or only holds a lease:
+        // evidence of an endpoint, never "connected".
+        if (client.state === "lease") return {key: "lease", label: "Lease only", lamp: "waiting"};
+        const seen = now - Date.parse(client.seen_at);
+        if (!Number.isFinite(seen) || seen < 0 || seen > 600000) return {key: "stale", label: "Stale", lamp: "warning"};
+        return {key: "connected", label: "Seen by router", lamp: "ready"};
+    }
     const age = now - Date.parse(client.sampled_at);
     if (!Number.isFinite(age) || age < 0 || age > 600000) return {key: "stale", label: "Stale", lamp: "warning"};
     if (client.is_blocked) return {key: "connected", label: "Blocked", lamp: "warning"};
@@ -107,12 +156,14 @@ function clientCondition(client, now = Date.now()) {
 
 /**
  * Sort a client into exactly one toolbar kind: a matched Proxmox guest (VM
- * or container), else its reported Wi-Fi or wired attachment.
+ * or container), a router sighting (no attachment known), else its reported
+ * Wi-Fi or wired attachment.
  * @param {object} client - Client metadata.
- * @returns {string} "vm", "wireless", or "wired".
+ * @returns {string} "vm", "sighted", "wireless", or "wired".
  */
 function clientKind(client) {
     if (client.virtualization) return "vm";
+    if (isSighting(client)) return "sighted";
     return client.connection === "wireless" ? "wireless" : "wired";
 }
 
@@ -120,14 +171,14 @@ function clientKind(client) {
  * Search and filter cached nodes without modifying their inventory identity.
  * @param {object[]} nodes - Cached client graph nodes.
  * @param {object} [filters] - Toolbar choices: search text; kinds shown, any
- *     of "vm", "wireless", "wired" (default all three); unplaced only; not
+ *     of "vm", "wireless", "wired", "sighted" (default all); unplaced only; not
  *     connected only (stale, unavailable, or not seen); and whether known
  *     server interfaces are shown.
  * @returns {object[]} Matching original node objects.
  */
 function filterClients(
     nodes,
-    {query = "", kinds = ["vm", "wireless", "wired"], unplaced = false, attention = false, showInterfaces = false} = {}
+    {query = "", kinds = ["vm", "wireless", "wired", "sighted"], unplaced = false, attention = false, showInterfaces = false} = {}
 ) {
     const search = query.trim().toLowerCase();
     return nodes.filter((node) => {
@@ -138,7 +189,7 @@ function filterClients(
         if (unplaced && (node.placement || record.virtualization)) return false;
         if (attention && clientCondition(record).key === "connected") return false;
         const haystack = [node.name, ...node.observations.map((o) => o.reported_name),
-            ...clientObservations(node).flatMap((o) => [o.client.ip_address, o.client.mac_address]),
+            ...clientObservations(node).flatMap((o) => [o.client.ip_address, o.client.mac_address, ...(o.client.ipv6 || [])]),
             record.manufacturer, record.device_category,
             record.device_model, record.hostname, record.ssid, record.network_name,
             record.virtualization?.name, record.virtualization?.host, ...(record.server_interfaces || []),
@@ -166,7 +217,8 @@ function clientDisplayName(node) {
  * @param {object} node - Client node.
  * @param {object[]} nodes - Graph nodes, to find the attaching device.
  * @returns {{kind:string,device:object|null,label:string|null,detail:string|null,cached:boolean}}
- *     kind is "vm", "wireless", "wired", or "unknown"; label names the
+ *     kind is "vm", "wireless", "wired", "sighted" (a router saw it; detail
+ *     names its networks), or "unknown"; label names the
  *     attaching device; detail is the bridges, Wi-Fi network, or switch
  *     port; cached marks guest metadata that is no longer fresh.
  */
@@ -180,6 +232,12 @@ function clientAttachment(node, nodes = []) {
         const bridges = [...new Set(clientObservations(node).map((o) => o.client.virtualization?.bridge).filter(Boolean))];
         return {kind: "vm", device: hypervisor || null, label: hypervisor?.name || guest.host || null,
             detail: bridges.join(", ") || null, cached: !guest.fresh};
+    }
+    if (isSighting(client)) {
+        // Where a router saw it: its network, never a port or access point.
+        const networks = [...new Set(clientObservations(node).filter((o) => isSighting(o.client))
+            .map((o) => o.client.network_name || o.client.scope).filter(Boolean))];
+        return {kind: "sighted", device: null, label: null, detail: networks.join(", ") || null, cached: false};
     }
     const uplink = nodes.find((n) => n.observations.some((o) => o.source_id === client.parent_source_id
         && o.remote_id === client.uplink_remote_id));
@@ -211,7 +269,8 @@ function clientColumns(node, nodes = [], placementLabel = () => "Placed") {
         address: clientAddresses(node).join(" "),
         // A guest's attachment is its hypervisor and bridge, not its own name.
         connection: guest ? `${[link.label, link.detail].filter(Boolean).join(" - ")}${link.cached ? " · cached" : ""}` : [
-            {wireless: "Wi-Fi", wired: "Wired"}[link.kind] || "Connection unknown", link.label, link.detail,
+            {wireless: "Wi-Fi", wired: "Wired", sighted: "Seen by router"}[link.kind] || "Connection unknown",
+            link.label, link.detail,
         ].filter(Boolean).join(" · "),
         status: clientCondition(client).label,
         // Guests are never placed (not physical equipment).
@@ -576,13 +635,15 @@ class ClientsPage {
     /**
      * Fill a Connection / host cell: a Wi-Fi, wired, or host icon, then the
      * access point, switch, or hypervisor as a link that opens its details,
-     * then the Wi-Fi network, switch port, or bridge.
+     * then the Wi-Fi network, switch port, or bridge (for a router sighting,
+     * the networks it was seen on).
      * @param {HTMLElement} cell - Table cell to fill.
      * @param {object} node - Client node.
      */
     renderAttachment(cell, node) {
         const link = clientAttachment(node, this.state.nodes);
-        const label = {wireless: "Wi-Fi", wired: "Wired", vm: "Hosted on"}[link.kind] || "Connection unknown";
+        const label = {wireless: "Wi-Fi", wired: "Wired", vm: "Hosted on", sighted: "Seen by router"}[link.kind]
+            || "Connection unknown";
         const icon = deviceText("span", "client-link-icon", "");
         icon.title = label;
         icon.append(this.element(`client-icon-${{wireless: "wifi", wired: "wired", vm: "server"}[link.kind] || "client"}`).content.cloneNode(true));
@@ -663,9 +724,9 @@ class ClientsPage {
         list.parentElement.hidden = !rows.length; this.element("clients-empty").hidden = Boolean(rows.length);
         this.element("clients-empty-message").textContent = this.state.clients.length
             ? "Try another search or clear the filters."
-            : "The collector will list clients reported by enabled UniFi connections.";
+            : "The collector will list clients reported by enabled UniFi and OPNsense connections.";
         // Mark the folded phone menu when any toggle is off its default.
-        this.host.querySelector(".view-menu-dot").hidden = filters.kinds.length === 3
+        this.host.querySelector(".view-menu-dot").hidden = filters.kinds.length === 4
             && !filters.unplaced && !filters.attention && !filters.showInterfaces;
         // Header readout beside the title; each kind's count is in its
         // toggle's tooltip (and accessible name) instead.

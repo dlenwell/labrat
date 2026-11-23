@@ -7,11 +7,13 @@ The API and future collector processes will share an on-disk SQLite database.
 Foreign-key enforcement and WAL mode are enabled on database connections.
 Alembic alone manages schema changes: this module does not create tables.
 
-Used by: app, audit, collector.__main__, collector.access_collection,
-discovery.models, discovery_settings, metadata, models,
-pages.settings_backup, placement.
+Used by: api.common, api_tokens, app, audit, collector.__main__,
+collector.access_collection, collector.client_links, discovery.models,
+discovery_settings, instance, integrations, metadata, models,
+pages.settings_backup, pages.status, placement, startup.
 """
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +24,24 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 class Base(DeclarativeBase):
     """Provide shared SQLAlchemy metadata for all persistent LabRat models."""
+
+
+def as_utc(value: datetime | None) -> datetime | None:
+    """Mark a timestamp read back from SQLite as UTC.
+
+    LabRat stores every timestamp in UTC, but SQLite returns them without a
+    zone; comparing or formatting a naive value would treat it as local
+    time. Aware values pass through unchanged.
+
+    Args:
+        value: A stored timestamp, or None.
+
+    Returns:
+        datetime | None: The same instant, timezone-aware, or None.
+    """
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
 
 
 def database_path(config: dict[str, Any]) -> Path:

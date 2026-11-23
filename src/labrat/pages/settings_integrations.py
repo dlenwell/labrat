@@ -3,14 +3,18 @@
 
 """Serve administrator-only integration configuration and explicit API tests."""
 
-from flask import Blueprint, abort, current_app, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request, url_for
 from flask.typing import ResponseReturnValue
 from sqlalchemy.exc import SQLAlchemyError
 
-from labrat.auth.session import current_user, login_required, require_csrf, session_factory
+from labrat.auth.session import login_required, require_admin_form, session_factory
 from labrat.integrations import (
-    IntegrationError, candidate, panel_context, read_settings, save_integration, delete_integration, test_connection,
+    IntegrationError, answer_identity, candidate, panel_context, read_settings, save_integration, delete_integration,
+    test_connection,
 )
+
+FORM_LIMIT = 32768
+"""Largest configuration form accepted, in bytes."""
 
 integrations_bp = Blueprint("integrations", __name__, url_prefix="/settings/integrations")
 
@@ -33,22 +37,6 @@ def settings_context(*, submitted: object | None = None) -> dict:
         return panel_context(current_app.extensions["labrat_config_path"], db,
                              kind=kind, name=name, is_new=is_new, removing=fields.get("action") == "delete", submitted=submitted)
 
-
-def _admin() -> object:
-    """Limit bounded configuration forms to current administrators with CSRF.
-
-    Returns:
-        object: The signed-in administrator.
-
-    Raises:
-        Forbidden: When the viewer is not an administrator (HTTP 403).
-    """
-    request.max_content_length = 32768
-    viewer = current_user()
-    if viewer is None or not viewer.is_admin:
-        abort(403)
-    require_csrf()
-    return viewer
 
 
 def _result(message: str, *, ok: bool = False, status: int = 400) -> ResponseReturnValue:
@@ -82,7 +70,7 @@ def save() -> ResponseReturnValue:
         ResponseReturnValue: A redirect to the Integrations panel after saving,
             or the panel with the error.
     """
-    viewer = _admin()
+    viewer = require_admin_form(FORM_LIMIT)
     try:
         kind, name = save_integration(current_app.extensions["labrat_config_path"],
                                       request.form, session_factory(), viewer)
@@ -101,7 +89,7 @@ def test() -> ResponseReturnValue:
     Returns:
         ResponseReturnValue: The test's safe result message.
     """
-    _admin()
+    require_admin_form(FORM_LIMIT)
     try:
         _raw, config, revision = read_settings(current_app.extensions["labrat_config_path"])
         if request.form.get("revision") != revision:
@@ -113,6 +101,25 @@ def test() -> ResponseReturnValue:
         return _result(str(exc))
 
 
+@integrations_bp.post("/identity")
+@login_required
+def identity() -> ResponseReturnValue:
+    """Answer a held poll: the same device at this address, or a different one.
+
+    Returns:
+        ResponseReturnValue: A redirect to the integration that collects
+            next, or the panel with the error.
+    """
+    viewer = require_admin_form(FORM_LIMIT)
+    try:
+        kind, name = answer_identity(current_app.extensions["labrat_config_path"], request.form, session_factory(), viewer)
+        return redirect(url_for("private.settings", panel="integrations", kind=kind, name=name, saved="identity"))
+    except IntegrationError as exc:
+        return _result(str(exc))
+    except (OSError, SQLAlchemyError):
+        return _result("The answer could not be saved. Check configuration-file access and try again.", status=503)
+
+
 @integrations_bp.post("/delete")
 @login_required
 def remove() -> ResponseReturnValue:
@@ -122,7 +129,7 @@ def remove() -> ResponseReturnValue:
         ResponseReturnValue: A redirect to the Integrations panel after the
             delete, or the panel with the error.
     """
-    viewer = _admin()
+    viewer = require_admin_form(FORM_LIMIT)
     try:
         delete_integration(current_app.extensions["labrat_config_path"], request.form, session_factory(), viewer)
         return redirect(url_for("private.settings", panel="integrations", saved="removed"))

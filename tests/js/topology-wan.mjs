@@ -34,3 +34,13 @@ run(`pair.from='wan2';pair.to='gateway';labratDrawLinks();`);
 assert.equal(run('pair.route.upper'),'wan2');
 assert.equal(layer.children.length,1);
 console.log('Discovery ISP labels and shared-gateway WAN routing checks passed');
+
+// Adopted but unplugged devices with no link stay off the map.
+assert.equal(run(`JSON.stringify([...labratDisconnectedNodes({
+    nodes:[
+        {id:'ap-off', observations:[{controller_state:'offline'}]},
+        {id:'switch-off-cabled', observations:[{controller_state:'offline'}]},
+        {id:'ap-on', observations:[{controller_state:'online'}]},
+        {id:'merged', observations:[{controller_state:'offline'},{controller_state:null,status:'online'}]},
+        {id:'manual', observations:[]}],
+    links:[{from:'switch-off-cabled',to:'core'}], wireless_links:[]})])`), JSON.stringify(['ap-off']));

@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from labrat.api.common import as_iso, json_string_list, port_sort_key
 from labrat.api.placement_rules import placement_snapshot
 from labrat.auth.session import api_login_required, session_factory
+from labrat.collector.watchlist import conditions as watch_conditions
 from labrat.coerce import json_object, mac_address
 from labrat.discovery.models import (
     DiscoveredDevice, DiscoveredLink, DiscoveredNetworkInterface, DiscoveredPort,
@@ -370,11 +371,17 @@ class _TopologyGraph:
                 "wan_upstream": observed_details.get("platform") == "unifi-wan-inference",
                 "last_seen_at": as_iso(observed.last_seen_at),
                 "status": status if isinstance(status, str) else None,
+                # The controller's own view of an adopted device (UniFi's
+                # ONLINE/OFFLINE), lower-cased; None when it reports none.
+                "controller_state": (observed_details["state"].lower()
+                                     if isinstance(observed_details.get("state"), str) else None),
                 "network_interfaces": self.network_by_device.get(observed.id, []),
                 "neighbors": [],
                 "ups": _ups_record(observed_details, self.server_names, observed.source_id),
                 "wireless": _wireless_record(observed_details),
                 "client": observed_details.get("client") if observed_details.get("role") == "client" else None,
+                # A router's watchlist conditions (collector/watchlist.py).
+                "watch_conditions": watch_conditions(observed_details.get("watchlist")),
                 "identifiers": json_object(observed.identifiers_json),
             }
             if existing is None:

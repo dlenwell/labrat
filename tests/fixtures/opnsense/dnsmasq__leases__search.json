@@ -1,0 +1,51 @@
+{
+ "current": 1,
+ "interfaces": {
+  "opt1": "DHCPLAB"
+ },
+ "rowCount": 3,
+ "rows": [
+  {
+   "address": "203.0.113.12",
+   "client_id": "01:02:00:00:00:10:01",
+   "expire": 1795371466,
+   "hostname": "workstation",
+   "hwaddr": "02:00:00:00:10:01",
+   "iaid": "",
+   "if": "em2",
+   "if_descr": "DHCPLAB",
+   "if_name": "opt1",
+   "is_reserved": [],
+   "mac_info": ""
+  },
+  {
+   "address": "203.0.113.13",
+   "client_id": "01:02:00:00:00:10:02",
+   "expire": 1795371470,
+   "hostname": "phone",
+   "hwaddr": "02:00:00:00:10:02",
+   "iaid": "",
+   "if": "em2",
+   "if_descr": "DHCPLAB",
+   "if_name": "opt1",
+   "is_reserved": [],
+   "mac_info": ""
+  },
+  {
+   "address": "203.0.113.30",
+   "client_id": "01:02:00:00:00:10:03",
+   "expire": 1795371470,
+   "hostname": "nas",
+   "hwaddr": "02:00:00:00:10:03",
+   "iaid": "",
+   "if": "em2",
+   "if_descr": "DHCPLAB",
+   "if_name": "opt1",
+   "is_reserved": [
+    "hwaddr"
+   ],
+   "mac_info": ""
+  }
+ ],
+ "total": 3
+}

@@ -14,8 +14,9 @@
 {% endblock %}
 {% block content %}
 {#
-  The Networks page (planning/specs/networks-page.md): UniFi networks,
-  firewall zones and the paths between them, Wi-Fi, devices, and clients.
+  The Networks page (planning/specs/networks-page.md): each router's
+  networks (UniFi, OPNsense), firewall zones and the paths between them,
+  Wi-Fi, devices, and clients, one router at a time.
   networks.js reads /api/v1/network once and draws the tab in data-view.
   It draws with the widget kit (widgets.js, widgets.css) and the Cluster
   page's layout (cluster.css).
@@ -29,6 +30,8 @@
         <div class="view-summary" id="networks-summary" aria-live="polite">Loading…</div>
       </div>
       <div class="view-heading-actions" role="group" aria-label="Network controls">
+        {# Shown when more than one router (UniFi, OPNsense) has a network. #}
+        <label class="networks-source" id="networks-source-field" hidden><span class="visually-hidden">Router</span><select id="networks-source"></select></label>
         {% call view_menu("networks-tools", "Refresh") %}
           <button class="button button-quiet room-icon-button" id="networks-refresh" type="button" aria-label="Refresh" title="Refresh" data-tooltip="Refresh">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg>

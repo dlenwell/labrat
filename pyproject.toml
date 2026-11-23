@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "labrat"
-version = "0.5.3"
+version = "0.5.4"
 description = "LabRat — know what's lurking in your lab."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -45,6 +45,7 @@ labrat = [
     "templates/public/*.html",
     "templates/private/*.html",
     "templates/docs/*.html",
+    "templates/startup/*.html",
     "static/css/*.css",
     "static/js/*.js",
     "static/img/*",

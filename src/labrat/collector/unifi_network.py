@@ -26,7 +26,7 @@ from urllib.parse import quote
 from sqlalchemy import select
 
 from labrat.coerce import integer, json_object, number, text
-from labrat.collector.http import controller_url, required_string, tls_verification, unifi_network_root
+from labrat.collector.http import controller_url, optional_read, required_string, tls_verification, unifi_network_root
 from labrat.discovery.models import DiscoveredDevice
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,6 +40,9 @@ DEADLINE_SECONDS = 60
 #: snapshot's errors record ``device_detail: limited``.
 MAX_ROWS = 2000
 MAX_DEVICE_READS = 256
+#: Networks kept per snapshot; past it, the errors record
+#: ``network_list: limited``.
+MAX_NETWORKS = 128
 
 
 # Whole numbers from the integration API truncate (labrat.coerce).
@@ -342,17 +345,13 @@ def network_snapshot(adapter: Any, settings: dict, clock: Callable[[], float] = 
     prefix = f"/sites/{quote(site_id, safe='')}"
     errors: dict[str, str] = {}
 
-    def attempt(part: str, read: Callable[[], Any], default: Any) -> Any:
-        try:
-            return read()
-        except Exception as exc:  # Each part is optional.
-            _LOGGER.info("UniFi %s unavailable (%s)", part, type(exc).__name__)
-            errors[part] = "unavailable"
-            return default
+    attempt = partial(optional_read, errors, "UniFi")  # Each part is optional.
 
     summaries = attempt("networks", lambda: reader.pages(f"{prefix}/networks"), [])
+    if len(summaries) > MAX_NETWORKS:
+        errors.setdefault("network_list", "limited")
     networks = []
-    for row in summaries[:128]:
+    for row in summaries[:MAX_NETWORKS]:
         detail = attempt("network_detail", lambda: reader.get(f"{reader.base}{prefix}/networks/{quote(str(row.get('id')), safe='')}"), row)
         networks.append(_network(detail if isinstance(detail, dict) else row))
     lists = {str(row.get("id")): {"name": text(row.get("name"), 80), "type": text(row.get("type"), 30),

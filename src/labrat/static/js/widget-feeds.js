@@ -42,7 +42,7 @@
     function feed(name, build) {
         W.register(name, (json, node) => {
             const source = sourceOf(json, node);
-            if (!source || (source.snapshot === null)) {
+            if (!source) {
                 return {
                     widget: "attention", data: [], options: { title: null, clear: "No data from this source yet." }
                 };
@@ -199,44 +199,63 @@
     });
 
     // ------------------------------------------------------------------
-    // Networks (/api/v1/network)
+    // Networks (/api/v1/network, each source's shared `network` form)
     // ------------------------------------------------------------------
 
-    feed("network.clients-by-network", (source) => {
-        const clients = source.snapshot.clients || [];
+    /**
+     * Register a network feed that needs a source with a network, drawing
+     * a note without one.
+     * @param {string} name Feed name.
+     * @param {Function} build `(network, node) => {widget, data, options}`.
+     */
+    function networkFeed(name, build) {
+        W.register(name, (json, node) => {
+            const source = sourceOf(json, node);
+            if (!source || !source.network) {
+                return {
+                    widget: "attention", data: [], options: { title: null, clear: "No data from this source yet." }
+                };
+            }
+            return build(source.network, node);
+        });
+    }
+
+    networkFeed("network.clients-by-network", (network) => {
+        const clients = network.clients || [];
         return { widget: "donut", data: tally(clients, (client) => client.network || "unknown"),
             options: { label: "Clients by network", centre: String(clients.length), caption: "clients" } };
     });
 
-    feed("network.connections", (source) => {
-        const clients = source.snapshot.clients || [];
+    networkFeed("network.connections", (network) => {
+        const clients = network.clients || [];
         return { widget: "pie", data: tally(
-            clients, (client) => (client.type === "WIRED" ? "Wired" : client.type === "WIRELESS" ? "Wi-Fi" : "Other")
+            clients,
+            (client) => (client.connection === "wired" ? "Wired" : client.connection === "wireless" ? "Wi-Fi" : "Other")
         ),
             options: { label: "Clients by connection" } };
     });
 
-    feed("network.wifi-channels", (source) => ({
-        widget: "columnGroups", data: N.channelGroups(source.snapshot),
+    networkFeed("network.wifi-channels", (network) => ({
+        widget: "columnGroups", data: N.channelGroups(network),
         options: {
             label: "Neighbouring networks per channel", note: "Brighter columns are channels your own APs use."
         },
     }));
 
-    // DNS sinkholes sit beside the snapshot, so they show before the
-    // first UniFi read too. data-widget-limit keeps the first few;
-    // data-widget-bare drops each card's evidence lines.
+    // DNS sinkholes come with the source's network. data-widget-limit
+    // keeps the first few; data-widget-bare drops each card's evidence
+    // lines.
     W.register("network.sinkholes", (json, node) => {
         const source = sourceOf(json, node);
-        const items = (source && source.sinkholes) || [];
+        const items = (source && source.network && source.network.sinkholes) || [];
         return {
             widget: "sinkholes", data: items.slice(0, Number(node.dataset.widgetLimit) || undefined),
             options: { evidence: !node.hasAttribute("data-widget-bare") },
         };
     });
 
-    feed("network.top-clients", (source) => ({
-        widget: "splitBars", data: (source.snapshot.clients || []).map((client) => ({
+    networkFeed("network.top-clients", (network) => ({
+        widget: "splitBars", data: (network.clients || []).map((client) => ({
             label: client.name || client.mac, sub: client.network || "", values: [
                 client.rx_bytes || 0, client.tx_bytes || 0
             ],

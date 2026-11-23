@@ -12,7 +12,7 @@ addresses sit next to the port's own in the vendor's per-adapter block.
 These rules only fold such addresses under the owning host for display. They
 never create an inventory identity, and every rule refuses ambiguous owners.
 
-Used by: api.clients, collector.clients.
+Used by: api.clients, collector.clients, collector.sightings.
 """
 
 from collections.abc import Iterable, Mapping

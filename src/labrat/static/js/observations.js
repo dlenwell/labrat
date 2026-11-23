@@ -50,6 +50,38 @@ function observationNodeState(node, now = Date.now()) {
     return fresh.some(item => item.status === "online") ? "online" : "unknown";
 }
 
+/**
+ * Describe a router watchlist condition (collector/watchlist.py) for the
+ * watchlist: a monitored gateway down, a keepalive VPN peer stale, or a
+ * CARP virtual IP in another state than its baseline.
+ * @param {object} watch - One served condition (`condition`, `label`,
+ *     `state`, `from`, `to`).
+ * @returns {{severity: string, title: string, facts: Array<Array<string>>}} Its row.
+ */
+function routerCondition(watch) {
+    if (watch.condition === "router-gateway-down") {
+        return { severity: "alarm", title: "Gateway down", facts: [["Gateway", watch.label || watch.item],
+            ["Reported", "down (monitored)"]] };
+    }
+    if (watch.condition === "router-peer-stale") {
+        return { severity: "warning", title: "VPN peer stale", facts: [["Peer", watch.label || watch.item],
+            ["Reported", "no handshake for over 5 minutes, with keepalive set"]] };
+    }
+    return { severity: "warning", title: "CARP state changed", facts: [["Virtual IP", watch.label || watch.item],
+        ["Change", `${watch.from || "unknown"} → ${watch.to || "unknown"}`]] };
+}
+
+/** Tell a passing network client from equipment whose silence matters.
+ * Phones, laptops, and guests join and leave all day; the collector keeps
+ * the ones it no longer sees, marked not seen. Until one is added to
+ * inventory, its coming and going is not a condition or an event.
+ * @param {object} node - Topology node.
+ * @returns {boolean} Whether the node is a client not in inventory.
+ */
+function observationPassingClient(node) {
+    return Boolean(node.client_only) && !node.device_id;
+}
+
 /** Format an elapsed time, preserving never-observed state.
  * @param {number} milliseconds - Age in milliseconds.
  * @returns {string} Compact human-readable duration.
@@ -262,6 +294,7 @@ class ObservationConsole extends LabratWanMonitor {
             );
         }
         for (const node of this.scopedNodes()) {
+            if (observationPassingClient(node)) continue;
             const state = observationNodeState(node);
             const observation = node.observations.find(item => item.status === "offline") || node.observations[0];
             const facts = [["Device", node.name], ["Type", node.category], ...node.observations.flatMap(item => [
@@ -329,6 +362,23 @@ class ObservationConsole extends LabratWanMonitor {
                 );
             }
             for (const observed of node.observations) {
+                for (const watch of observed.watch_conditions || []) {
+                    const row = routerCondition(watch);
+                    const target = { ...deviceTarget(watch.condition, observed), item: watch.item };
+                    // A CARP change is acknowledged per occurrence: a later
+                    // change to the same state shows again.
+                    if (watch.condition === "router-carp-changed") Object.assign(target, { state: watch.to, since: watch.entered_at });
+                    // Last known when its section was not read since, or the
+                    // source's polls are failing or overdue.
+                    const source = this.data.sources.find(item => item.id === observed.source_id);
+                    const lastKnown = watch.sampled_at !== watch.watch_sampled_at
+                        || Boolean(source && (source.last_error || observationSourceState(source).overdue));
+                    add(target, row.severity, row.title, `${node.name} · ${watch.label || watch.item}${lastKnown ? " · last known" : ""}`, [
+                        ["Router", node.name], ["Source", observed.source], ...row.facts,
+                        ["Condition since", watch.entered_at || "Unknown"],
+                        [lastKnown ? "No data since" : "Last sample", watch.sampled_at || "Unknown"],
+                    ], node);
+                }
                 for (const neighbor of (observed.neighbors || []).filter(item => !item.resolved)) {
                     add({ ...deviceTarget("neighbor-unresolved", observed), port_remote_id: neighbor.local_port,
                         chassis_id: neighbor.chassis_id, remote_port_id: neighbor.port_id }, "advisory", "Unresolved LLDP neighbor", `${node.name} · ${neighbor.local_port_name}`,
@@ -1375,6 +1425,7 @@ class ObservationConsole extends LabratWanMonitor {
             add(`error:${source.name}`, source.last_error, `${source.name}: ${source.last_error ? 'collection failed' : 'collection recovered'}`);
         }
         for (const node of data.nodes) {
+            if (observationPassingClient(node)) continue;
             const room = node.placement?.container_room_id || "unplaced";
             add(`node:${node.id}`, observationNodeState(node), `${node.name}: ${observationNodeState(node)}`, room);
             for (const port of node.ports) add(

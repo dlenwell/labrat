@@ -9,6 +9,8 @@
 <section class="docs-prose">
   <h2>Browser session API</h2>
   <p>Protected routes use the same signed browser session as the HTML app. Writes require an administrator, JSON body, and <code>X-CSRF-Token</code>. The health route is public. This page lists the current code contract rather than private inventory data.</p>
+  <h2>Machine API</h2>
+  <p>Routes marked <em>API token</em> are for programs, not browsers. An administrator creates a token in <strong>Settings → API tokens</strong> with a name, an expiry, and the scopes it may use; the program sends it as <code>Authorization: Bearer &lt;token&gt;</code>, with no session cookie or CSRF token. A token reaches only the routes its scopes allow, never the browser pages or the session API. The token is shown once when created; LabRat keeps only its fingerprint. Revoke one you no longer need.</p>
 </section>
 <div class="docs-table-scroll">
   <table class="docs-route-table">

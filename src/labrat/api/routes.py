@@ -25,6 +25,20 @@ def health() -> ResponseReturnValue:
     return jsonify(service="labrat", status="ok")
 
 
+@api_bp.get("/v1/live")
+def live() -> ResponseReturnValue:
+    """Report that the server process answers, for liveness probes.
+
+    Unlike ``/api/v1/health``, this answers 200 while LabRat is still
+    starting or migrating (``labrat/startup.py`` serves it then), so a
+    long migration never gets the container restarted.
+
+    Returns:
+        ResponseReturnValue: HTTP 200 with service name and ``ready`` startup state.
+    """
+    return jsonify(service="labrat", status="live", startup="ready")
+
+
 @api_bp.get("/v1/me")
 @api_login_required
 def me() -> ResponseReturnValue:

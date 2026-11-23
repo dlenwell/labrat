@@ -1,0 +1,785 @@
+{
+ "current": 1,
+ "rowCount": 10,
+ "rows": [
+  {
+   "addr4": "192.0.2.1/24",
+   "addr6": "",
+   "capabilities": [
+    "rxcsum",
+    "txcsum",
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "tso4",
+    "lro",
+    "wol_ucast",
+    "wol_mcast",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "netmap",
+    "hwstats",
+    "mextpg"
+   ],
+   "config": {
+    "enable": "1",
+    "identifier": "lan",
+    "if": "em0",
+    "ipaddr": "192.0.2.1",
+    "ipaddrv6": "idassoc6",
+    "media": "",
+    "mediaopt": "",
+    "subnet": "24",
+    "subnetv6": "64",
+    "track6-interface": "wan",
+    "track6-prefix-id": "0"
+   },
+   "description": "LAN",
+   "device": "em0",
+   "enabled": true,
+   "flags": [
+    "up",
+    "broadcast",
+    "running",
+    "simplex",
+    "multicast",
+    "lower_up"
+   ],
+   "gateways": [],
+   "identifier": "lan",
+   "ipv4": [
+    {
+     "ipaddr": "192.0.2.1/24"
+    }
+   ],
+   "ipv6": [
+    {
+     "ipaddr": "fe80::ff:fe00:1/64"
+    }
+   ],
+   "is_physical": true,
+   "link_type": "static",
+   "macaddr": "02:00:00:00:00:01",
+   "macaddr_hw": "02:00:00:00:00:01",
+   "media": "1000baseT <full-duplex>",
+   "media_raw": "Ethernet autoselect (1000baseT <full-duplex>)",
+   "mtu": "1500",
+   "nd6": {
+    "flags": [
+     "performnud",
+     "auto_linklocal"
+    ]
+   },
+   "options": [
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "hwstats",
+    "mextpg"
+   ],
+   "routes": [
+    "192.0.2.0/24",
+    "fe80::%em0/64"
+   ],
+   "status": "up",
+   "supported_media": [
+    "autoselect",
+    "1000baseT",
+    "1000baseT full-duplex",
+    "100baseTX full-duplex",
+    "100baseTX",
+    "10baseT/UTP full-duplex",
+    "10baseT/UTP"
+   ],
+   "vlan_tag": null
+  },
+  {
+   "addr4": "198.51.100.15/24",
+   "addr6": "2001:db8::ff:fe00:2/64",
+   "capabilities": [
+    "rxcsum",
+    "txcsum",
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "tso4",
+    "lro",
+    "wol_ucast",
+    "wol_mcast",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "netmap",
+    "hwstats",
+    "mextpg"
+   ],
+   "config": {
+    "blockbogons": "1",
+    "blockpriv": "1",
+    "dhcp6-ia-pd-len": "0",
+    "dhcphostname": "",
+    "enable": "1",
+    "gateway": "",
+    "identifier": "wan",
+    "if": "em1",
+    "ipaddr": "dhcp",
+    "ipaddrv6": "dhcp6",
+    "media": "",
+    "mediaopt": "",
+    "mtu": "",
+    "subnet": ""
+   },
+   "description": "WAN",
+   "device": "em1",
+   "enabled": true,
+   "flags": [
+    "up",
+    "broadcast",
+    "running",
+    "simplex",
+    "multicast",
+    "lower_up"
+   ],
+   "gateways": [
+    "198.51.100.2",
+    "fe80::2"
+   ],
+   "identifier": "wan",
+   "ifctl.nameserver": [
+    "198.51.100.3"
+   ],
+   "ifctl.router": [
+    "198.51.100.2",
+    "fe80::2"
+   ],
+   "ipv4": [
+    {
+     "ipaddr": "198.51.100.15/24"
+    }
+   ],
+   "ipv6": [
+    {
+     "ipaddr": "2001:db8::ff:fe00:2/64"
+    },
+    {
+     "ipaddr": "fe80::ff:fe00:2/64"
+    }
+   ],
+   "is_physical": true,
+   "link_type": "dhcp",
+   "macaddr": "02:00:00:00:00:02",
+   "macaddr_hw": "02:00:00:00:00:02",
+   "media": "1000baseT <full-duplex>",
+   "media_raw": "Ethernet autoselect (1000baseT <full-duplex>)",
+   "mtu": "1500",
+   "nd6": {
+    "flags": [
+     "performnud",
+     "accept_rtadv",
+     "auto_linklocal"
+    ]
+   },
+   "options": [
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "hwstats",
+    "mextpg"
+   ],
+   "routes": [
+    "default",
+    "198.51.100.0/24",
+    "198.51.100.3",
+    "default",
+    "fe80::%em1/64",
+    "2001:db8::/64"
+   ],
+   "status": "up",
+   "supported_media": [
+    "autoselect",
+    "1000baseT",
+    "1000baseT full-duplex",
+    "100baseTX full-duplex",
+    "100baseTX",
+    "10baseT/UTP full-duplex",
+    "10baseT/UTP"
+   ],
+   "vlan_tag": null
+  },
+  {
+   "addr4": "203.0.113.1/26",
+   "addr6": "2001:db8:1::1/64",
+   "capabilities": [
+    "rxcsum",
+    "txcsum",
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "tso4",
+    "lro",
+    "wol_ucast",
+    "wol_mcast",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "netmap",
+    "hwstats",
+    "mextpg"
+   ],
+   "config": {
+    "descr": "DHCPLAB",
+    "enable": "1",
+    "identifier": "opt1",
+    "if": "em2",
+    "ipaddr": "203.0.113.1",
+    "ipaddrv6": "2001:db8:1::1",
+    "subnet": "26",
+    "subnetv6": "64"
+   },
+   "description": "DHCPLAB",
+   "device": "em2",
+   "enabled": true,
+   "flags": [
+    "up",
+    "broadcast",
+    "running",
+    "simplex",
+    "multicast",
+    "lower_up"
+   ],
+   "gateways": [],
+   "groups": [
+    "labnets",
+    "dhcpnets"
+   ],
+   "identifier": "opt1",
+   "ipv4": [
+    {
+     "ipaddr": "203.0.113.1/26"
+    }
+   ],
+   "ipv6": [
+    {
+     "ipaddr": "2001:db8:1::1/64"
+    },
+    {
+     "ipaddr": "fe80::ff:fe00:3/64"
+    }
+   ],
+   "is_physical": true,
+   "link_type": "static",
+   "macaddr": "02:00:00:00:00:03",
+   "macaddr_hw": "02:00:00:00:00:03",
+   "media": "1000baseT <full-duplex>",
+   "media_raw": "Ethernet autoselect (1000baseT <full-duplex>)",
+   "mtu": "1500",
+   "nd6": {
+    "flags": [
+     "performnud",
+     "auto_linklocal",
+     "no_dad"
+    ]
+   },
+   "options": [
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "hwstats",
+    "mextpg"
+   ],
+   "routes": [
+    "203.0.113.0/26",
+    "2001:db8:1::/64",
+    "fe80::%em2/64"
+   ],
+   "status": "up",
+   "supported_media": [
+    "autoselect",
+    "1000baseT",
+    "1000baseT full-duplex",
+    "100baseTX full-duplex",
+    "100baseTX",
+    "10baseT/UTP full-duplex",
+    "10baseT/UTP"
+   ],
+   "vlan_tag": null
+  },
+  {
+   "addr4": "203.0.113.65/26",
+   "addr6": "",
+   "capabilities": [
+    "rxcsum",
+    "txcsum",
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "tso4",
+    "lro",
+    "wol_ucast",
+    "wol_mcast",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "netmap",
+    "hwstats",
+    "mextpg"
+   ],
+   "config": {
+    "descr": "KEALAB",
+    "enable": "1",
+    "identifier": "opt2",
+    "if": "em3",
+    "ipaddr": "203.0.113.65",
+    "subnet": "26"
+   },
+   "description": "KEALAB",
+   "device": "em3",
+   "enabled": true,
+   "flags": [
+    "up",
+    "broadcast",
+    "running",
+    "simplex",
+    "multicast",
+    "lower_up"
+   ],
+   "gateways": [],
+   "groups": [
+    "dhcpnets"
+   ],
+   "identifier": "opt2",
+   "ipv4": [
+    {
+     "ipaddr": "203.0.113.65/26"
+    }
+   ],
+   "is_physical": true,
+   "link_type": "static",
+   "macaddr": "02:00:00:00:00:04",
+   "macaddr_hw": "02:00:00:00:00:04",
+   "media": "1000baseT <full-duplex>",
+   "media_raw": "Ethernet autoselect (1000baseT <full-duplex>)",
+   "mtu": "1500",
+   "nd6": {
+    "flags": [
+     "performnud",
+     "ifdisabled",
+     "auto_linklocal"
+    ]
+   },
+   "options": [
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "hwstats",
+    "mextpg"
+   ],
+   "routes": [
+    "203.0.113.64/26"
+   ],
+   "status": "up",
+   "supported_media": [
+    "autoselect",
+    "1000baseT",
+    "1000baseT full-duplex",
+    "100baseTX full-duplex",
+    "100baseTX",
+    "10baseT/UTP full-duplex",
+    "10baseT/UTP"
+   ],
+   "vlan_tag": null
+  },
+  {
+   "addr4": "203.0.113.193/29",
+   "addr6": "",
+   "capabilities": [
+    "rxcsum",
+    "txcsum",
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "tso4",
+    "lro",
+    "wol_ucast",
+    "wol_mcast",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "netmap",
+    "hwstats",
+    "mextpg"
+   ],
+   "carp": {
+    "1": {
+     "advbase": "1",
+     "advskew": "0",
+     "peer": "224.0.0.18",
+     "peer6": "ff02::12",
+     "status": "MASTER",
+     "vhid": "1"
+    }
+   },
+   "config": {
+    "descr": "PEERLINK",
+    "enable": "1",
+    "identifier": "opt4",
+    "if": "em4",
+    "ipaddr": "203.0.113.193",
+    "subnet": "29"
+   },
+   "description": "PEERLINK",
+   "device": "em4",
+   "enabled": true,
+   "flags": [
+    "up",
+    "broadcast",
+    "running",
+    "promisc",
+    "simplex",
+    "multicast",
+    "lower_up"
+   ],
+   "gateways": [
+    "203.0.113.194"
+   ],
+   "identifier": "opt4",
+   "ipv4": [
+    {
+     "ipaddr": "203.0.113.193/29"
+    },
+    {
+     "advbase": "1",
+     "advskew": "0",
+     "ipaddr": "203.0.113.198/29",
+     "peer": "224.0.0.18",
+     "peer6": "ff02::12",
+     "status": "MASTER",
+     "vhid": "1"
+    }
+   ],
+   "is_physical": true,
+   "link_type": "static",
+   "macaddr": "02:00:00:00:00:05",
+   "macaddr_hw": "02:00:00:00:00:05",
+   "media": "1000baseT <full-duplex>",
+   "media_raw": "Ethernet autoselect (1000baseT <full-duplex>)",
+   "mtu": "1500",
+   "nd6": {
+    "flags": [
+     "performnud",
+     "ifdisabled",
+     "auto_linklocal"
+    ]
+   },
+   "options": [
+    "vlan_mtu",
+    "vlan_hwtagging",
+    "jumbo_mtu",
+    "vlan_hwcsum",
+    "wol_magic",
+    "vlan_hwfilter",
+    "vlan_hwtso",
+    "hwstats",
+    "mextpg"
+   ],
+   "routes": [
+    "203.0.113.192/29"
+   ],
+   "status": "up",
+   "supported_media": [
+    "autoselect",
+    "1000baseT",
+    "1000baseT full-duplex",
+    "100baseTX full-duplex",
+    "100baseTX",
+    "10baseT/UTP full-duplex",
+    "10baseT/UTP"
+   ],
+   "vlan_tag": null
+  },
+  {
+   "addr4": "127.0.0.1/8",
+   "addr6": "::1/128",
+   "capabilities": [
+    "rxcsum",
+    "txcsum",
+    "linkstate",
+    "rxcsum_ipv6",
+    "txcsum_ipv6"
+   ],
+   "config": {
+    "descr": "Loopback",
+    "enable": "1",
+    "identifier": "lo0",
+    "if": "lo0",
+    "internal_dynamic": "1",
+    "ipaddr": "127.0.0.1",
+    "ipaddrv6": "::1",
+    "subnet": "8",
+    "subnetv6": "128",
+    "type": "none",
+    "virtual": "1"
+   },
+   "description": "Loopback",
+   "device": "lo0",
+   "enabled": true,
+   "flags": [
+    "up",
+    "loopback",
+    "running",
+    "multicast",
+    "lower_up"
+   ],
+   "gateways": [],
+   "groups": [
+    "lo"
+   ],
+   "identifier": "lo0",
+   "ipv4": [
+    {
+     "ipaddr": "127.0.0.1/8"
+    }
+   ],
+   "ipv6": [
+    {
+     "ipaddr": "::1/128"
+    },
+    {
+     "ipaddr": "fe80::1/64"
+    }
+   ],
+   "is_physical": false,
+   "link_type": "static",
+   "macaddr": "00:00:00:00:00:00",
+   "mtu": "16384",
+   "nd6": {
+    "flags": [
+     "performnud",
+     "auto_linklocal"
+    ]
+   },
+   "options": [
+    "rxcsum",
+    "txcsum",
+    "linkstate",
+    "rxcsum_ipv6",
+    "txcsum_ipv6"
+   ],
+   "routes": [
+    "198.51.100.15",
+    "127.0.0.1",
+    "192.0.2.1",
+    "203.0.113.1",
+    "203.0.113.65",
+    "203.0.113.129",
+    "203.0.113.193",
+    "203.0.113.198",
+    "203.0.113.245",
+    "::1",
+    "2001:db8:1::1",
+    "fe80::ff:fe00:1%lo0",
+    "fe80::ff:fe00:2%lo0",
+    "fe80::ff:fe00:3%lo0",
+    "fe80::%lo0/64",
+    "fe80::1%lo0",
+    "2001:db8::ff:fe00:2"
+   ],
+   "status": "up",
+   "supported_media": [],
+   "vlan_tag": null
+  },
+  {
+   "capabilities": [
+    "capabilities="
+   ],
+   "description": "Unassigned Interface",
+   "device": "enc0",
+   "flags": [],
+   "groups": [
+    "enc"
+   ],
+   "identifier": "",
+   "ipv4": [],
+   "ipv6": [],
+   "is_physical": false,
+   "macaddr": "00:00:00:00:00:00",
+   "mtu": "1536",
+   "nd6": {
+    "flags": [
+     "performnud",
+     "ifdisabled",
+     "auto_linklocal"
+    ]
+   },
+   "options": [
+    "options="
+   ],
+   "status": "down",
+   "supported_media": []
+  },
+  {
+   "capabilities": [
+    "capabilities="
+   ],
+   "description": "Unassigned Interface",
+   "device": "pflog0",
+   "flags": [],
+   "groups": [
+    "pflog"
+   ],
+   "identifier": "",
+   "ipv4": [],
+   "ipv6": [],
+   "is_physical": false,
+   "macaddr": "00:00:00:00:00:00",
+   "mtu": "33152",
+   "options": [
+    "options="
+   ],
+   "status": "down",
+   "supported_media": []
+  },
+  {
+   "addr4": "203.0.113.129/26",
+   "addr6": "",
+   "capabilities": [
+    "rxcsum",
+    "txcsum",
+    "tso4",
+    "lro",
+    "mextpg"
+   ],
+   "config": {
+    "descr": "LABVLAN",
+    "enable": "1",
+    "identifier": "opt3",
+    "if": "vlan01",
+    "ipaddr": "203.0.113.129",
+    "subnet": "26"
+   },
+   "description": "LABVLAN",
+   "device": "vlan01",
+   "enabled": true,
+   "flags": [
+    "up",
+    "broadcast",
+    "running",
+    "simplex",
+    "multicast",
+    "lower_up"
+   ],
+   "gateways": [],
+   "groups": [
+    "vlan",
+    "labnets"
+   ],
+   "identifier": "opt3",
+   "ipv4": [
+    {
+     "ipaddr": "203.0.113.129/26"
+    }
+   ],
+   "is_physical": false,
+   "link_type": "static",
+   "macaddr": "02:00:00:00:00:03",
+   "macaddr_hw": "02:00:00:00:00:03",
+   "media": "1000baseT <full-duplex>",
+   "media_raw": "Ethernet autoselect (1000baseT <full-duplex>)",
+   "mtu": "1500",
+   "nd6": {
+    "flags": [
+     "performnud",
+     "ifdisabled",
+     "auto_linklocal"
+    ]
+   },
+   "options": [
+    "mextpg"
+   ],
+   "routes": [
+    "203.0.113.128/26"
+   ],
+   "status": "up",
+   "supported_media": [
+    "autoselect"
+   ],
+   "vlan": {
+    "parent": "em2",
+    "pcp": "0",
+    "proto": "802.1q",
+    "tag": "10"
+   },
+   "vlan_tag": "10"
+  },
+  {
+   "capabilities": [
+    "linkstate"
+   ],
+   "description": "Unassigned Interface",
+   "device": "wg0",
+   "flags": [
+    "up",
+    "running",
+    "noarp",
+    "multicast",
+    "lower_up"
+   ],
+   "groups": [
+    "wg",
+    "wireguard"
+   ],
+   "identifier": "",
+   "ipv4": [
+    {
+     "ipaddr": "203.0.113.245",
+     "subnetbits": 30,
+     "tunnel": false
+    }
+   ],
+   "ipv6": [],
+   "is_physical": false,
+   "macaddr": "00:00:00:00:00:00",
+   "mtu": "1420",
+   "nd6": {
+    "flags": [
+     "performnud",
+     "ifdisabled",
+     "no_dad"
+    ]
+   },
+   "options": [
+    "linkstate"
+   ],
+   "routes": [
+    "203.0.113.244/30",
+    "203.0.113.246",
+    "203.0.113.249"
+   ],
+   "status": "up",
+   "supported_media": []
+  }
+ ],
+ "total": 10
+}

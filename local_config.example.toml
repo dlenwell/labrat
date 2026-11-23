@@ -8,6 +8,9 @@
 # Hosts accepted in HTTP Host headers. Add the VM IP, DNS name, container host,
 # or ingress hostname used to open LabRat. If omitted, loopback hosts are used.
 allowed_hosts = ["localhost", "127.0.0.1", "::1"]
+# Let the web server run `alembic upgrade head` itself, behind its holding
+# page, when the database is behind (the container image turns this on).
+# migrate_on_start = false
 
 [database]
 path = "data/labrat.sqlite3"

@@ -97,5 +97,6 @@ class AppConfigurationTests(unittest.TestCase):
         response=self.client.get('/docs/api')
         self.assertIn(b'Admin + CSRF',response.data)
         self.assertIn(b'Signed-in',response.data)
+        self.assertIn(b'API token (observations:mndp)',response.data)
         self.assertIn(b'/api/v1/health',response.data)
         self.assertIn(b'Public',response.data)

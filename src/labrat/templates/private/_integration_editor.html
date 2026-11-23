@@ -16,6 +16,22 @@
     </dl>
   </section>
   {% endif %}
+  {% if editor.identity_pending %}
+  <section class="integration-identity" aria-labelledby="integration-identity-title">
+    <h3 id="integration-identity-title">A different device may be answering</h3>
+    <p>LabRat knows this connection as <strong>{{ editor.identity_pending.known }}</strong>, but the device at its address now reports <strong>{{ editor.identity_pending.seen }}</strong>, and none of its network cards match. Collection is paused so the known device keeps its inventory link, label, and placement.</p>
+    <form method="post" action="{{ url_for('private.integrations.identity') }}" class="integration-identity-actions">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="revision" value="{{ integration_revision }}">
+      <input type="hidden" name="kind" value="{{ editor.kind }}">
+      <input type="hidden" name="name" value="{{ editor.name }}">
+      <input type="hidden" name="evidence" value="{{ editor.identity_pending.fingerprint }}">
+      <button class="button" type="submit" name="choice" value="same">Same device, carry on</button>
+      <button class="button button-quiet" type="submit" name="choice" value="different">A different device: keep the old one</button>
+    </form>
+    <p class="integration-note">A different device gets a connection of its own with these settings; the old one is kept, disabled, as "(replaced)".</p>
+  </section>
+  {% endif %}
   <form class="settings-form integration-form" method="post" action="{{ url_for('private.integrations.save') }}" data-integration-form data-test-url="{{ url_for('private.integrations.test') }}">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
     <input type="hidden" name="revision" value="{{ integration_revision }}">
@@ -30,6 +46,14 @@
       </div>
     </div>
     {{ settings_fields(editor.fields, "integration") }}
+    {% if editor.replacement_question %}
+    <fieldset class="integration-replacement">
+      <legend>If you change the address</legend>
+      <label><input type="radio" name="replacement" value="same" {% if editor.replacement == 'same' %}checked{% endif %}> The same device at a new address</label>
+      <label><input type="radio" name="replacement" value="different" {% if editor.replacement == 'different' %}checked{% endif %}> A different device: keep the old one as "(replaced)"</label>
+      <small>Only asked when the address changes. A new key or secret never needs it.</small>
+    </fieldset>
+    {% endif %}
     <details class="integration-advanced">
       <summary>Certificate settings</summary>
       <div class="integration-fields">

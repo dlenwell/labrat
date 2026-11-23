@@ -11,7 +11,7 @@ is an intentional operator decision.
 
 Used by: api.clients, collector.__main__, collector.access_collection,
 collector.proxmox_live, collector.runner, discovery_settings,
-instance_transfer, integrations.
+instance_transfer, integrations, pages.status.
 """
 
 from collections.abc import Mapping
@@ -26,6 +26,12 @@ from labrat.integration_catalog import KINDS
 
 # "mndp" is an opt-in passive listener for MikroTik announcements.
 _KINDS = ("mndp", *KINDS)
+
+#: Sources the collector derives from another integration's poll, mapped to
+#: the parent's kind; they match the parent by ``config_name``, are enabled
+#: only while it is, and are deleted with it. Each holds the clients its
+#: parent reports (``collector/clients.py``, ``collector/sightings.py``).
+DERIVED_SOURCE_PARENTS = {"unifi_clients": "unifi", "opnsense_clients": "opnsense"}
 
 #: Service-discovery probes that ``[scan] probes`` may enable, each a source
 #: kind of its own. They contact only hosts inside ``[scan] ranges``.

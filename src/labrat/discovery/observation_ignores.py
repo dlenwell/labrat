@@ -16,7 +16,8 @@ from labrat.discovery.models import DiscoveredDevice, DiscoveredPort, DiscoveryS
 
 CONDITIONS = frozenset({"source-fault", "source-overdue", "wan-stale", "wan-down", "wan-degraded",
                         "server-offline", "device-stale", "port-down", "neighbor-unresolved",
-                        "ups-low-battery", "ups-on-battery", "ups-alert", "device"})
+                        "ups-low-battery", "ups-on-battery", "ups-alert", "device",
+                        "router-gateway-down", "router-peer-stale", "router-carp-changed"})
 
 IGNORED = "ignored"
 """``DiscoveredDevice.visibility`` of an observation a ``device`` rule hides."""
@@ -152,6 +153,28 @@ def ignore_target(db: Session, payload: object) -> tuple[dict, str]:
                    for n in neighbors):
             raise ValueError("Neighbor is no longer observed on that port")
         result.update(chassis_id=chassis, remote_port_id=remote_port)
+    if condition.startswith("router-"):
+        # A router watchlist item (collector/watchlist.py): its key, and for
+        # a CARP change the state it changed to, so another change still shows.
+        item = payload.get("item")
+        try:
+            details = json.loads(device.details_json or "{}")
+        except (TypeError, ValueError):
+            details = {}
+        items = ((details.get("watchlist") or {}).get("items") or {}) if isinstance(details, dict) else {}
+        kind = {"router-gateway-down": "gateway", "router-peer-stale": "wireguard", "router-carp-changed": "carp"}[condition]
+        if not isinstance(item, str) or not isinstance(items.get(item), dict) or items[item].get("kind") != kind:
+            raise ValueError("Watchlist item is not observed")
+        result["item"] = item
+        label = f"{device.name} / {items[item].get('label') or item}"
+        if condition == "router-carp-changed":
+            # One occurrence (its new state and when it entered): an
+            # acknowledgement, so a later change to the same state shows.
+            active = items[item].get("condition") or {}
+            if (not isinstance(payload.get("state"), str) or not isinstance(payload.get("since"), str)
+                    or (active.get("to"), active.get("entered_at")) != (payload["state"], payload["since"])):
+                raise ValueError("This CARP change is not the active one")
+            result.update(state=payload["state"], since=payload["since"])
     if set(payload) != set(result):
         raise ValueError("Unexpected fields in observation target")
     return result, label

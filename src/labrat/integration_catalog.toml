@@ -117,5 +117,46 @@ help = "The Pi-hole's HTTPS address (Pi-hole v6 serves HTTPS on port 443; choose
 key = "password"
 label = "Application password"
 type = "password"
+required = false
+help = "A Pi-hole v6 application password (Settings, Web interface / API), or a v5 API token. Leave it blank for a Pi-hole without a password. LabRat only reads statistics."
+
+[integrations.opnsense]
+label = "OPNsense"
+category = "network"
+icon = "discovery"
+description = "Firewalls: the device and health, networks, DHCP, gateways, clients seen, rules, VPN, and DNS blocklist (read-only)"
+# One integration is one firewall: pointing it at another address asks
+# whether it is the same firewall (integrations.py, collector/identity.py).
+replacement_question = true
+
+# The adapter's own read-only client runs the test, so it checks exactly
+# what a poll may request (collector/adapters/opnsense.py).
+[integrations.opnsense.test]
+style = "adapter"
+path = "/api/core/system/status"
+auth_header = "Authorization"
+auth_template = "{api_key}"
+response_key = "metadata"
+collection_label = "OPNsense system status"
+
+[[integrations.opnsense.fields]]
+key = "url"
+label = "Firewall address"
+type = "url"
 required = true
-help = "A Pi-hole v6 application password (Settings, Web interface / API), or a v5 API token. LabRat only reads statistics."
+placeholder = "https://firewall.example"
+help = "The HTTPS address of the OPNsense web interface, with its port if not 443. Limit the web interface to LabRat's address where you can."
+
+[[integrations.opnsense.fields]]
+key = "api_key"
+label = "API key"
+type = "password"
+required = true
+help = "From System, Access, Users: a dedicated user's API key. OPNsense has no read-only role, so give that user only the privileges the setup guide lists."
+
+[[integrations.opnsense.fields]]
+key = "api_secret"
+label = "API secret"
+type = "password"
+required = true
+help = "The secret that came with the key. LabRat only reads."

@@ -170,6 +170,26 @@ function labratStorePin(node) {
 }
 
 /**
+ * Pick out devices the map leaves off: every source reporting one says it
+ * is offline (an adopted access point or switch that is unplugged right
+ * now), and no cable or Wi-Fi link reaches it. With a link it stays, so a
+ * dead connection is still visible; once it connects it comes back.
+ *
+ * @param {object} topology - Cached topology API document.
+ * @returns {Set<string>} Node IDs to leave off the map.
+ */
+function labratDisconnectedNodes(topology) {
+    const linked = new Set();
+    for (const link of [...(topology.links || []), ...(topology.wireless_links || [])]) {
+        linked.add(link.from);
+        linked.add(link.to);
+    }
+    return new Set(topology.nodes.filter((record) => !linked.has(record.id)
+        && record.observations.length
+        && record.observations.every((item) => item.controller_state === "offline")).map((record) => record.id));
+}
+
+/**
  * Synchronize API observations with the local node objects and redraw.
  *
  * The layout is recomputed from the data on every refresh, so it stays
@@ -182,7 +202,8 @@ function labratSyncTopology(topology) {
     const previousSelection = labratGraph.nodes.get(labratGraph.selectedId)?.record;
     const currentIds = new Set();
     const pins = labratReadPins();
-    for (const record of topology.nodes.filter((item) => !item.client_only)) {
+    const disconnected = labratDisconnectedNodes(topology);
+    for (const record of topology.nodes.filter((item) => !item.client_only && !disconnected.has(item.id))) {
         currentIds.add(record.id);
         const old = labratGraph.nodes.get(record.id);
         if (old) {

@@ -30,7 +30,8 @@ RUN python -m pip install . \
 
 # Migrations run from the working directory; the database path in the
 # generated config ("data/labrat.sqlite3") resolves against it too.
-COPY alembic.ini local_config.example.toml ./
+# gunicorn.conf.py carries the startup gate's hooks (labrat/startup.py).
+COPY alembic.ini gunicorn.conf.py local_config.example.toml ./
 COPY migrations ./migrations
 COPY deploy/entrypoint.sh /usr/local/bin/labrat-entrypoint
 

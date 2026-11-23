@@ -20,13 +20,13 @@
 <section class="docs-prose" aria-labelledby="tour-observations-title">
   <h2 id="tour-observations-title">Observations</h2>
   <p>A live operations screen for the whole lab or one area (choose it under <strong>Scope</strong>; the URL bookmarks it). Panels show internet history, VPN tunnels, server status, UPS power, a watchlist, collector health, port state, and an activity log that starts when you open the page. It rereads the local cache every 15 seconds and never contacts a controller. Stale or unknown readings stay distinct from a confirmed outage, and an idle tunnel is not a failed one.</p>
-  <p>Select a watchlist condition to see its evidence. Administrators can ignore a condition and bring it back from <strong>Ignored items</strong>; ignoring changes nothing in collection. <strong>Wallboard</strong> fills the screen for a dedicated monitor; Escape exits.</p>
+  <p>With an OPNsense firewall connected, the watchlist also raises <strong>Gateway down</strong> for a monitored gateway, <strong>VPN peer stale</strong> for a WireGuard peer with keepalive and no handshake for five minutes, and <strong>CARP state changed</strong> when a virtual address leaves its usual state. Each needs a good reading on the poll before, so a first poll or a gap in collection never raises one. Select a watchlist condition to see its evidence. Administrators can ignore a condition and bring it back from <strong>Ignored items</strong>; ignoring changes nothing in collection. <strong>Wallboard</strong> fills the screen for a dedicated monitor; Escape exits.</p>
 </section>
 {{ shot('observations', 'Observations: summary counts, uplink telemetry with a 24-hour traffic chart, and tunnel health for a WireGuard tunnel.') }}
 
 <section class="docs-prose" aria-labelledby="tour-discovery-title">
   <h2 id="tour-discovery-title">Discovery</h2>
-  <p><strong>Infrastructure</strong> draws recognized physical equipment as a tree: routers at the top, switches by hop, and everything else under what it connects to, with cables styled by medium. Select a device to inspect it and place it. <strong>Clients</strong> lists wired and Wi-Fi endpoints reported by UniFi, with search, filters, and sortable columns.</p>
+  <p><strong>Infrastructure</strong> draws recognized physical equipment as a tree: routers at the top, switches by hop, and everything else under what it connects to, with cables styled by medium. Select a device to inspect it and place it. <strong>Clients</strong> lists wired and Wi-Fi endpoints reported by UniFi, and devices an OPNsense firewall has seen (Seen by router, or Lease only), with search, filters, and sortable columns.</p>
 </section>
 {{ shot('discovery', 'Discovery, Infrastructure view: a gateway above a core switch, which feeds two access points, an office switch with three mini PCs, and a rack switch with three servers.') }}
 
@@ -48,7 +48,8 @@
 
 <section class="docs-prose" aria-labelledby="tour-networks-title">
   <h2 id="tour-networks-title">Networks</h2>
-  <p>What UniFi knows about your networks: <strong>Overview</strong> (health, counts, and DNS sinkholes such as Pi-hole), <strong>Zones</strong> (which firewall zones can reach which, with every exception), <strong>Networks</strong> (VLANs, subnets, DHCP, and DNS), <strong>Wi-Fi</strong> (networks, bands, and signal), <strong>Devices</strong> (the uplink tree, ports, and load), and <strong>Clients</strong>.</p>
+  <p>What your routers know about your networks, one router at a time (a picker appears when several report one). For UniFi: <strong>Overview</strong> (health, counts, and DNS sinkholes such as Pi-hole), <strong>Zones</strong> (which firewall zones can reach which, with every exception), <strong>Networks</strong> (VLANs, subnets, DHCP, and DNS), <strong>Wi-Fi</strong> (networks, bands, and signal), <strong>Devices</strong> (the uplink tree, ports, and load), and <strong>Clients</strong>.</p>
+  <p>For OPNsense, the Overview adds its WAN gateways, WireGuard peers, services, and CARP state; Zones lists its interface groups and interfaces, and <strong>Rules</strong> shows its firewall rules as it evaluates them, marking ones a later rule can override. Networks lists its DHCP ranges from dnsmasq or Kea. A part LabRat could not read says so, and a reading kept from an earlier poll shows its own time.</p>
 </section>
 {{ shot('networks', 'Networks Overview: site health, network and client counts, and charts of clients by network and connection type.') }}
 
@@ -83,6 +84,6 @@
 
 <section class="docs-prose" aria-labelledby="tour-settings-title">
   <h2 id="tour-settings-title">Settings</h2>
-  <p><strong>Appearance</strong> picks a theme for this browser: Disco (the default control-room look), Dark, Light, or Match my system, with an accent color for the calmer themes. Administrators also see <strong>Integrations</strong>, <strong>Discovery</strong>, and <strong>Export and import</strong>, covered step by step in <a href="{{ url_for('docs.setup') }}#setup-integrations-title">Setup</a>.</p>
+  <p><strong>Appearance</strong> picks a theme for this browser: Disco (the default control-room look), Dark, Light, or Match my system, with an accent color for the calmer themes. Administrators also see <strong>Integrations</strong>, <strong>Discovery</strong>, <strong>API tokens</strong> (scoped tokens for programs, such as the <a href="{{ url_for('docs.discovery') }}#discovery-mndp-listener-title">standalone MikroTik listener</a>), and <strong>Export and import</strong>, covered step by step in <a href="{{ url_for('docs.setup') }}#setup-integrations-title">Setup</a>.</p>
 </section>
 {% endblock %}

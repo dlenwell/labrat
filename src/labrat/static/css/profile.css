@@ -13,6 +13,22 @@
     align-items: start;
 }
 
+/* Left column: account details above the password form. */
+.profile-column {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.profile-note {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.profile-panel .form-fields {
+    margin-top: var(--space-4);
+}
+
 .profile-panel {
     padding: var(--space-5);
     border: 1px solid var(--color-border);

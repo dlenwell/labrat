@@ -28,7 +28,7 @@
       {#
         One toolbar, like Infrastructure's: search, filter toggles, Refresh,
         and the view switch rightmost. Toggles are labelled checkboxes styled
-        as icon buttons (view-frame.css .view-toggle). The three kind
+        as icon buttons (view-frame.css .view-toggle). The four kind
         toggles start on, matching the full list; turning one off hides that kind.
       #}
       <div class="view-heading-actions clients-toolbar" role="group" aria-label="Client device controls">
@@ -36,7 +36,7 @@
         <button class="button button-quiet room-icon-button clients-compact-only" id="clients-search-toggle" type="button" aria-expanded="false" aria-controls="clients-search-field" aria-label="Search" title="Search" data-tooltip="Search">{{ icon('search') }}</button>
         <label class="clients-search" id="clients-search-field">{{ icon('search') }}<span class="visually-hidden">Search client devices</span><input id="clients-search" type="search" placeholder="Find…" autocomplete="off"></label>
         {% call view_menu("clients-tools", "Filters and refresh") %}
-          {% for key, label, glyph in [('vm', 'VMs and containers', 'vm'), ('wireless', 'Wi-Fi', 'wifi'), ('wired', 'Wired', 'wired')] %}
+          {% for key, label, glyph in [('vm', 'VMs and containers', 'vm'), ('wireless', 'Wi-Fi', 'wifi'), ('wired', 'Wired', 'wired'), ('sighted', 'Seen only by a router', 'observations')] %}
           <label class="button button-quiet room-icon-button view-toggle" title="Show {{ label }}" data-tooltip="Show {{ label }}" data-kind-label="{{ label }}">
             <input type="checkbox" role="switch" data-kind="{{ key }}" aria-label="Show {{ label }}" checked>{{ icon(glyph) }}
           </label>

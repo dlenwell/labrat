@@ -1,0 +1,10 @@
+{
+ "piholes": [],
+ "sources": [
+  {
+   "id": 1,
+   "name": "UniFi example",
+   "snapshot": null
+  }
+ ]
+}

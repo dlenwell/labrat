@@ -1,0 +1,137 @@
+# Copyright 2026 LabRat contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# The container image for each release, published to GitHub's registry
+# (ghcr.io/<owner>/<repository>, in lower case) so people can run LabRat
+# without building it. A release pushes its v<version> tag, which builds
+# the image natively on an amd64 and an arm64 runner, checks that each one
+# answers its health check, and joins them into one multi-architecture
+# image tagged <version>. The rolling tags move only forward: <major>.<minor>
+# when this is the newest release in that series, latest when it is the
+# newest release of all. Running it by hand rebuilds a tag that already
+# exists (for a base-image security fix); rebuilding an older release
+# refreshes only its own tags.
+#
+# Only plain Docker commands, no third-party actions: GITHUB_TOKEN signs in
+# to the registry, with packages: write for this workflow alone. Actions
+# are pinned to release commits (the tag is in the comment).
+
+name: Release image
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release tag to rebuild, such as v0.5.3
+        required: true
+
+permissions:
+  contents: read
+
+# One release at a time, so `latest` ends on the newest one.
+concurrency:
+  group: release-image
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    name: Build for ${{ matrix.arch }}
+    if: github.server_url == 'https://github.com'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          persist-credentials: false
+      - name: Name the image
+        # Registries refuse capitals; the version comes from the tag and
+        # must match pyproject.toml, so a mistyped tag never publishes.
+        run: |
+          version="${TAG#v}"
+          declared="$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml | head -1)"
+          if [ "$version" != "$declared" ]; then
+            echo "tag $TAG does not match pyproject.toml's version $declared"; exit 1
+          fi
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          {
+            echo "IMAGE=$image"
+            echo "VERSION=$version"
+            echo "ARCH_TAG=$image:$version-${{ matrix.arch }}"
+          } >> "$GITHUB_ENV"
+      - name: Build
+        run: |
+          docker build --pull \
+            --label "org.opencontainers.image.revision=$(git rev-parse HEAD)" \
+            --label "org.opencontainers.image.version=$VERSION" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.licenses=Apache-2.0" \
+            -t "$ARCH_TAG" .
+      - name: Check it starts
+        run: |
+          name="labrat-image-${{ matrix.arch }}"
+          docker run -d --name "$name" "$ARCH_TAG"
+          trap 'docker logs "$name"; docker rm -f -v "$name" >/dev/null' EXIT
+          for _ in $(seq 1 30); do
+            if docker exec "$name" python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)" 2>/dev/null; then
+              echo "healthy"; exit 0
+            fi
+            sleep 2
+          done
+          echo "the image did not answer its health check in 60 s"; exit 1
+      - name: Push
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker push "$ARCH_TAG"
+          docker logout ghcr.io
+
+  publish:
+    name: Publish the multi-architecture image
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # Every release tag, to tell whether this one is still the newest.
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Join the architectures and tag them
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${TAG#v}"
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          minor="${version%.*}"
+          releases() { git tag -l "$1" | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V; }
+          tags=(-t "$image:$version")
+          if [ "$version" = "$(releases "v$minor.*" | tail -1)" ]; then tags+=(-t "$image:$minor"); fi
+          if [ "$version" = "$(releases 'v*' | tail -1)" ]; then tags+=(-t "$image:latest"); fi
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          trap 'docker logout ghcr.io' EXIT
+          docker buildx imagetools create "${tags[@]}" \
+            "$image:$version-amd64" "$image:$version-arm64"
+          docker buildx imagetools inspect "$image:$version"
+          echo "Published: $(printf '%s ' "${tags[@]}" | sed 's/-t //g')"

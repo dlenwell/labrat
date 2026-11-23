@@ -24,6 +24,8 @@ from sqlalchemy.orm import Session
 from labrat.audit import record_audit_event
 from labrat.coerce import json_object, mac_address
 from labrat.collector.http import required_string, tls_verification, unifi_network_root
+from labrat.collector.links import port_name
+from labrat.database import as_utc
 from labrat.discovery.models import (
     DiscoveredDevice, DiscoveredLink, DiscoveredPort, DiscoverySource,
 )
@@ -75,6 +77,121 @@ def client_attachment(record: Mapping[str, Any]) -> tuple[str, int] | None:
     return next(iter(macs)), next(iter(ports))
 
 
+#: One switch port hearing a chassis: the switch and the remote port IDs it reports.
+Sighting = tuple[DiscoveredDevice, set[str]]
+
+
+def _chassis_ports(
+    switches: Iterable[DiscoveredDevice], snapshot_at: datetime | None,
+) -> dict[tuple[str, str], dict[tuple[int, str], Sighting]]:
+    """Index the current switches' LLDP tables by the chassis each port hears.
+
+    Only switches in the source's latest successful snapshot count, and not
+    ones the controller reports offline: a stored row keeps the LLDP table
+    it last had. Repeated rows for one port are one sighting.
+
+    Args:
+        switches: The UniFi source's switches, routers, and access points.
+        snapshot_at: When the source last collected successfully; None
+            means there is no current snapshot, so nothing is indexed.
+
+    Returns:
+        dict[tuple[str, str], dict[tuple[int, str], Sighting]]: For each site
+        ID and chassis MAC, the switch ports hearing it, keyed by switch ID
+        and local port index.
+    """
+    heard: dict[tuple[str, str], dict[tuple[int, str], Sighting]] = defaultdict(dict)
+    snapshot_at = as_utc(snapshot_at)
+    if snapshot_at is None:
+        return heard
+    for switch in switches:
+        details = json_object(switch.details_json)
+        site_id, neighbors = details.get("site_id"), details.get("lldp_neighbors")
+        seen_at = as_utc(switch.last_seen_at)
+        if (seen_at is None or seen_at < snapshot_at
+                or details.get("state") == "OFFLINE"
+                or not isinstance(site_id, str) or not isinstance(neighbors, list)):
+            continue
+        for neighbor in neighbors:
+            if not isinstance(neighbor, Mapping) or neighbor.get("local_port") is None:
+                continue
+            chassis = mac_address(neighbor.get("chassis_id"))
+            if not chassis:
+                continue
+            key = (switch.id, str(neighbor["local_port"]))
+            _, port_ids = heard[(site_id, chassis)].setdefault(key, (switch, set()))
+            if isinstance(neighbor.get("port_id"), str) and neighbor["port_id"].strip():
+                port_ids.add(neighbor["port_id"])
+    return heard
+
+
+def _names_other_nic(port_ids: Iterable[str], server_port: DiscoveredPort,
+                     server_ports: Iterable[DiscoveredPort]) -> bool:
+    """Tell whether an LLDP remote port ID identifies another NIC of the server.
+
+    Uses the LLDP path's matching (``links.port_name``, or the ID as a MAC).
+    An ID naming no known NIC, or the looked-up NIC itself, does not count.
+
+    Args:
+        port_ids: Remote port IDs the switch reports for the chassis.
+        server_port: The NIC that was looked up.
+        server_ports: Every discovered port of that NIC's server.
+
+    Returns:
+        bool: True when some ID positively names a different NIC.
+    """
+    ports = list(server_ports)
+    for port_id in port_ids:
+        name, mac = port_name(port_id), mac_address(port_id)
+        named = {port.id for port in ports
+                 if (name is not None and name in {port.remote_id.casefold(), port.name.casefold()})
+                 or (mac is not None and mac_address(port.mac) == mac)}
+        if named - {server_port.id}:
+            return True
+    return False
+
+
+def _own_chassis_switch(
+    site_id: str, chassis: str, port_idx: int, server_port: DiscoveredPort,
+    server_ports: Mapping[int, list[DiscoveredPort]],
+    heard: Mapping[tuple[str, str], Mapping[tuple[int, str], Sighting]],
+) -> DiscoveredDevice | None:
+    """Find the switch a NIC hangs off when UniFi files it behind its own host.
+
+    A server running lldpd announces one of its NIC MACs as its chassis ID,
+    and a controller may then list the server's other NICs as clients of that
+    "device" instead of the switch. The switch's own LLDP table still says
+    which port hears the chassis. That port is the NIC's only when the chassis
+    MAC belongs to the NIC's server alone, exactly one current switch port in
+    the site hears it, that port is the one the client record names, and its
+    LLDP remote port ID does not name a different NIC of the server.
+
+    Args:
+        site_id: The site the client record came from.
+        chassis: The normalized MAC the record names as the NIC's switch.
+        port_idx: The port index the record names.
+        server_port: The NIC that was looked up.
+        server_ports: Every discovered server port, by server ID.
+        heard: Current switch ports hearing each chassis (``_chassis_ports``).
+
+    Returns:
+        DiscoveredDevice | None: The switch, or None when the record is not
+        this case or the evidence does not settle it.
+    """
+    owners = {port.discovered_device_id for ports in server_ports.values() for port in ports
+              if mac_address(port.mac) == chassis}
+    if owners != {server_port.discovered_device_id}:
+        return None
+    sightings = heard.get((site_id, chassis), {})
+    if len(sightings) != 1:
+        return None
+    (_, local_port), (switch, port_ids) = next(iter(sightings.items()))
+    if local_port != str(port_idx):
+        return None
+    if _names_other_nic(port_ids, server_port, server_ports.get(server_port.discovered_device_id, [])):
+        return None
+    return switch
+
 def _unknown_station(error: requests.HTTPError) -> bool:
     """Tell whether a client lookup failed only because the MAC is unknown.
 
@@ -107,7 +224,9 @@ def collect_client_links(
 
     A MAC must identify exactly one discovered physical port across all online
     Proxmox servers. Each controller query targets that MAC alone. A fresh wired
-    client must identify a known switch and port. Conflicting results are omitted.
+    client must identify a known switch and port, or name its own server's LLDP
+    chassis on a port whose switch hears that chassis (``_own_chassis_switch``).
+    Conflicting results are omitted.
     No client details are persisted or logged.
 
     Args:
@@ -138,6 +257,11 @@ def collect_client_links(
     switches = list(db.scalars(select(DiscoveredDevice).where(
         DiscoveredDevice.source_id == source.id,
         DiscoveredDevice.category.in_(("switch", "router", "firewall", "access_point")))))
+    server_ports: dict[int, list[DiscoveredPort]] = defaultdict(list)
+    for port in all_ports:
+        server_ports[port.discovered_device_id].append(port)
+    current = db.get(DiscoverySource, source.id)
+    heard = _chassis_ports(switches, current.last_success_at if current else None)
     switch_by_key = defaultdict(list)
     for switch in switches:
         mac = mac_address(json_object(switch.identifiers_json).get("mac"))
@@ -186,6 +310,9 @@ def collect_client_links(
                     continue
                 switch_mac, port_idx = attachment
                 matches = switch_by_key.get((site_id, switch_mac), [])
+                if not matches:
+                    own = _own_chassis_switch(site_id, switch_mac, port_idx, server_port, server_ports, heard)
+                    matches = [own] if own is not None else []
                 if len(matches) != 1:
                     continue
                 switch_port = ports_by_key.get((matches[0].id, str(port_idx)))

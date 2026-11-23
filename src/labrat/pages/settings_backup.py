@@ -3,35 +3,20 @@
 
 """Serve the administrator-only whole-install export and its replacing import."""
 
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
-from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, make_response, redirect, render_template, request, session, url_for
 from flask.typing import ResponseReturnValue
 from werkzeug.exceptions import RequestEntityTooLarge
 
+from labrat import app_version
 from labrat.audit import record_audit_event
-from labrat.auth.session import current_user, login_required, require_csrf, session_factory
+from labrat.auth.session import login_required, require_admin_form, session_factory
 from labrat.database import database_path
 from labrat.instance_transfer import MAX_UPLOAD_BYTES, TransferError, export_instance, import_instance, read_instance
 
 backup_bp = Blueprint("backup", __name__, url_prefix="/settings/backup")
 
-
-def _admin() -> object:
-    """Require a current administrator and a valid form CSRF token.
-
-    Returns:
-        object: The signed-in administrator.
-
-    Raises:
-        Forbidden: When the viewer is not an administrator (HTTP 403).
-    """
-    viewer = current_user()
-    if viewer is None or not viewer.is_admin:
-        abort(403)
-    require_csrf()
-    return viewer
 
 
 def _database() -> Path:
@@ -42,17 +27,6 @@ def _database() -> Path:
     """
     return database_path(current_app.extensions["labrat_local_config"])
 
-
-def _app_version() -> str:
-    """Return this LabRat's version, or ``dev`` from a source tree.
-
-    Returns:
-        str: The version.
-    """
-    try:
-        return version("labrat")
-    except PackageNotFoundError:
-        return "dev"
 
 
 def _page(error: str, status: int) -> ResponseReturnValue:
@@ -76,12 +50,12 @@ def download() -> ResponseReturnValue:
     Returns:
         ResponseReturnValue: The export as a file download.
     """
-    viewer = _admin()
+    viewer = require_admin_form()
     with session_factory().begin() as db:
         record_audit_event(db, actor_kind="user", actor_id=viewer.id, actor_name=viewer.username,
                            action="instance.exported", subject_kind="instance", details={})
     try:
-        data, manifest = export_instance(_database(), current_app.extensions["labrat_config_path"], _app_version())
+        data, manifest = export_instance(_database(), current_app.extensions["labrat_config_path"], app_version())
     except TransferError as exc:
         return _page(str(exc), 500)
     response = make_response(data)
@@ -105,7 +79,7 @@ def restore() -> ResponseReturnValue:
     """
     request.max_content_length = MAX_UPLOAD_BYTES
     try:
-        viewer = _admin()
+        viewer = require_admin_form()
         if request.form.get("confirm") != "replace":
             raise TransferError("Confirm that this import replaces everything in this LabRat.")
         upload = request.files.get("export")

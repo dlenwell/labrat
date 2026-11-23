@@ -519,6 +519,8 @@ class CollectorReloadTests(unittest.TestCase):
              patch.object(cli, 'make_engine', return_value=engine), \
              patch.object(cli, 'make_session_factory', return_value=Mock()), \
              patch.object(cli, 'AccessCollector'), \
+             patch.object(cli, 'wait_for_schema'), \
+             patch.object(cli.instance, 'has_lease_table', return_value=False), \
              patch.object(cli, 'sync_configured_sources', return_value=0), \
              patch.object(cli, 'poll_once', side_effect=[0, KeyboardInterrupt]) as poll, \
              patch.object(cli, 'wan_poll_sources', return_value=[]), \

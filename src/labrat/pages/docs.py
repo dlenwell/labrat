@@ -81,9 +81,11 @@ def api() -> ResponseReturnValue:
             continue
         view = current_app.view_functions[rule.endpoint]
         summary = (getdoc(view) or "").splitlines()[0]
+        scope = getattr(view, "token_scope", None)
         for method in sorted(rule.methods - {"HEAD", "OPTIONS"}):
             access = (
                 "Public" if rule.endpoint == "api.health"
+                else f"API token ({scope})" if scope
                 else "Admin + CSRF" if method not in {"GET", "HEAD"}
                 else "Signed-in"
             )

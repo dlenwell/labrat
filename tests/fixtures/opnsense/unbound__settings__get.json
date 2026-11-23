@@ -1,0 +1,505 @@
+{
+ "unbound": {
+  "acls": {
+   "acl": [],
+   "default_action": {
+    "allow": {
+     "selected": 1,
+     "value": "Allow"
+    },
+    "deny": {
+     "selected": 0,
+     "value": "Deny"
+    },
+    "refuse": {
+     "selected": 0,
+     "value": "Refuse"
+    }
+   }
+  },
+  "advanced": {
+   "aggressivensec": "1",
+   "belownxdomain": "1",
+   "cachemaxnegativettl": "",
+   "cachemaxttl": "",
+   "cacheminttl": "",
+   "discardtimeout": "",
+   "dnssecstripped": "0",
+   "extendedstatistics": "0",
+   "hideidentity": "0",
+   "hideversion": "0",
+   "incomingnumtcp": "",
+   "infracachenumhosts": "",
+   "infrahostttl": "",
+   "infrakeepprobing": "0",
+   "insecuredomain": {
+    "": {
+     "selected": 1,
+     "value": ""
+    }
+   },
+   "jostletimeout": "",
+   "loglocalactions": "0",
+   "logqueries": "0",
+   "logreplies": "0",
+   "logservfail": "0",
+   "logtagqueryreply": "0",
+   "logverbosity": [
+    {
+     "selected": 0,
+     "value": "Level 0"
+    },
+    {
+     "selected": 1,
+     "value": "Level 1 (Default)"
+    },
+    {
+     "selected": 0,
+     "value": "Level 2"
+    },
+    {
+     "selected": 0,
+     "value": "Level 3"
+    },
+    {
+     "selected": 0,
+     "value": "Level 4"
+    },
+    {
+     "selected": 0,
+     "value": "Level 5"
+    }
+   ],
+   "msgcachesize": "",
+   "numqueriesperthread": "",
+   "outgoingnumtcp": "",
+   "outgoingrange": "",
+   "prefetch": "0",
+   "prefetchkey": "0",
+   "privateaddress": {
+    "198.51.100.0/8": {
+     "selected": 1,
+     "value": "198.51.100.0/8"
+    },
+    "198.51.100.0/8": {
+     "selected": 1,
+     "value": "198.51.100.0/8"
+    },
+    "100.64.0.0/10": {
+     "selected": 1,
+     "value": "100.64.0.0/10"
+    },
+    "198.51.100.0/16": {
+     "selected": 1,
+     "value": "198.51.100.0/16"
+    },
+    "198.51.100.0/12": {
+     "selected": 1,
+     "value": "198.51.100.0/12"
+    },
+    "192.0.2.0/24": {
+     "selected": 1,
+     "value": "192.0.2.0/24"
+    },
+    "192.0.2.0/16": {
+     "selected": 1,
+     "value": "192.0.2.0/16"
+    },
+    "198.51.100.0/15": {
+     "selected": 1,
+     "value": "198.51.100.0/15"
+    },
+    "198.51.100.0/24": {
+     "selected": 1,
+     "value": "198.51.100.0/24"
+    },
+    "2001:db8::/32": {
+     "selected": 1,
+     "value": "2001:db8::/32"
+    },
+    "203.0.113.0/24": {
+     "selected": 1,
+     "value": "203.0.113.0/24"
+    },
+    "233.252.0.0/24": {
+     "selected": 1,
+     "value": "233.252.0.0/24"
+    },
+    "::1/128": {
+     "selected": 1,
+     "value": "::1/128"
+    },
+    "fc00::/8": {
+     "selected": 1,
+     "value": "fc00::/8"
+    },
+    "fd00::/8": {
+     "selected": 1,
+     "value": "fd00::/8"
+    },
+    "fe80::/10": {
+     "selected": 1,
+     "value": "fe80::/10"
+    }
+   },
+   "privatedomain": {
+    "": {
+     "selected": 1,
+     "value": ""
+    }
+   },
+   "qnameminstrict": "0",
+   "rrsetcachesize": "",
+   "serveexpired": "0",
+   "serveexpiredclienttimeout": "",
+   "serveexpiredreplyttl": "",
+   "serveexpiredttl": "",
+   "serveexpiredttlreset": "0",
+   "unwantedreplythreshold": "",
+   "valloglevel": [
+    {
+     "selected": 1,
+     "value": "Level 0 (Default)"
+    },
+    {
+     "selected": 0,
+     "value": "Level 1"
+    },
+    {
+     "selected": 0,
+     "value": "Level 2"
+    }
+   ]
+  },
+  "aliases": {
+   "alias": []
+  },
+  "dnsbl": {
+   "blocklist": {
+    "187863cc-4f5d-43b5-bb14-9f9ac3502124": {
+     "address": "",
+     "allowlists": {
+      "": {
+       "selected": 1,
+       "value": ""
+      }
+     },
+     "blocklists": {
+      "ads.example": {
+       "selected": 1,
+       "value": "ads.example"
+      },
+      "tracker.example": {
+       "selected": 1,
+       "value": "tracker.example"
+      }
+     },
+     "cache_ttl": "72000",
+     "description": "Lab blocklist",
+     "enabled": "1",
+     "lists": {
+      "": {
+       "selected": 1,
+       "value": ""
+      }
+     },
+     "nxdomain": "0",
+     "source_nets": {
+      "": {
+       "selected": 1,
+       "value": ""
+      }
+     },
+     "type": {
+      "ag": {
+       "optgroup": "General Blocklists",
+       "selected": 0,
+       "value": "AdGuard List"
+      },
+      "atf": {
+       "optgroup": "General Blocklists",
+       "selected": 0,
+       "value": "Abuse.ch - ThreatFox IOC"
+      },
+      "el": {
+       "optgroup": "General Blocklists",
+       "selected": 0,
+       "value": "EasyList"
+      },
+      "ep": {
+       "optgroup": "General Blocklists",
+       "selected": 0,
+       "value": "EasyPrivacy"
+      },
+      "hgz001": {
+       "optgroup": "Hagezi Multi - Clean the Internet",
+       "selected": 0,
+       "value": "LIGHT - Relaxed Blocking"
+      },
+      "hgz002": {
+       "optgroup": "Hagezi Multi - Clean the Internet",
+       "selected": 0,
+       "value": "NORMAL - Relaxed/Balanced Blocking"
+      },
+      "hgz003": {
+       "optgroup": "Hagezi Multi - Clean the Internet",
+       "selected": 0,
+       "value": "PRO - Balanced Blocking"
+      },
+      "hgz004": {
+       "optgroup": "Minimal Hardware Requirements",
+       "selected": 0,
+       "value": "Multi PRO - Mini "
+      },
+      "hgz005": {
+       "optgroup": "Hagezi Multi - Clean the Internet",
+       "selected": 0,
+       "value": "PRO++ - Balanced/Aggressive Blocking"
+      },
+      "hgz006": {
+       "optgroup": "Minimal Hardware Requirements",
+       "selected": 0,
+       "value": "Multi PRO++ - Mini"
+      },
+      "hgz007": {
+       "optgroup": "Hagezi Multi - Clean the Internet",
+       "selected": 0,
+       "value": "ULTIMATE - Aggressive Blocking"
+      },
+      "hgz008": {
+       "optgroup": "Minimal Hardware Requirements",
+       "selected": 0,
+       "value": "Multi ULTIMATE - Mini"
+      },
+      "hgz009": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "Fake - scams / fakes"
+      },
+      "hgz010": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "Pop-Up Ads"
+      },
+      "hgz011": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "Threat Intelligence Feeds"
+      },
+      "hgz012": {
+       "optgroup": "Minimal Hardware Requirements",
+       "selected": 0,
+       "value": "Threat Intelligence Feeds - Medium"
+      },
+      "hgz013": {
+       "optgroup": "Minimal Hardware Requirements",
+       "selected": 0,
+       "value": "Threat Intelligence Feeds - Mini"
+      },
+      "hgz014": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "DoH/VPN/TOR/Proxy Bypass"
+      },
+      "hgz015": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "Safesearch not supported"
+      },
+      "hgz016": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "Dynamic DNS blocking"
+      },
+      "hgz017": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "Badware Hoster blocking"
+      },
+      "hgz018": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "Anti Piracy"
+      },
+      "hgz019": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "Gambling"
+      },
+      "hgz020": {
+       "optgroup": "Minimal Hardware Requirements",
+       "selected": 0,
+       "value": "Gambling - Medium"
+      },
+      "hgz021": {
+       "optgroup": "Minimal Hardware Requirements",
+       "selected": 0,
+       "value": "Gambling - Mini"
+      },
+      "hgz022": {
+       "optgroup": "Hagezi Targeted Lists",
+       "selected": 0,
+       "value": "Social Networks"
+      },
+      "oisd0": {
+       "optgroup": "OISD Blocklists",
+       "selected": 0,
+       "value": "Ads Blocklist"
+      },
+      "oisd1": {
+       "optgroup": "OISD Blocklists",
+       "selected": 0,
+       "value": "Big Blocklist (incl. Ads)"
+      },
+      "oisd2": {
+       "optgroup": "OISD Blocklists",
+       "selected": 0,
+       "value": "NSFW Blocklist"
+      },
+      "sb": {
+       "optgroup": "General Blocklists",
+       "selected": 0,
+       "value": "Steven Black List"
+      },
+      "yy": {
+       "optgroup": "General Blocklists",
+       "selected": 0,
+       "value": "YoYo List"
+      }
+     },
+     "wildcards": {
+      "telemetry.example": {
+       "selected": 1,
+       "value": "telemetry.example"
+      }
+     }
+    }
+   }
+  },
+  "dots": {
+   "dot": []
+  },
+  "forwarding": {
+   "enabled": "0"
+  },
+  "general": {
+   "active_interface": {
+    "lan": {
+     "selected": 0,
+     "value": "LAN"
+    },
+    "opt1": {
+     "selected": 0,
+     "value": "DHCPLAB"
+    },
+    "opt2": {
+     "selected": 0,
+     "value": "KEALAB"
+    },
+    "opt3": {
+     "selected": 0,
+     "value": "LABVLAN"
+    },
+    "opt4": {
+     "selected": 0,
+     "value": "PEERLINK"
+    },
+    "wan": {
+     "selected": 0,
+     "value": "WAN"
+    }
+   },
+   "cacheflush": "0",
+   "dns64": "0",
+   "dns64prefix": "",
+   "dnssec": "0",
+   "enable_wpad": "0",
+   "enabled": "1",
+   "local_zone_type": {
+    "always_nxdomain": {
+     "selected": 0,
+     "value": "always_nxdomain"
+    },
+    "always_refuse": {
+     "selected": 0,
+     "value": "always_refuse"
+    },
+    "always_transparent": {
+     "selected": 0,
+     "value": "always_transparent"
+    },
+    "deny": {
+     "selected": 0,
+     "value": "deny"
+    },
+    "inform": {
+     "selected": 0,
+     "value": "inform"
+    },
+    "inform_deny": {
+     "selected": 0,
+     "value": "inform_deny"
+    },
+    "nodefault": {
+     "selected": 0,
+     "value": "nodefault"
+    },
+    "refuse": {
+     "selected": 0,
+     "value": "refuse"
+    },
+    "static": {
+     "selected": 0,
+     "value": "static"
+    },
+    "transparent": {
+     "selected": 1,
+     "value": "transparent"
+    },
+    "typetransparent": {
+     "selected": 0,
+     "value": "typetransparent"
+    }
+   },
+   "noarecords": "0",
+   "noreglladdr6": "0",
+   "noregrecords": "0",
+   "outgoing_interface": {
+    "lan": {
+     "selected": 0,
+     "value": "LAN"
+    },
+    "opt1": {
+     "selected": 0,
+     "value": "DHCPLAB"
+    },
+    "opt2": {
+     "selected": 0,
+     "value": "KEALAB"
+    },
+    "opt3": {
+     "selected": 0,
+     "value": "LABVLAN"
+    },
+    "opt4": {
+     "selected": 0,
+     "value": "PEERLINK"
+    },
+    "wan": {
+     "selected": 0,
+     "value": "WAN"
+    }
+   },
+   "port": "53",
+   "regdhcp": "0",
+   "regdhcpdomain": "",
+   "regdhcpstatic": "0",
+   "safesearch": "0",
+   "stats": "0",
+   "txtsupport": "0"
+  },
+  "hosts": {
+   "host": []
+  }
+ }
+}

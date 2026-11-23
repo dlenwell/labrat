@@ -1,0 +1,2452 @@
+{
+ "current": 1,
+ "rowCount": 49,
+ "rows": [
+  {
+   "#priority": 1,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "",
+   "action": "block",
+   "category_colors": [],
+   "description": "Default deny / state violation rule",
+   "destination_net": "",
+   "destination_port": "",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "ipprotocol": "inet46",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "",
+   "quick": false,
+   "ref": "",
+   "replyto": "",
+   "sort_order": "000001.1000001",
+   "source_net": "",
+   "source_port": "",
+   "uuid": "02f4bab031b57d1e30553ce08e0ec131"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "IPV6-ICMP",
+   "action": "pass",
+   "category_colors": [],
+   "description": "IPv6 RFC4890 requirements (ICMP)",
+   "destination_net": "",
+   "destination_port": "",
+   "direction": "in",
+   "disabled": false,
+   "disablereplyto": 1,
+   "enabled": "1",
+   "icmp6-type": "1,2,3,4,135,136",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "ipv6-icmp",
+   "ref": "system_advanced_firewall.php#no_ipv6_rfc4890_req",
+   "replyto": "",
+   "sort_order": "000001.1000002",
+   "source_net": "",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "7355b5da99f40893221b6c4140de1006"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "Out",
+   "%ipprotocol": "IPv6",
+   "%protocol": "IPV6-ICMP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    },
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "category_colors": [],
+   "description": "IPv6 RFC4890 requirements (ICMP)",
+   "destination_net": "fe80::/10,ff02::/16",
+   "destination_port": "",
+   "direction": "out",
+   "disabled": false,
+   "disablereplyto": 1,
+   "enabled": "1",
+   "icmp6-type": "128,129,133,134,135,136",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "ipv6-icmp",
+   "ref": "system_advanced_firewall.php#no_ipv6_rfc4890_req",
+   "replyto": "",
+   "sort_order": "000001.1000003",
+   "source_net": "(self)",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "80f90f0d4c5aba0c28d1c539e1e35766"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "IPV6-ICMP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    },
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "category_colors": [],
+   "description": "IPv6 RFC4890 requirements (ICMP)",
+   "destination_net": "fe80::/10,ff02::/16",
+   "destination_port": "",
+   "direction": "in",
+   "disabled": false,
+   "disablereplyto": 1,
+   "enabled": "1",
+   "icmp6-type": "128,133,134,135,136",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "ipv6-icmp",
+   "ref": "system_advanced_firewall.php#no_ipv6_rfc4890_req",
+   "replyto": "",
+   "sort_order": "000001.1000004",
+   "source_net": "fe80::/10",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "8fa5de02f1ff8cdd29bedb63b24cc7e0"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "IPV6-ICMP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "category_colors": [],
+   "description": "IPv6 RFC4890 requirements (ICMP)",
+   "destination_net": "fe80::/10",
+   "destination_port": "",
+   "direction": "in",
+   "disabled": false,
+   "disablereplyto": 1,
+   "enabled": "1",
+   "icmp6-type": "128,133,134,135,136",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "ipv6-icmp",
+   "ref": "system_advanced_firewall.php#no_ipv6_rfc4890_req",
+   "replyto": "",
+   "sort_order": "000001.1000005",
+   "source_net": "ff02::/16",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "e29b1b607bd6cd916cf6b598c41805d3"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "IPV6-ICMP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "::",
+     "description": "",
+     "isAlias": false,
+     "value": "::"
+    }
+   ],
+   "category_colors": [],
+   "description": "IPv6 RFC4890 requirements (ICMP)",
+   "destination_net": "ff02::/16",
+   "destination_port": "",
+   "direction": "in",
+   "disabled": false,
+   "disablereplyto": 1,
+   "enabled": "1",
+   "icmp6-type": "128,133,134,135,136",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "ipv6-icmp",
+   "ref": "system_advanced_firewall.php#no_ipv6_rfc4890_req",
+   "replyto": "",
+   "sort_order": "000001.1000006",
+   "source_net": "::",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "b242f2d3f6b4756fa468cfd0daa78cd4"
+  },
+  {
+   "#priority": 1,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "TCP/UDP",
+   "action": "block",
+   "category_colors": [],
+   "description": "block all targeting port 0",
+   "destination_net": "",
+   "destination_port": "",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "ipprotocol": "inet46",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "tcp/udp",
+   "ref": "system_advanced_firewall.php#no_port0_block",
+   "replyto": "",
+   "sort_order": "000001.1000007",
+   "source_net": "",
+   "source_port": "0",
+   "uuid": "b477ac1c8f5237a59ee416b9d819ce58"
+  },
+  {
+   "#priority": 1,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "TCP/UDP",
+   "action": "block",
+   "category_colors": [],
+   "description": "block all targeting port 0",
+   "destination_net": "",
+   "destination_port": "0",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "ipprotocol": "inet46",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "tcp/udp",
+   "ref": "system_advanced_firewall.php#no_port0_block",
+   "replyto": "",
+   "sort_order": "000001.1000008",
+   "source_net": "",
+   "source_port": "",
+   "uuid": "b454844853f2346167ad77449b79ad8e"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "Any",
+   "%ipprotocol": "",
+   "%protocol": "CARP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "ff02::12",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::12"
+    }
+   ],
+   "category_colors": [],
+   "description": "CARP defaults",
+   "destination_net": "ff02::12",
+   "destination_port": "",
+   "direction": "any",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "carp",
+   "ref": "",
+   "replyto": "",
+   "sort_order": "000001.1000009",
+   "source_net": "",
+   "source_port": "",
+   "uuid": "cf439d72ef4d245e8ad4a1405df1f665"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "Any",
+   "%ipprotocol": "",
+   "%protocol": "CARP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "224.0.0.18",
+     "description": "",
+     "isAlias": false,
+     "value": "224.0.0.18"
+    }
+   ],
+   "category_colors": [],
+   "description": "CARP defaults",
+   "destination_net": "224.0.0.18",
+   "destination_port": "",
+   "direction": "any",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "carp",
+   "ref": "",
+   "replyto": "",
+   "sort_order": "000001.1000010",
+   "source_net": "",
+   "source_port": "",
+   "uuid": "2ffa978d51f7b3fbc9000c2895106ee7"
+  },
+  {
+   "#priority": 1,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "TCP",
+   "action": "block",
+   "alias_meta_destination_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "22",
+     "description": "",
+     "isAlias": false,
+     "value": "22"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "sshlockout",
+     "description": "abuse lockout table (internal)",
+     "isAlias": true,
+     "summary": "<strong>abuse lockout table (internal)</strong><br/>",
+     "value": "sshlockout"
+    }
+   ],
+   "category_colors": [],
+   "description": "sshlockout",
+   "destination_net": "(self)",
+   "destination_port": "22",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "tcp",
+   "ref": "system_advanced_firewall.php#no_sshlockout",
+   "replyto": "",
+   "sort_order": "000001.1000011",
+   "source_net": "sshlockout",
+   "source_port": "",
+   "uuid": "8b59cf89872747f657c42f9e93dd52e0"
+  },
+  {
+   "#priority": 1,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "TCP",
+   "action": "block",
+   "alias_meta_destination_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "443",
+     "description": "",
+     "isAlias": false,
+     "value": "443"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "sshlockout",
+     "description": "abuse lockout table (internal)",
+     "isAlias": true,
+     "summary": "<strong>abuse lockout table (internal)</strong><br/>",
+     "value": "sshlockout"
+    }
+   ],
+   "category_colors": [],
+   "description": "sshlockout",
+   "destination_net": "(self)",
+   "destination_port": "443",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "tcp",
+   "ref": "system_advanced_firewall.php#no_sshlockout",
+   "replyto": "",
+   "sort_order": "000001.1000012",
+   "source_net": "sshlockout",
+   "source_port": "",
+   "uuid": "27ad7dee30c19305dc0187bf0e87cd4e"
+  },
+  {
+   "#priority": 1,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "",
+   "action": "block",
+   "alias_meta_source_net": [
+    {
+     "%value": "virusprot",
+     "description": "overload table for rate limiting (internal)",
+     "isAlias": true,
+     "summary": "<strong>overload table for rate limiting (internal)</strong><br/>",
+     "value": "virusprot"
+    }
+   ],
+   "category_colors": [],
+   "description": "virusprot overload table",
+   "destination_net": "",
+   "destination_port": "",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "",
+   "ref": "system_advanced_firewall.php#no_virusprot",
+   "replyto": "",
+   "sort_order": "000001.1000013",
+   "source_net": "virusprot",
+   "source_port": "",
+   "uuid": "add09fc915886757c300419fc2ecc1e6"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "546",
+     "description": "",
+     "isAlias": false,
+     "value": "546"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow dhcpv6 client in WAN",
+   "destination_net": "fe80::/10",
+   "destination_port": "546",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "WAN",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/interfaces/settings",
+   "replyto": "",
+   "sort_order": "000001.1000014",
+   "source_net": "",
+   "source_port": "",
+   "uuid": "c6e8fd0e915a27c129dc70c00a278a98"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "Out",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    },
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "547",
+     "description": "",
+     "isAlias": false,
+     "value": "547"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "546",
+     "description": "",
+     "isAlias": false,
+     "value": "546"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow dhcpv6 client out WAN",
+   "destination_net": "fe80::/10,ff02::/16",
+   "destination_port": "547",
+   "direction": "out",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "WAN",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/interfaces/settings",
+   "replyto": "",
+   "sort_order": "000001.1000015",
+   "source_net": "fe80::/10",
+   "source_port": "546",
+   "uuid": "2f2c37025cd02b5cd29fd330f8e48954"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "pass",
+   "alias_meta_destination_port": [
+    {
+     "%value": "68",
+     "description": "",
+     "isAlias": false,
+     "value": "68"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "67",
+     "description": "",
+     "isAlias": false,
+     "value": "67"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow DHCP client on WAN",
+   "destination_net": "",
+   "destination_port": "68",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "WAN",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "interfaces.php?if=wan#type",
+   "replyto": "",
+   "sort_order": "000001.1000016",
+   "source_net": "",
+   "source_port": "67",
+   "uuid": "f994f615e00b8be0042263f86c79913f"
+  },
+  {
+   "#priority": 1,
+   "%action": "Pass",
+   "%direction": "Out",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "pass",
+   "alias_meta_destination_port": [
+    {
+     "%value": "67",
+     "description": "",
+     "isAlias": false,
+     "value": "67"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "68",
+     "description": "",
+     "isAlias": false,
+     "value": "68"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow DHCP client on WAN",
+   "destination_net": "",
+   "destination_port": "67",
+   "direction": "out",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "WAN",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "interfaces.php?if=wan#type",
+   "replyto": "",
+   "sort_order": "000001.1000017",
+   "source_net": "",
+   "source_port": "68",
+   "uuid": "5cf7ab808da1fcbca1ddb9ba9b46b669"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "198.51.100.255",
+     "description": "",
+     "isAlias": false,
+     "value": "198.51.100.255"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "67",
+     "description": "",
+     "isAlias": false,
+     "value": "67"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "68",
+     "description": "",
+     "isAlias": false,
+     "value": "68"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "198.51.100.255",
+   "destination_port": "67",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "DHCPLAB",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000018",
+   "source_net": "",
+   "source_port": "68",
+   "uuid": "d31abd66ebb6c8a4b565f97d9763a3a3"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "67",
+     "description": "",
+     "isAlias": false,
+     "value": "67"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "68",
+     "description": "",
+     "isAlias": false,
+     "value": "68"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "(self)",
+   "destination_port": "67",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "DHCPLAB",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000019",
+   "source_net": "",
+   "source_port": "68",
+   "uuid": "154865da201b3e32cf77addbb19b8224"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "Out",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_port": [
+    {
+     "%value": "68",
+     "description": "",
+     "isAlias": false,
+     "value": "68"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "67",
+     "description": "",
+     "isAlias": false,
+     "value": "67"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "",
+   "destination_port": "68",
+   "direction": "out",
+   "enabled": "1",
+   "interface": "DHCPLAB",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000020",
+   "source_net": "(self)",
+   "source_port": "67",
+   "uuid": "b4aa2b58d6b6c7db56f6f40a1475d7b8"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    },
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "546",
+     "description": "",
+     "isAlias": false,
+     "value": "546"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "fe80::/10,ff02::/16",
+   "destination_port": "546",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "DHCPLAB",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000021",
+   "source_net": "fe80::/10",
+   "source_port": "",
+   "uuid": "b5a0cc95c43246e8d7cba994ffed7982"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "547",
+     "description": "",
+     "isAlias": false,
+     "value": "547"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "ff02::/16",
+   "destination_port": "547",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "DHCPLAB",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000022",
+   "source_net": "fe80::/10",
+   "source_port": "",
+   "uuid": "435024c7fbb62f50ac93070b5a8f4715"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "547",
+     "description": "",
+     "isAlias": false,
+     "value": "547"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "fe80::/10",
+   "destination_port": "547",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "DHCPLAB",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000023",
+   "source_net": "ff02::/16",
+   "source_port": "",
+   "uuid": "f7c77e0b89fba268fd58bc7c7533c112"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "546",
+     "description": "",
+     "isAlias": false,
+     "value": "546"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "(self)",
+   "destination_port": "546",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "DHCPLAB",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000024",
+   "source_net": "fe80::/10",
+   "source_port": "",
+   "uuid": "f9a76929815aefbfe2fc0eee69f8d847"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "Out",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "547",
+     "description": "",
+     "isAlias": false,
+     "value": "547"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "fe80::/10",
+   "destination_port": "",
+   "direction": "out",
+   "enabled": "1",
+   "interface": "DHCPLAB",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000025",
+   "source_net": "(self)",
+   "source_port": "547",
+   "uuid": "43214b5c9c4bd303ac75c981d814321e"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "198.51.100.255",
+     "description": "",
+     "isAlias": false,
+     "value": "198.51.100.255"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "67",
+     "description": "",
+     "isAlias": false,
+     "value": "67"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "68",
+     "description": "",
+     "isAlias": false,
+     "value": "68"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "198.51.100.255",
+   "destination_port": "67",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000026",
+   "source_net": "",
+   "source_port": "68",
+   "uuid": "56d97e04b8ce723a8524bdda932fe056"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "67",
+     "description": "",
+     "isAlias": false,
+     "value": "67"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "68",
+     "description": "",
+     "isAlias": false,
+     "value": "68"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "(self)",
+   "destination_port": "67",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000027",
+   "source_net": "",
+   "source_port": "68",
+   "uuid": "ac5d6855f1bc6d537c949fd7ce458587"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "Out",
+   "%ipprotocol": "",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_port": [
+    {
+     "%value": "68",
+     "description": "",
+     "isAlias": false,
+     "value": "68"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "67",
+     "description": "",
+     "isAlias": false,
+     "value": "67"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "",
+   "destination_port": "68",
+   "direction": "out",
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000028",
+   "source_net": "(self)",
+   "source_port": "67",
+   "uuid": "4071f735e7cf9dcad8b9305970c17911"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    },
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "546",
+     "description": "",
+     "isAlias": false,
+     "value": "546"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "fe80::/10,ff02::/16",
+   "destination_port": "546",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000029",
+   "source_net": "fe80::/10",
+   "source_port": "",
+   "uuid": "600d48bc4d9a060084eea027fa54cfdc"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "547",
+     "description": "",
+     "isAlias": false,
+     "value": "547"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "ff02::/16",
+   "destination_port": "547",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000030",
+   "source_net": "fe80::/10",
+   "source_port": "",
+   "uuid": "0e8cdb22b7059277a934591353ae2214"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "547",
+     "description": "",
+     "isAlias": false,
+     "value": "547"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "ff02::/16",
+     "description": "",
+     "isAlias": false,
+     "value": "ff02::/16"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "fe80::/10",
+   "destination_port": "547",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000031",
+   "source_net": "ff02::/16",
+   "source_port": "",
+   "uuid": "06e2b143a84862bc38acb6bac5090d14"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "546",
+     "description": "",
+     "isAlias": false,
+     "value": "546"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "(self)",
+   "destination_port": "546",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000032",
+   "source_net": "fe80::/10",
+   "source_port": "",
+   "uuid": "04bd2bc40ab1391b8ce89ff0fafd1e67"
+  },
+  {
+   "#priority": 1,
+   "%action": "",
+   "%direction": "Out",
+   "%ipprotocol": "IPv6",
+   "%protocol": "UDP",
+   "action": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_source_port": [
+    {
+     "%value": "547",
+     "description": "",
+     "isAlias": false,
+     "value": "547"
+    }
+   ],
+   "category_colors": [],
+   "description": "allow access to DHCP server",
+   "destination_net": "fe80::/10",
+   "destination_port": "",
+   "direction": "out",
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "udp",
+   "ref": "ui/dnsmasq/settings#general",
+   "replyto": "",
+   "sort_order": "000001.1000033",
+   "source_net": "(self)",
+   "source_port": "547",
+   "uuid": "0926e497e454bfe83d715b0d85fdfe3a"
+  },
+  {
+   "#priority": 5,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "IPv4",
+   "%protocol": "",
+   "action": "block",
+   "alias_meta_source_net": [
+    {
+     "%value": "bogons",
+     "description": "bogon networks (internal)",
+     "isAlias": true,
+     "summary": "<strong>bogon networks (internal)</strong><br/>",
+     "value": "bogons"
+    }
+   ],
+   "category_colors": [],
+   "description": "Block bogon IPv4 networks from WAN",
+   "destination_net": "",
+   "destination_port": "",
+   "direction": "in",
+   "disabled": false,
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "WAN",
+   "ipprotocol": "inet",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "",
+   "ref": "interfaces.php?if=wan#blockbogons",
+   "replyto": "",
+   "sort_order": "000005.1000034",
+   "source_net": "bogons",
+   "source_port": "",
+   "uuid": "b7cd97a164650b538506fb551a0369e7"
+  },
+  {
+   "#priority": 5,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "",
+   "action": "block",
+   "alias_meta_source_net": [
+    {
+     "%value": "bogonsv6",
+     "description": "bogon networks IPv6 (internal)",
+     "isAlias": true,
+     "summary": "<strong>bogon networks IPv6 (internal)</strong><br/>",
+     "value": "bogonsv6"
+    }
+   ],
+   "category_colors": [],
+   "description": "Block bogon IPv6 networks from WAN",
+   "destination_net": "",
+   "destination_port": "",
+   "direction": "in",
+   "disabled": false,
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "WAN",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "",
+   "ref": "interfaces.php?if=wan#blockbogons",
+   "replyto": "",
+   "sort_order": "000005.1000035",
+   "source_net": "bogonsv6",
+   "source_port": "",
+   "uuid": "f140a48ddade668b9d6f5259669a1d5c"
+  },
+  {
+   "#priority": 5,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "IPv4",
+   "%protocol": "",
+   "action": "block",
+   "alias_meta_source_net": [
+    {
+     "%value": "198.51.100.0/8",
+     "description": "",
+     "isAlias": false,
+     "value": "198.51.100.0/8"
+    },
+    {
+     "%value": "198.51.100.0/12",
+     "description": "",
+     "isAlias": false,
+     "value": "198.51.100.0/12"
+    },
+    {
+     "%value": "192.0.2.0/16",
+     "description": "",
+     "isAlias": false,
+     "value": "192.0.2.0/16"
+    },
+    {
+     "%value": "127.0.0.0/8",
+     "description": "",
+     "isAlias": false,
+     "value": "127.0.0.0/8"
+    },
+    {
+     "%value": "100.64.0.0/10",
+     "description": "",
+     "isAlias": false,
+     "value": "100.64.0.0/10"
+    },
+    {
+     "%value": "198.51.100.0/16",
+     "description": "",
+     "isAlias": false,
+     "value": "198.51.100.0/16"
+    }
+   ],
+   "category_colors": [],
+   "description": "Block private networks from WAN",
+   "destination_net": "",
+   "destination_port": "",
+   "direction": "in",
+   "disabled": false,
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "WAN",
+   "ipprotocol": "inet",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "",
+   "ref": "interfaces.php?if=wan#blockpriv",
+   "replyto": "",
+   "sort_order": "000005.1000036",
+   "source_net": "198.51.100.0/8,198.51.100.0/12,192.0.2.0/16,127.0.0.0/8,100.64.0.0/10,198.51.100.0/16",
+   "source_port": "",
+   "uuid": "3d399f8f89b68d684701badb48eab085"
+  },
+  {
+   "#priority": 5,
+   "%action": "Block",
+   "%direction": "In",
+   "%ipprotocol": "IPv6",
+   "%protocol": "",
+   "action": "block",
+   "alias_meta_source_net": [
+    {
+     "%value": "fd00::/8",
+     "description": "",
+     "isAlias": false,
+     "value": "fd00::/8"
+    },
+    {
+     "%value": "fe80::/10",
+     "description": "",
+     "isAlias": false,
+     "value": "fe80::/10"
+    },
+    {
+     "%value": "::/128",
+     "description": "",
+     "isAlias": false,
+     "value": "::/128"
+    }
+   ],
+   "category_colors": [],
+   "description": "Block private networks from WAN",
+   "destination_net": "",
+   "destination_port": "",
+   "direction": "in",
+   "disabled": false,
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "WAN",
+   "ipprotocol": "inet6",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "",
+   "ref": "interfaces.php?if=wan#blockpriv",
+   "replyto": "",
+   "sort_order": "000005.1000037",
+   "source_net": "fd00::/8,fe80::/10,::/128",
+   "source_port": "",
+   "uuid": "6b231f0e90865b14cd918a141750d96a"
+  },
+  {
+   "#priority": 5,
+   "%action": "Pass",
+   "%direction": "Out",
+   "%ipprotocol": "",
+   "%protocol": "",
+   "action": "pass",
+   "allowopts": true,
+   "category_colors": [],
+   "description": "let out anything from firewall host itself",
+   "destination_net": "",
+   "destination_port": "",
+   "direction": "out",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "",
+   "quick": false,
+   "ref": "",
+   "replyto": "",
+   "sort_order": "000005.1000038",
+   "source_net": "",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "fae559338f65e11c53669fc3642c93c2"
+  },
+  {
+   "#priority": 5,
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "TCP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "80",
+     "description": "",
+     "isAlias": false,
+     "value": "80"
+    }
+   ],
+   "category_colors": [],
+   "description": "anti-lockout rule",
+   "destination_net": "(self)",
+   "destination_port": "80",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "tcp",
+   "ref": "system_advanced_firewall.php#noantilockout",
+   "replyto": "",
+   "sort_order": "000005.1000039",
+   "source_net": "",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "01e83daa25c4483dee217a7ecd7c9a88"
+  },
+  {
+   "#priority": 5,
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "TCP",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "This Firewall",
+     "description": "",
+     "isAlias": false,
+     "value": "(self)"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "443",
+     "description": "",
+     "isAlias": false,
+     "value": "443"
+    }
+   ],
+   "category_colors": [],
+   "description": "anti-lockout rule",
+   "destination_net": "(self)",
+   "destination_port": "443",
+   "direction": "in",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "interface": "LAN",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "tcp",
+   "ref": "system_advanced_firewall.php#noantilockout",
+   "replyto": "",
+   "sort_order": "000005.1000040",
+   "source_net": "",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "3345e04986bd5750d23b77cbbb21271f"
+  },
+  {
+   "#priority": 10000,
+   "%action": "Pass",
+   "%direction": "Out",
+   "%ipprotocol": "",
+   "%protocol": "",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "WAN network",
+     "description": "",
+     "isAlias": false,
+     "value": "wan"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "WAN network",
+     "description": "",
+     "isAlias": false,
+     "value": "em1"
+    }
+   ],
+   "allowopts": true,
+   "category_colors": [],
+   "description": "let out anything from firewall host itself (force gw)",
+   "destination_net": "wan",
+   "destination_not": "1",
+   "destination_port": "",
+   "direction": "out",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "gateway": "WAN_DHCP",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "",
+   "quick": false,
+   "ref": "system_advanced_firewall.php#pf_disable_force_gw",
+   "replyto": "",
+   "sort_order": "010000.1000041",
+   "source_net": "em1",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "ae4923441933901a90e7d9997f83b9f6"
+  },
+  {
+   "#priority": 10000,
+   "%action": "Pass",
+   "%direction": "Out",
+   "%ipprotocol": "",
+   "%protocol": "",
+   "action": "pass",
+   "alias_meta_destination_net": [
+    {
+     "%value": "WAN network",
+     "description": "",
+     "isAlias": false,
+     "value": "wan"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "WAN network",
+     "description": "",
+     "isAlias": false,
+     "value": "em1"
+    }
+   ],
+   "allowopts": true,
+   "category_colors": [],
+   "description": "let out anything from firewall host itself (force gw)",
+   "destination_net": "wan",
+   "destination_not": "1",
+   "destination_port": "",
+   "direction": "out",
+   "disablereplyto": 1,
+   "enabled": "1",
+   "gateway": "WAN_DHCP6",
+   "ipprotocol": "",
+   "is_automatic": true,
+   "legacy": true,
+   "log": true,
+   "protocol": "",
+   "quick": false,
+   "ref": "system_advanced_firewall.php#pf_disable_force_gw",
+   "replyto": "",
+   "sort_order": "010000.1000042",
+   "source_net": "em1",
+   "source_port": "",
+   "statetype": "keep",
+   "uuid": "6b52a35571de4180085a993f94680cf4"
+  },
+  {
+   "%action": "Block",
+   "%direction": "Both",
+   "%interface": "DHCPLAB, KEALAB",
+   "%ipprotocol": "IPv4",
+   "%statetype": "keep state",
+   "action": "block",
+   "adaptiveend": "",
+   "adaptivestart": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "203.0.113.250",
+     "description": "",
+     "isAlias": false,
+     "value": "203.0.113.250"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "any",
+     "description": "",
+     "isAlias": false,
+     "value": "any"
+    }
+   ],
+   "allowopts": "0",
+   "categories": "",
+   "category_colors": [],
+   "description": "Floating: block one bad host",
+   "destination_net": "203.0.113.250",
+   "destination_not": "0",
+   "destination_port": "",
+   "direction": "any",
+   "disablereplyto": "0",
+   "divert-to": "",
+   "enabled": "1",
+   "gateway": "",
+   "icmp6type": "",
+   "icmptype": "",
+   "interface": "opt1,opt2",
+   "interfacenot": "0",
+   "ipprotocol": "inet",
+   "log": "0",
+   "max": "",
+   "max-src-conn": "",
+   "max-src-conn-rate": "",
+   "max-src-conn-rates": "",
+   "max-src-nodes": "",
+   "max-src-states": "",
+   "nopfsync": "0",
+   "nosync": "0",
+   "overload": "",
+   "prio": "",
+   "prio_group": "200000",
+   "protocol": "any",
+   "quick": "1",
+   "replyto": "",
+   "sched": "",
+   "sequence": "10",
+   "set-prio": "",
+   "set-prio-low": "",
+   "shaper1": "",
+   "shaper2": "",
+   "sort_order": "200000.0000010",
+   "source_net": "any",
+   "source_not": "0",
+   "source_port": "",
+   "state-policy": "",
+   "statetimeout": "",
+   "statetype": "keep",
+   "tag": "",
+   "tagged": "",
+   "tcpflags1": "",
+   "tcpflags2": "",
+   "tcpflags_any": "0",
+   "tos": "",
+   "udp-first": "",
+   "udp-multiple": "",
+   "udp-single": "",
+   "uuid": "15226803-17ca-4681-8454-4c63450f171c"
+  },
+  {
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "IPv4",
+   "%statetype": "keep state",
+   "action": "pass",
+   "adaptiveend": "",
+   "adaptivestart": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "lab_servers",
+     "description": "Reserved lab hosts",
+     "isAlias": true,
+     "summary": "<strong>Reserved lab hosts</strong><br/>203.0.113.30<br/>203.0.113.90",
+     "value": "lab_servers"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "443",
+     "description": "",
+     "isAlias": false,
+     "value": "443"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "any",
+     "description": "",
+     "isAlias": false,
+     "value": "any"
+    }
+   ],
+   "allowopts": "0",
+   "categories": "",
+   "category_colors": [],
+   "description": "Group: HTTPS to lab servers",
+   "destination_net": "lab_servers",
+   "destination_not": "0",
+   "destination_port": "443",
+   "direction": "in",
+   "disablereplyto": "0",
+   "divert-to": "",
+   "enabled": "1",
+   "gateway": "",
+   "icmp6type": "",
+   "icmptype": "",
+   "interface": "labnets",
+   "interfacenot": "0",
+   "ipprotocol": "inet",
+   "log": "0",
+   "max": "",
+   "max-src-conn": "",
+   "max-src-conn-rate": "",
+   "max-src-conn-rates": "",
+   "max-src-nodes": "",
+   "max-src-states": "",
+   "nopfsync": "0",
+   "nosync": "0",
+   "overload": "",
+   "prio": "",
+   "prio_group": "300000",
+   "protocol": "TCP",
+   "quick": "1",
+   "replyto": "",
+   "sched": "",
+   "sequence": "300",
+   "set-prio": "",
+   "set-prio-low": "",
+   "shaper1": "",
+   "shaper2": "",
+   "sort_order": "300000.0000300",
+   "source_net": "any",
+   "source_not": "0",
+   "source_port": "",
+   "state-policy": "",
+   "statetimeout": "",
+   "statetype": "keep",
+   "tag": "",
+   "tagged": "",
+   "tcpflags1": "",
+   "tcpflags2": "",
+   "tcpflags_any": "0",
+   "tos": "",
+   "udp-first": "",
+   "udp-multiple": "",
+   "udp-single": "",
+   "uuid": "f9601cc1-a502-499b-ab62-92e2fde9ebe8"
+  },
+  {
+   "%action": "Pass",
+   "%direction": "In",
+   "%interface": "LAN",
+   "%ipprotocol": "IPv4",
+   "%source_net": "LAN net",
+   "%statetype": "keep state",
+   "action": "pass",
+   "adaptiveend": "",
+   "adaptivestart": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "any",
+     "description": "",
+     "isAlias": false,
+     "value": "any"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "LAN network",
+     "description": "",
+     "isAlias": false,
+     "value": "lan"
+    }
+   ],
+   "allowopts": "0",
+   "categories": "",
+   "category_colors": [],
+   "description": "Default allow LAN to any rule",
+   "destination_net": "any",
+   "destination_not": "0",
+   "destination_port": "",
+   "direction": "in",
+   "disablereplyto": "0",
+   "divert-to": "",
+   "enabled": "1",
+   "gateway": "",
+   "icmp6type": "",
+   "icmptype": "",
+   "interface": "lan",
+   "interfacenot": "0",
+   "ipprotocol": "inet",
+   "log": "0",
+   "max": "",
+   "max-src-conn": "",
+   "max-src-conn-rate": "",
+   "max-src-conn-rates": "",
+   "max-src-nodes": "",
+   "max-src-states": "",
+   "nopfsync": "0",
+   "nosync": "0",
+   "overload": "",
+   "prio": "",
+   "prio_group": "400000",
+   "protocol": "any",
+   "quick": "1",
+   "replyto": "",
+   "sched": "",
+   "sequence": "1",
+   "set-prio": "",
+   "set-prio-low": "",
+   "shaper1": "",
+   "shaper2": "",
+   "sort_order": "400000.0000001",
+   "source_net": "lan",
+   "source_not": "0",
+   "source_port": "",
+   "state-policy": "",
+   "statetimeout": "",
+   "statetype": "keep",
+   "tag": "",
+   "tagged": "",
+   "tcpflags1": "",
+   "tcpflags2": "",
+   "tcpflags_any": "0",
+   "tos": "",
+   "udp-first": "",
+   "udp-multiple": "",
+   "udp-single": "",
+   "uuid": "11075514-3629-4c9a-b52a-c46a702fda53"
+  },
+  {
+   "%action": "Pass",
+   "%direction": "In",
+   "%interface": "LAN",
+   "%ipprotocol": "IPv6",
+   "%source_net": "LAN net",
+   "%statetype": "keep state",
+   "action": "pass",
+   "adaptiveend": "",
+   "adaptivestart": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "any",
+     "description": "",
+     "isAlias": false,
+     "value": "any"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "LAN network",
+     "description": "",
+     "isAlias": false,
+     "value": "lan"
+    }
+   ],
+   "allowopts": "0",
+   "categories": "",
+   "category_colors": [],
+   "description": "Default allow LAN IPv6 to any rule",
+   "destination_net": "any",
+   "destination_not": "0",
+   "destination_port": "",
+   "direction": "in",
+   "disablereplyto": "0",
+   "divert-to": "",
+   "enabled": "1",
+   "gateway": "",
+   "icmp6type": "",
+   "icmptype": "",
+   "interface": "lan",
+   "interfacenot": "0",
+   "ipprotocol": "inet6",
+   "log": "0",
+   "max": "",
+   "max-src-conn": "",
+   "max-src-conn-rate": "",
+   "max-src-conn-rates": "",
+   "max-src-nodes": "",
+   "max-src-states": "",
+   "nopfsync": "0",
+   "nosync": "0",
+   "overload": "",
+   "prio": "",
+   "prio_group": "400000",
+   "protocol": "any",
+   "quick": "1",
+   "replyto": "",
+   "sched": "",
+   "sequence": "11",
+   "set-prio": "",
+   "set-prio-low": "",
+   "shaper1": "",
+   "shaper2": "",
+   "sort_order": "400000.0000011",
+   "source_net": "lan",
+   "source_not": "0",
+   "source_port": "",
+   "state-policy": "",
+   "statetimeout": "",
+   "statetype": "keep",
+   "tag": "",
+   "tagged": "",
+   "tcpflags1": "",
+   "tcpflags2": "",
+   "tcpflags_any": "0",
+   "tos": "",
+   "udp-first": "",
+   "udp-multiple": "",
+   "udp-single": "",
+   "uuid": "385164eb-9469-4110-b0be-b80189ab0d01"
+  },
+  {
+   "%action": "Pass",
+   "%direction": "In",
+   "%interface": "DHCPLAB",
+   "%ipprotocol": "IPv4",
+   "%source_net": "DHCPLAB net",
+   "%statetype": "keep state",
+   "action": "pass",
+   "adaptiveend": "",
+   "adaptivestart": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "any",
+     "description": "",
+     "isAlias": false,
+     "value": "any"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "DHCPLAB network",
+     "description": "",
+     "isAlias": false,
+     "value": "opt1"
+    }
+   ],
+   "allowopts": "0",
+   "categories": "",
+   "category_colors": [],
+   "description": "Lab: allow out (not quick)",
+   "destination_net": "any",
+   "destination_not": "0",
+   "destination_port": "",
+   "direction": "in",
+   "disablereplyto": "0",
+   "divert-to": "",
+   "enabled": "1",
+   "gateway": "",
+   "icmp6type": "",
+   "icmptype": "",
+   "interface": "opt1",
+   "interfacenot": "0",
+   "ipprotocol": "inet",
+   "log": "0",
+   "max": "",
+   "max-src-conn": "",
+   "max-src-conn-rate": "",
+   "max-src-conn-rates": "",
+   "max-src-nodes": "",
+   "max-src-states": "",
+   "nopfsync": "0",
+   "nosync": "0",
+   "overload": "",
+   "prio": "",
+   "prio_group": "400000",
+   "protocol": "any",
+   "quick": "0",
+   "replyto": "",
+   "sched": "",
+   "sequence": "100",
+   "set-prio": "",
+   "set-prio-low": "",
+   "shaper1": "",
+   "shaper2": "",
+   "sort_order": "400000.0000100",
+   "source_net": "opt1",
+   "source_not": "0",
+   "source_port": "",
+   "state-policy": "",
+   "statetimeout": "",
+   "statetype": "keep",
+   "tag": "",
+   "tagged": "",
+   "tcpflags1": "",
+   "tcpflags2": "",
+   "tcpflags_any": "0",
+   "tos": "",
+   "udp-first": "",
+   "udp-multiple": "",
+   "udp-single": "",
+   "uuid": "68957ee8-3b8b-469b-b1e4-b95afabbca7b"
+  },
+  {
+   "%action": "Block",
+   "%direction": "In",
+   "%interface": "DHCPLAB",
+   "%ipprotocol": "IPv4",
+   "%source_net": "DHCPLAB net",
+   "%statetype": "keep state",
+   "action": "block",
+   "adaptiveend": "",
+   "adaptivestart": "",
+   "alias_meta_destination_net": [
+    {
+     "%value": "203.0.113.64/26",
+     "description": "",
+     "isAlias": false,
+     "value": "203.0.113.64/26"
+    }
+   ],
+   "alias_meta_destination_port": [
+    {
+     "%value": "22",
+     "description": "",
+     "isAlias": false,
+     "value": "22"
+    }
+   ],
+   "alias_meta_source_net": [
+    {
+     "%value": "DHCPLAB network",
+     "description": "",
+     "isAlias": false,
+     "value": "opt1"
+    }
+   ],
+   "allowopts": "0",
+   "categories": "",
+   "category_colors": [],
+   "description": "Lab: no SSH to the Kea lab (quick)",
+   "destination_net": "203.0.113.64/26",
+   "destination_not": "0",
+   "destination_port": "22",
+   "direction": "in",
+   "disablereplyto": "0",
+   "divert-to": "",
+   "enabled": "1",
+   "gateway": "",
+   "icmp6type": "",
+   "icmptype": "",
+   "interface": "opt1",
+   "interfacenot": "0",
+   "ipprotocol": "inet",
+   "log": "0",
+   "max": "",
+   "max-src-conn": "",
+   "max-src-conn-rate": "",
+   "max-src-conn-rates": "",
+   "max-src-nodes": "",
+   "max-src-states": "",
+   "nopfsync": "0",
+   "nosync": "0",
+   "overload": "",
+   "prio": "",
+   "prio_group": "400000",
+   "protocol": "TCP",
+   "quick": "1",
+   "replyto": "",
+   "sched": "",
+   "sequence": "200",
+   "set-prio": "",
+   "set-prio-low": "",
+   "shaper1": "",
+   "shaper2": "",
+   "sort_order": "400000.0000200",
+   "source_net": "opt1",
+   "source_not": "0",
+   "source_port": "",
+   "state-policy": "",
+   "statetimeout": "",
+   "statetype": "keep",
+   "tag": "",
+   "tagged": "",
+   "tcpflags1": "",
+   "tcpflags2": "",
+   "tcpflags_any": "0",
+   "tos": "",
+   "udp-first": "",
+   "udp-multiple": "",
+   "udp-single": "",
+   "uuid": "192856af-b271-4e64-b545-a515ba055dee"
+  },
+  {
+   "#priority": 400000,
+   "%action": "Pass",
+   "%direction": "In",
+   "%ipprotocol": "",
+   "%protocol": "",
+   "action": "pass",
+   "category_colors": [],
+   "description": "Lab links",
+   "destination_net": "",
+   "destination_not": "0",
+   "destination_port": "",
+   "direction": "in",
+   "enabled": "1",
+   "interface": "DHCPLAB,KEALAB,LABVLAN,PEERLINK",
+   "ipprotocol": "inet46",
+   "is_automatic": true,
+   "legacy": true,
+   "protocol": "",
+   "ref": "ui/firewall/migration",
+   "replyto": "",
+   "seq": 0,
+   "sort_order": "400000.1000043",
+   "source_net": "",
+   "source_not": "0",
+   "source_port": "",
+   "statetype": "keep state",
+   "uuid": "412a393a529efb886d323b4bd972a885"
+  }
+ ],
+ "total": 49
+}

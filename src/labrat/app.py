@@ -8,7 +8,7 @@ registers independent blueprints for public HTML, private HTML, and JSON APIs.
 Database schema changes remain Alembic's responsibility, not Flask's.
 """
 
-from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 import sys
 from typing import Any
 
@@ -24,6 +24,8 @@ from labrat.api.topology import topology_bp
 from labrat.api.clients import clients_bp
 from labrat.api.cluster import cluster_bp
 from labrat.api.network import network_bp
+from labrat.api.machine import machine_bp
+from labrat import app_version
 from labrat.auth.providers import ProviderRegistry
 from labrat.auth.session import csrf_token, current_user
 from labrat.auth.setup_code import ensure_setup_code, remove_setup_code, setup_code_path
@@ -37,6 +39,7 @@ from labrat.pages.public import public_bp
 from labrat.pages.status import header_sources, source_health
 from labrat.pages.docs import docs_bp
 from labrat.models import User
+from labrat.startup import StartupGate
 
 
 LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
@@ -46,8 +49,12 @@ MAX_REQUEST_BYTES = 256 * 1024
 """Largest request body any route accepts unless it raises its own limit."""
 
 
-def create_app() -> Flask:
+def create_app(database_override: Path | None = None) -> Flask:
     """Create the LabRat Flask application with secure local session settings.
+
+    Args:
+        database_override: A database to use instead of the configured one,
+            for a server that forked a copy at startup (``labrat/startup.py``).
 
     Returns:
         Flask: Configured application with session, database, and route services.
@@ -59,6 +66,9 @@ def create_app() -> Flask:
     """
     app = Flask(__name__)
     local_config = load_local_config()
+    if database_override is not None:
+        database = local_config.get("database", {})
+        local_config = {**local_config, "database": {**(database if isinstance(database, dict) else {}), "path": str(database_override)}}
     app.extensions["labrat_local_config"] = local_config
     app.extensions["labrat_config_path"] = local_config_path().resolve()
 
@@ -129,10 +139,7 @@ def create_app() -> Flask:
     app.extensions["labrat_session_factory"] = make_session_factory(engine)
     app.extensions["labrat_auth_providers"] = ProviderRegistry()
     app.extensions["labrat_signin_throttle"] = SignInThrottle()
-    try:
-        app_version = version("labrat")
-    except PackageNotFoundError:  # Running from a source tree without install.
-        app_version = "dev"
+    version = app_version()
 
     @app.context_processor
     def template_globals() -> dict[str, Any]:
@@ -161,7 +168,7 @@ def create_app() -> Flask:
             "source_status": source_status,
             "source_strip": header_sources(source_status),
             "locations_menu": locations_menu,
-            "app_version": app_version,
+            "app_version": version,
             "theme": current_theme(),
             "accent": current_accent(),
         }
@@ -199,6 +206,7 @@ def create_app() -> Flask:
     app.register_blueprint(clients_bp)
     app.register_blueprint(cluster_bp)
     app.register_blueprint(network_bp)
+    app.register_blueprint(machine_bp)
     return app
 
 
@@ -222,5 +230,7 @@ def _prepare_setup_code(app: Flask) -> None:
         ensure_setup_code(path)
 
 
-# Gunicorn loads this WSGI application with: gunicorn labrat.app:app
-app = create_app()
+# Gunicorn loads this WSGI application with: gunicorn labrat.app:app. The
+# gate answers at once with a holding page and hands requests to the Flask
+# app once it is built, its lease taken, and its schema current.
+app = StartupGate(create_app)

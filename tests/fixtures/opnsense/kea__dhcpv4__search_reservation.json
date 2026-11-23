@@ -1,0 +1,29 @@
+{
+ "current": 1,
+ "rowCount": 1,
+ "rows": [
+  {
+   "%subnet": "203.0.113.64/26",
+   "client_id": "",
+   "description": "Reserved",
+   "hostname": "printer",
+   "hw_address": "02:00:00:00:20:02",
+   "ip_address": "203.0.113.90",
+   "next_server": "",
+   "option": "",
+   "option_data.boot_file_name": "",
+   "option_data.classless_static_route": "",
+   "option_data.domain_name": "",
+   "option_data.domain_name_servers": "",
+   "option_data.domain_search": "",
+   "option_data.ntp_servers": "",
+   "option_data.routers": "",
+   "option_data.static_routes": "",
+   "option_data.tftp_server_name": "",
+   "option_data.time_servers": "",
+   "subnet": "6f1c2a40-0000-4000-8000-000000000003",
+   "uuid": "6f1c2a40-0000-4000-8000-000000000004"
+  }
+ ],
+ "total": 1
+}

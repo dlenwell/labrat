@@ -13,7 +13,7 @@ from logging.config import fileConfig
 from alembic import context
 
 from labrat import models  # noqa: F401  # Register initial model tables.
-from labrat import audit, metadata, placement  # noqa: F401  # Register new inventory tables.
+from labrat import api_tokens, audit, instance, metadata, placement  # noqa: F401  # Register new inventory tables.
 from labrat.discovery import models as discovery_models  # noqa: F401
 from labrat.config import load_local_config
 from labrat.database import Base, make_engine

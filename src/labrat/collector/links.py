@@ -7,7 +7,7 @@ Adapters retain their own source-scoped observations. This module joins the
 UniFi LLDP management address and remote port ID to Proxmox node identities and
 physical NIC names only when each side resolves uniquely.
 
-Used by: api.observation_actions, collector.runner,
+Used by: api.observation_actions, collector.client_links, collector.runner,
 collector.wireless_clients.
 """
 
@@ -57,7 +57,7 @@ def _addresses(value: object) -> set[str]:
     return found
 
 
-def _port_name(value: object) -> str | None:
+def port_name(value: object) -> str | None:
     """Normalize an LLDP interface-name port ID for exact comparisons.
 
     Args:
@@ -195,7 +195,7 @@ def reconcile_proxmox_lldp_links(
             if not matching_nodes and len(chassis_nodes) == 1:
                 matching_nodes = chassis_nodes
             port_id = neighbor.get("port_id")
-            name_key = _port_name(port_id)
+            name_key = port_name(port_id)
             mac_key = mac_address(port_id)
             key = neighbor_key(unifi_source.id, neighbor.get("chassis_id", ""), str(port_id or ""))
             manual = saved.get(key, [])

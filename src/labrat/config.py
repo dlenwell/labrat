@@ -21,7 +21,7 @@ exposed through API responses, logs, or version control.
 Python 3.11 or newer is required for the standard library ``tomllib``
 module.
 
-Used by: app, collector.__main__.
+Used by: app, collector.__main__, startup.
 """
 
 import os
