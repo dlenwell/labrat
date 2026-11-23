@@ -27,8 +27,19 @@ class KubernetesSampleTests(unittest.TestCase):
         self.assertIn("  replicas: 1\n", self.text)
         self.assertIn("    type: Recreate\n", self.text)
 
-    def test_migrations_run_before_both_containers(self):
-        self.assertRegex(self.text, r"initContainers:\n\s+- name: migrate\n.*\n\s+args: \[\"alembic\", \"-c\", \"alembic.ini\", \"upgrade\", \"head\"\]")
+    def test_config_is_written_before_both_containers(self):
+        # Only the init container writes the first config, so the two
+        # containers never race; the web container migrates behind its
+        # holding page (labrat/startup.py), so no init container does.
+        self.assertRegex(self.text, r"initContainers:\n\s+- name: config\n.*\n\s+args: \[\"true\"\]")
+        self.assertNotIn('"upgrade", "head"', self.text)
+
+    def test_probes_answer_while_starting(self):
+        # /api/v1/health is 503 until ready; probing it would restart the
+        # pod during a long migration and hide the holding page.
+        probes = re.findall(r"(?:readiness|liveness)Probe:\n(?: {12,}.*\n)+", self.text)
+        for probe in probes:
+            self.assertIn("path: /api/v1/live\n", probe)
 
     def test_probes_name_an_allowed_host(self):
         # The kubelet probes by pod address, which allowed_hosts refuses.

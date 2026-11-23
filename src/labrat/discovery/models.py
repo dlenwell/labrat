@@ -10,11 +10,12 @@ Device objects remain available when absent from a later poll. Complete port
 and link snapshots are reconciled so stale aliases and cable observations do
 not continue to imply current physical state.
 
-Used by: api.clients, api.cluster, api.common, api.network,
+Used by: api.clients, api.cluster, api.common, api.machine, api.network,
 api.observation_actions, api.rack_devices, api.topology, collector.__main__,
 collector.access_collection, collector.client_links, collector.clients,
-collector.links, collector.nut_wired, collector.proxmox_clients,
-collector.proxmox_cluster, collector.proxmox_live, collector.runner,
+collector.identity, collector.links, collector.nut_wired,
+collector.proxmox_clients, collector.proxmox_cluster,
+collector.proxmox_live, collector.runner, collector.sightings,
 collector.sources, collector.store, collector.unifi_network,
 collector.wireless_clients, discovery.observation_ignores,
 discovery_settings, integrations, pages.private, pages.status.

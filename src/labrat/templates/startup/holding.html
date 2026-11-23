@@ -1,0 +1,68 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{#
+  The startup holding page (labrat/startup.py), served in place of every
+  page while the app loads, migrates its database, waits on a schema or
+  another instance's lease, or cannot start. It is rendered before the
+  Flask app exists, so it stands alone: no base.html, no url_for, no
+  scripts. A meta refresh reloads it until the app is ready.
+
+  Variables: state, eyebrow, title, message, details (label to value),
+  command (one shell command to run), hint, refresh (seconds, 0 for
+  none), theme, accent, version, and for a lease conflict: actions
+  (bool), signed_in_admin, csrf_token, signin_url, renew_seconds.
+#}
+<!doctype html>
+<html lang="en" data-theme="{{ theme }}" data-accent="{{ accent }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if refresh %}<meta http-equiv="refresh" content="{{ refresh }}">{% endif %}
+    <title>LabRat · {{ title }}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/img/labrat-mark.svg">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/startup.css">
+  </head>
+  <body class="startup-body">
+    <main id="main-content" class="startup-main">
+      <section class="form-card panel-screws startup-card" data-startup-state="{{ state }}" aria-labelledby="startup-title">
+        <div class="startup-brand">
+          <img class="startup-mark" src="/static/img/labrat-mark.svg" alt="">
+          <span class="startup-version">LabRat {{ version }}</span>
+        </div>
+        <p class="eyebrow">{{ eyebrow }}</p>
+        <h1 id="startup-title">
+          {% if state in ("starting", "migrating", "waiting") %}<span class="startup-lamp" aria-hidden="true"></span>{% endif %}
+          {{ title }}
+        </h1>
+        <p class="intro" role="status">{{ message }}</p>
+
+        {% if details %}
+        <dl class="startup-details">
+          {% for label, value in details.items() %}
+          <div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
+          {% endfor %}
+        </dl>
+        {% endif %}
+
+        {% if command %}<pre class="startup-command"><code>{{ command }}</code></pre>{% endif %}
+        {% if hint %}<p class="startup-hint">{{ hint }}</p>{% endif %}
+
+        {% if actions %}
+          {% if signed_in_admin %}
+          <form method="post" action="/startup/decision" class="startup-actions">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="button" type="submit" name="decision" value="take-over">Take over the database from here</button>
+            <p class="startup-choice-note">The other instance steps down within {{ renew_seconds }} seconds and shows that it was replaced; its collector stops too.</p>
+            <button class="button button-secondary" type="submit" name="decision" value="refuse">Leave that one alone and stop this one</button>
+            <p class="startup-choice-note">This server shuts down. A container platform that restarts it brings this page back.</p>
+            <button class="button button-secondary" type="submit" name="decision" value="fork">Fork it and keep my own copy</button>
+            <p class="startup-choice-note">This server copies the database beside the original and runs on the copy, apart from the other instance. Its collector keeps writing the original.</p>
+          </form>
+          {% else %}
+          <p class="startup-hint">An administrator can choose what this instance does: <a href="{{ signin_url }}">sign in</a> to see the choices. This page checks again every {{ refresh }} seconds, and starts on its own if the other instance stops.</p>
+          {% endif %}
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

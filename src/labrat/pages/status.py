@@ -7,7 +7,7 @@ The header status strip and the home page both show one indicator per
 configured discovery source. This module reads only the local database; it
 never contacts a controller, so pages stay fast when an integration is down.
 
-Used by: app, integrations, pages.activity.
+Used by: app, pages.activity.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -19,31 +19,18 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from labrat.discovery.models import DiscoveredDevice, DiscoveredLink, DiscoveredPort, DiscoverySource
+from labrat.collector.sources import DERIVED_SOURCE_PARENTS
+from labrat.database import as_utc
 
 #: A successful collection newer than this is shown as live (pulsing light).
 FRESH_WINDOW = timedelta(minutes=30)
 
-#: Sources the collector derives from another integration's endpoint, mapped
-#: to the parent's kind; they match the parent by ``config_name``.
-DERIVED_SOURCE_PARENTS = {"unifi_clients": "unifi"}
-
 #: Short names for derived sources when listed inside their parent's tooltip.
-DERIVED_SOURCE_SHORT = {"unifi_clients": "Clients"}
+DERIVED_SOURCE_SHORT = {"unifi_clients": "Clients", "opnsense_clients": "Clients"}
 
 #: Worst-first ranking used when several entries share one header light.
 _STATE_RANK = {"error": 3, "warning": 2, "ready": 1, "waiting": 0}
 
-
-def _as_utc(moment: datetime) -> datetime:
-    """Treat naive database timestamps as UTC.
-
-    Args:
-        moment: Timestamp read from SQLite, which may drop the zone.
-
-    Returns:
-        datetime: The same instant with an explicit UTC zone.
-    """
-    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
 def describe_age(moment: datetime | None, now: datetime) -> str:
@@ -59,7 +46,7 @@ def describe_age(moment: datetime | None, now: datetime) -> str:
     """
     if moment is None:
         return "never"
-    seconds = max(0, int((now - _as_utc(moment)).total_seconds()))
+    seconds = max(0, int((now - as_utc(moment)).total_seconds()))
     if seconds < 60:
         return "just now"
     if seconds < 3600:
@@ -113,7 +100,7 @@ def source_health(db: Session, now: datetime | None = None) -> list[dict[str, An
             state, label = "waiting", "Awaiting first run"
         fresh = bool(
             state == "ready"
-            and now - _as_utc(source.last_success_at) <= FRESH_WINDOW
+            and now - as_utc(source.last_success_at) <= FRESH_WINDOW
         )
         parent_kind = DERIVED_SOURCE_PARENTS.get(source.kind)
         health.append({
@@ -224,7 +211,7 @@ def source_health(db: Session, now: datetime | None = None) -> list[dict[str, An
             "name": "LLDP",
             "state": lldp_state,
             "label": lldp_label,
-            "fresh": bool(any_success and now - _as_utc(latest_success) <= FRESH_WINDOW),
+            "fresh": bool(any_success and now - as_utc(latest_success) <= FRESH_WINDOW),
             "age": lldp_age,
         })
     health.extend(wan_health(db, now))
@@ -359,7 +346,7 @@ def wan_health(db: Session, now: datetime | None = None) -> list[dict[str, Any]]
             "name": "WAN",
             "state": state,
             "label": label,
-            "fresh": bool(sampled_at and now - _as_utc(sampled_at) <= timedelta(minutes=2)),
+            "fresh": bool(sampled_at and now - as_utc(sampled_at) <= timedelta(minutes=2)),
             "age": describe_age(sampled_at, now),
             "detail": True,
         })

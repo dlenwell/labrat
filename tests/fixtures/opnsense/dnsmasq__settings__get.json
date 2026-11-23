@@ -1,0 +1,293 @@
+{
+ "dnsmasq": {
+  "add_mac": {
+   "": {
+    "selected": 1,
+    "value": "None"
+   },
+   "base64": {
+    "selected": 0,
+    "value": "base64"
+   },
+   "standard": {
+    "selected": 0,
+    "value": "standard"
+   },
+   "text": {
+    "selected": 0,
+    "value": "text"
+   }
+  },
+  "add_subnet": "0",
+  "cache_size": "",
+  "dhcp": {
+   "%domain": "internal",
+   "authoritative": "0",
+   "default_fw_rules": "1",
+   "domain": "",
+   "enable_ra": "0",
+   "fqdn": "1",
+   "host_ping": "1",
+   "lease_max": "",
+   "local": "1",
+   "log_dhcp": "0",
+   "log_quiet": "0",
+   "no_interface": {
+    "lan": {
+     "selected": 0,
+     "value": "LAN"
+    },
+    "opt1": {
+     "selected": 0,
+     "value": "DHCPLAB"
+    },
+    "opt2": {
+     "selected": 0,
+     "value": "KEALAB"
+    },
+    "opt3": {
+     "selected": 0,
+     "value": "LABVLAN"
+    },
+    "opt4": {
+     "selected": 0,
+     "value": "PEERLINK"
+    },
+    "wan": {
+     "selected": 0,
+     "value": "WAN"
+    }
+   },
+   "nosync": "0",
+   "reply_delay": ""
+  },
+  "dhcp_boot": [],
+  "dhcp_options": [],
+  "dhcp_ranges": {
+   "6f1c2a40-0000-4000-8000-000000000001": {
+    "constructor": {
+     "": {
+      "selected": 1,
+      "value": "None"
+     },
+     "lan": {
+      "selected": 0,
+      "value": "LAN"
+     },
+     "opt1": {
+      "selected": 0,
+      "value": "DHCPLAB"
+     },
+     "opt2": {
+      "selected": 0,
+      "value": "KEALAB"
+     },
+     "opt3": {
+      "selected": 0,
+      "value": "LABVLAN"
+     },
+     "opt4": {
+      "selected": 0,
+      "value": "PEERLINK"
+     },
+     "wan": {
+      "selected": 0,
+      "value": "WAN"
+     }
+    },
+    "description": "",
+    "domain": "lab.example",
+    "domain_type": {
+     "interface": {
+      "selected": 0,
+      "value": "Interface"
+     },
+     "range": {
+      "selected": 1,
+      "value": "Range"
+     }
+    },
+    "end_addr": "203.0.113.20",
+    "interface": {
+     "": {
+      "selected": 0,
+      "value": "Any"
+     },
+     "lan": {
+      "selected": 0,
+      "value": "LAN"
+     },
+     "opt1": {
+      "selected": 1,
+      "value": "DHCPLAB"
+     },
+     "opt2": {
+      "selected": 0,
+      "value": "KEALAB"
+     },
+     "opt3": {
+      "selected": 0,
+      "value": "LABVLAN"
+     },
+     "opt4": {
+      "selected": 0,
+      "value": "PEERLINK"
+     },
+     "wan": {
+      "selected": 0,
+      "value": "WAN"
+     }
+    },
+    "lease_time": "",
+    "mode": {
+     "static": {
+      "selected": 0,
+      "value": "static"
+     }
+    },
+    "nosync": "0",
+    "prefix_len": "",
+    "ra_interval": "",
+    "ra_mode": {
+     "off-link": {
+      "selected": 0,
+      "value": "off-link"
+     },
+     "ra-advrouter": {
+      "selected": 0,
+      "value": "ra-advrouter"
+     },
+     "ra-names": {
+      "selected": 0,
+      "value": "ra-names"
+     },
+     "ra-only": {
+      "selected": 0,
+      "value": "ra-only"
+     },
+     "ra-stateless": {
+      "selected": 0,
+      "value": "ra-stateless"
+     },
+     "slaac": {
+      "selected": 0,
+      "value": "slaac"
+     }
+    },
+    "ra_mtu": "",
+    "ra_priority": {
+     "": {
+      "selected": 1,
+      "value": "Normal"
+     },
+     "high": {
+      "selected": 0,
+      "value": "High"
+     },
+     "low": {
+      "selected": 0,
+      "value": "Low"
+     }
+    },
+    "ra_router_lifetime": "",
+    "set_tag": {
+     "": {
+      "selected": 1,
+      "value": "None"
+     }
+    },
+    "start_addr": "203.0.113.10",
+    "subnet_mask": ""
+   }
+  },
+  "dhcp_tags": [],
+  "dhcpfirst": "0",
+  "dns_forward_max": "",
+  "dns_port": "53053",
+  "dnssec": "0",
+  "domain_needed": "0",
+  "domainoverrides": [],
+  "enable": "1",
+  "hosts": {
+   "6f1c2a40-0000-4000-8000-000000000002": {
+    "aliases": {
+     "": {
+      "selected": 1,
+      "value": ""
+     }
+    },
+    "client_id": "",
+    "cnames": {
+     "": {
+      "selected": 1,
+      "value": ""
+     }
+    },
+    "comments": "",
+    "descr": "Reserved",
+    "domain": "lab.example",
+    "host": "nas",
+    "hwaddr": {
+     "02:00:00:00:10:03": {
+      "selected": 1,
+      "value": "02:00:00:00:10:03"
+     }
+    },
+    "ignore": "0",
+    "ip": {
+     "203.0.113.30": {
+      "selected": 1,
+      "value": "203.0.113.30"
+     }
+    },
+    "lease_time": "",
+    "local": "0",
+    "set_tag": {
+     "": {
+      "selected": 1,
+      "value": "None"
+     }
+    }
+   }
+  },
+  "interface": {
+   "lan": {
+    "selected": 1,
+    "value": "LAN"
+   },
+   "opt1": {
+    "selected": 1,
+    "value": "DHCPLAB"
+   },
+   "opt2": {
+    "selected": 0,
+    "value": "KEALAB"
+   },
+   "opt3": {
+    "selected": 0,
+    "value": "LABVLAN"
+   },
+   "opt4": {
+    "selected": 0,
+    "value": "PEERLINK"
+   },
+   "wan": {
+    "selected": 0,
+    "value": "WAN"
+   }
+  },
+  "local_ttl": "",
+  "log_queries": "0",
+  "no_hosts": "0",
+  "no_ident": "1",
+  "no_private_reverse": "0",
+  "no_resolv": "0",
+  "port": "53053",
+  "regdhcp": "0",
+  "regdhcpdomain": "",
+  "regdhcpstatic": "0",
+  "strict_order": "0",
+  "strictbind": "0",
+  "strip_subnet": "0"
+ }
+}

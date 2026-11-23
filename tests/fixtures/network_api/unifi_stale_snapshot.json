@@ -1,0 +1,303 @@
+{
+ "piholes": [],
+ "sources": [
+  {
+   "id": 1,
+   "name": "UniFi example",
+   "paths": [
+    {
+     "decided_by": "Block lab",
+     "destination": "zone-lab",
+     "exceptions": [
+      {
+       "action": "allow",
+       "destination": [],
+       "name": "trusted can reach lab",
+       "negate": false,
+       "origin": "USER_DEFINED",
+       "ports": [],
+       "protocol": null,
+       "source": [
+        "list: trusted"
+       ],
+       "states": null
+      }
+     ],
+     "source": "zone-in",
+     "verdict": "block"
+    }
+   ],
+   "sinkholes": [
+    {
+     "client": {
+      "hostname": "pihole",
+      "mac": "02:00:00:00:00:53",
+      "name": "pihole",
+      "network": "Home",
+      "type": "WIRED",
+      "uplink_device": "dev-1"
+     },
+     "evidence": [
+      "Handed out as DNS by DHCP on Home.",
+      "A UniFi client named pihole is at this address."
+     ],
+     "guest": null,
+     "integration": null,
+     "ip": "192.0.2.53",
+     "likely_pihole": true,
+     "names": [
+      "pihole"
+     ],
+     "networks": [
+      "Home"
+     ]
+    }
+   ],
+   "snapshot": {
+    "available": false,
+    "clients": [
+     {
+      "access": null,
+      "channel": null,
+      "connected_at": null,
+      "essid": null,
+      "guest": null,
+      "hostname": "pihole",
+      "ip": "192.0.2.53",
+      "is_guest": false,
+      "mac": "02:00:00:00:00:53",
+      "name": "pihole",
+      "network": "Home",
+      "oui": null,
+      "radio": null,
+      "rx_bytes": null,
+      "satisfaction": 100,
+      "signal": null,
+      "tx_bytes": null,
+      "type": "WIRED",
+      "uplink_device": "dev-1",
+      "uptime": null,
+      "wired_rate": null
+     }
+    ],
+    "devices": [
+     {
+      "cpu": 5.5,
+      "features": [
+       "switching"
+      ],
+      "firmware": null,
+      "id": "dev-1",
+      "ip": null,
+      "mac": null,
+      "memory": 30.0,
+      "model": "Example",
+      "name": "Example switch",
+      "ports": [
+       {
+        "connector": null,
+        "idx": 1,
+        "max_speed": null,
+        "poe": null,
+        "speed": 1000,
+        "state": "UP"
+       }
+      ],
+      "radios": [],
+      "rx_bps": null,
+      "state": "ONLINE",
+      "tx_bps": null,
+      "updatable": false,
+      "uplink_device": null,
+      "uptime": 100
+     }
+    ],
+    "errors": {},
+    "health": [
+     {
+      "adopted": null,
+      "disconnected": null,
+      "guests": null,
+      "rx_bps": null,
+      "status": "ok",
+      "subsystem": "lan",
+      "tx_bps": null,
+      "users": 1
+     }
+    ],
+    "lists": [
+     {
+      "items": [
+       "192.0.2.10"
+      ],
+      "name": "trusted",
+      "type": "IPV4_ADDRESSES"
+     }
+    ],
+    "neighbours": [
+     {
+      "band": "2.4",
+      "channel": 6,
+      "count": 1,
+      "strongest": 20
+     }
+    ],
+    "networks": [
+     {
+      "cidr": "192.0.2.0/24",
+      "default": false,
+      "dhcp": {
+       "dns": [
+        "192.0.2.53",
+        "192.0.2.1"
+       ],
+       "domain": null,
+       "lease_seconds": null,
+       "mode": "SERVER",
+       "start": null,
+       "stop": null
+      },
+      "enabled": true,
+      "gateway": "192.0.2.1",
+      "id": "net-a",
+      "internet": true,
+      "isolated": false,
+      "management": null,
+      "mdns": false,
+      "name": "Home",
+      "origin": null,
+      "prefix": 24,
+      "vlan": 1,
+      "zone_id": "zone-in"
+     },
+     {
+      "cidr": "198.51.100.0/24",
+      "default": false,
+      "dhcp": null,
+      "enabled": true,
+      "gateway": "198.51.100.1",
+      "id": "net-b",
+      "internet": true,
+      "isolated": false,
+      "management": null,
+      "mdns": false,
+      "name": "Lab",
+      "origin": null,
+      "prefix": 24,
+      "vlan": 20,
+      "zone_id": "zone-lab"
+     }
+    ],
+    "policies": [
+     {
+      "action": "ALLOW",
+      "destination": {
+       "zone": "zone-lab"
+      },
+      "enabled": true,
+      "id": "p1",
+      "index": 10,
+      "ip_version": null,
+      "logging": false,
+      "name": "trusted can reach lab",
+      "origin": "USER_DEFINED",
+      "protocol": null,
+      "protocol_negate": false,
+      "source": {
+       "kind": "addresses",
+       "negate": false,
+       "ports": [],
+       "raw_kind": "IP_ADDRESS",
+       "values": [
+        "list: trusted"
+       ],
+       "zone": "zone-in"
+      },
+      "states": null
+     },
+     {
+      "action": "BLOCK",
+      "destination": {
+       "zone": "zone-lab"
+      },
+      "enabled": true,
+      "id": "p2",
+      "index": 20,
+      "ip_version": null,
+      "logging": false,
+      "name": "Block lab",
+      "origin": "USER_DEFINED",
+      "protocol": null,
+      "protocol_negate": false,
+      "source": {
+       "zone": "zone-in"
+      },
+      "states": null
+     },
+     {
+      "action": "ALLOW",
+      "destination": {
+       "zone": "zone-lab"
+      },
+      "enabled": false,
+      "id": "p3",
+      "index": 5,
+      "ip_version": null,
+      "logging": false,
+      "name": "disabled",
+      "origin": null,
+      "protocol": null,
+      "protocol_negate": false,
+      "source": {
+       "zone": "zone-in"
+      },
+      "states": null
+     }
+    ],
+    "sampled_at": "2026-01-02T03:04:05+00:00",
+    "site": {
+     "id": "site-1",
+     "name": "Example"
+    },
+    "wans": [
+     {
+      "id": "wan-1",
+      "name": "Internet 1"
+     }
+    ],
+    "wifi": [
+     {
+      "bands": [
+       2.4,
+       5
+      ],
+      "devices": null,
+      "enabled": true,
+      "name": "Example Wi-Fi",
+      "network": null,
+      "security": "WPA2_PERSONAL",
+      "type": "STANDARD"
+     }
+    ],
+    "zones": [
+     {
+      "id": "zone-in",
+      "name": "Internal",
+      "network_ids": [
+       "net-a"
+      ],
+      "origin": "SYSTEM_DEFINED"
+     },
+     {
+      "id": "zone-lab",
+      "name": "Lab",
+      "network_ids": [
+       "net-b"
+      ],
+      "origin": "USER_DEFINED"
+     }
+    ]
+   }
+  }
+ ]
+}

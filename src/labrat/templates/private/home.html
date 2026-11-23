@@ -133,6 +133,8 @@
         <a class="home-link-card" data-hue="network" href="{{ url_for('private.racks') }}">{{ icon("equipment", "home-link-icon") }}<span>02 / Placement</span><strong>Equipment</strong><small>Every rack in an area, front and rear, plus its shelves, floor, walls, and ceiling.</small></a>
         <a class="home-link-card" data-hue="compute" href="{{ url_for('private.topology') }}">{{ icon("discovery", "home-link-icon") }}<span>03 / Discovery</span><strong>Discovery map</strong><small>Observed equipment and links with their confidence, laid out as a tree.</small></a>
         <a class="home-link-card" data-hue="vpn" href="{{ url_for('private.locations') }}">{{ icon("locations", "home-link-icon") }}<span>04 / Locations</span><strong>Locations</strong><small>Your buildings, the areas inside them, and each area's racks.</small></a>
+        <a class="home-link-card" data-hue="compute" href="{{ url_for('private.cluster') }}">{{ icon("server", "home-link-icon") }}<span>05 / Compute</span><strong>Cluster</strong><small>Proxmox nodes, guests, storage, and Ceph health, with what needs attention first.</small></a>
+        <a class="home-link-card" data-hue="network" href="{{ url_for('private.networks') }}">{{ icon("wifi", "home-link-icon") }}<span>06 / Networks</span><strong>Networks</strong><small>Your networks and Wi-Fi, the clients on each, and the DNS and DHCP that serve them.</small></a>
       </div>
       <p class="home-link-footnote">{{ counts.observed_links }} observed link{% if counts.observed_links != 1 %}s{% endif %} currently recorded.</p>
     </section>

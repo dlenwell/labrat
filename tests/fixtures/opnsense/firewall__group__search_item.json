@@ -1,0 +1,49 @@
+{
+ "current": 1,
+ "rowCount": 5,
+ "rows": [
+  {
+   "%members": "DHCPLAB, KEALAB",
+   "descr": "Networks with DHCP",
+   "ifname": "dhcpnets",
+   "members": "opt1,opt2",
+   "nogroup": "0",
+   "sequence": "0",
+   "uuid": "b2d27bbf-01c7-41da-94f3-319100f8724e"
+  },
+  {
+   "descr": "IPsec encapsulation",
+   "ifname": "enc0",
+   "members": "",
+   "nogroup": "",
+   "sequence": "10",
+   "uuid": "enc0"
+  },
+  {
+   "%members": "DHCPLAB, LABVLAN",
+   "descr": "Lab networks",
+   "ifname": "labnets",
+   "members": "opt1,opt3",
+   "nogroup": "0",
+   "sequence": "0",
+   "uuid": "ffa61284-b106-4fcd-9889-81b4b4c45478"
+  },
+  {
+   "descr": "OpenVPN (Group)",
+   "ifname": "openvpn",
+   "members": "",
+   "nogroup": "",
+   "sequence": "10",
+   "uuid": "openvpn"
+  },
+  {
+   "descr": "WireGuard (Group)",
+   "ifname": "wireguard",
+   "members": "",
+   "nogroup": "",
+   "sequence": "10",
+   "uuid": "wireguard"
+  }
+ ],
+ "total": 5
+}

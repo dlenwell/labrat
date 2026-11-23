@@ -138,12 +138,12 @@ class AdapterBoundaryTests(unittest.TestCase):
         listener = Mock()
         listener.recvfrom.side_effect = [TimeoutError(), (b'packet', ('192.0.2.1',5678))]
         with patch.object(mndp.socket,'socket',return_value=listener), patch.object(mndp.time,'monotonic',side_effect=[0,1,2,6]):
-            self.assertEqual(mndp._listen(5),[b'packet'])
+            self.assertEqual(mndp.listen_for_packets(5),[b'packet'])
         listener.close.assert_called_once()
         listener.send.assert_not_called()
         listener.sendto.assert_not_called()
         listener = Mock()
         listener.bind.side_effect = OSError('busy')
         with patch.object(mndp.socket,'socket',return_value=listener), self.assertRaises(OSError):
-            mndp._listen(5)
+            mndp.listen_for_packets(5)
         listener.close.assert_called_once()

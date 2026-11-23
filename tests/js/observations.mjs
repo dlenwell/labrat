@@ -42,6 +42,22 @@ evaluate(`monitor.data.nodes[0].observations[0].status='offline'; monitor.record
 assert.equal(evaluate('monitor.events.length'), 2, 'A real status transition produces one event');
 console.log('Observations state, scope, stale-data, and event checks passed.');
 
+// A client that left is ordinary churn until it is in inventory.
+evaluate(`
+    monitor.room=''; monitor.events=[]; monitor.gateways=[]; monitor.ignores=[];
+    const gone = {status:null, last_seen_at:'2000-01-01T00:00:00Z', client:{state:'not_seen'}};
+    monitor.data = {sources: [], links: [], nodes: [
+        {id:'phone', name:'Phone', category:'other_physical', client_only:true, device_id:null, placement:null, ports:[], observations:[gone]},
+        {id:'nas', name:'NAS', category:'other_physical', client_only:true, device_id:7, placement:null, ports:[], observations:[gone]},
+        {id:'switch', name:'Switch', category:'switch', placement:null, ports:[], observations:[{status:'online', last_seen_at:'2000-01-01T00:00:00Z'}]}
+    ]};
+`);
+assert.deepEqual(evaluate('JSON.stringify(monitor.warnings().map(row => [row.title, row.detail]))'),
+    JSON.stringify([['Not observed for an hour', 'NAS'], ['Not observed for an hour', 'Switch']]));
+evaluate('monitor.recordChanges(monitor.data, monitor.gateways); monitor.data.nodes[0].observations[0].last_seen_at = new Date().toISOString(); monitor.recordChanges(monitor.data, monitor.gateways);');
+assert.equal(evaluate('monitor.events.some(event => event.message.startsWith("Phone"))'), false, 'A passing client adds no events');
+console.log('Passing-client checks passed.');
+
 // A rule identifies one remote port, not its regenerated database row ID.
 evaluate(`
     monitor.data = {sources: [], nodes: [{id:'switch', name:'Switch', category:'switch', placement:null,
@@ -60,3 +76,34 @@ assert.equal(evaluate('monitor.warnings().length'), 1, 'A new database ID does n
 evaluate('monitor.ignores=[];');
 assert.equal(evaluate('monitor.warnings().length'), 2, 'Restore reveals the exact condition again');
 console.log('Exact-port ignore and restore checks passed.');
+
+// Router watchlist conditions: one row per item, ignored by its exact item
+// (and, for CARP, the state it changed to).
+evaluate(`
+    const now = new Date().toISOString();
+    monitor.gateways = []; monitor.ignores = [];
+    monitor.data = {sources: [], links: [], nodes: [{id:'fw', name:'Edge', category:'firewall', placement:null, ports:[],
+        observations:[{id:9, source_id:3, remote_id:'firewall', source:'opnsense:Edge', status:null, last_seen_at:now,
+            watch_conditions:[
+                {condition:'router-gateway-down', item:'gateway:PEER_GW', kind:'gateway', label:'PEER_GW', entered_at:now, sampled_at:now, watch_sampled_at:now},
+                {condition:'router-peer-stale', item:'wireguard:wg0:abc', kind:'wireguard', label:'peer-firewall', entered_at:now, sampled_at:'t0', watch_sampled_at:now},
+                {condition:'router-carp-changed', item:'carp:opt4:1', kind:'carp', label:'203.0.113.198', entered_at:now, from:'master', to:'backup', sampled_at:now, watch_sampled_at:now}]}]}]};
+`);
+assert.equal(evaluate('JSON.stringify(monitor.warnings().map(row => [row.severity, row.title]))'),
+    JSON.stringify([['alarm', 'Gateway down'], ['warning', 'VPN peer stale'], ['warning', 'CARP state changed']]));
+assert.equal(evaluate('monitor.warnings().find(row => row.title === "VPN peer stale").facts.some(([key]) => key === "No data since")'), true);
+assert.equal(evaluate('monitor.warnings().find(row => row.title === "CARP state changed").target.state'), 'backup');
+evaluate(`monitor.ignores = [{id:2, target:{condition:'router-carp-changed', source_id:3, device_remote_id:'firewall', item:'carp:opt4:1', state:'backup', since:now}}];`);
+assert.equal(evaluate('monitor.warnings().length'), 2, 'Acknowledging a CARP change hides only that change');
+evaluate(`monitor.data.nodes[0].observations[0].watch_conditions[2].to = 'init';`);
+assert.equal(evaluate('monitor.warnings().length'), 3, 'A change to another state shows again');
+evaluate(`monitor.data.nodes[0].observations[0].watch_conditions[2].to = 'backup'; monitor.data.nodes[0].observations[0].watch_conditions[2].entered_at = 'later';`);
+assert.equal(evaluate('monitor.warnings().length'), 3, 'A later change to the same state shows again');
+// A failing or overdue source: the condition stays, as last known.
+evaluate(`monitor.data.sources = [{id:3, name:'opnsense:Edge', last_error:'Collection failed: Timeout', last_success_at:now, last_attempt_at:now, poll_interval_seconds:300}]; monitor.ignores = [];`);
+assert.equal(evaluate('monitor.warnings().filter(row => row.title === "Gateway down").length'), 1);
+assert.equal(evaluate('monitor.warnings().find(row => row.title === "Gateway down").facts.some(([key]) => key === "No data since")'), true);
+assert.equal(evaluate('monitor.warnings().find(row => row.title === "Gateway down").detail.endsWith("last known")'), true);
+evaluate(`monitor.data.sources[0].last_error = null; monitor.data.sources[0].last_success_at = monitor.data.sources[0].last_attempt_at = '2000-01-01T00:00:00Z';`);
+assert.equal(evaluate('monitor.warnings().find(row => row.title === "Gateway down").facts.some(([key]) => key === "No data since")'), true, 'overdue');
+console.log('Router watchlist checks passed.');

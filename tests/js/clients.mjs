@@ -74,6 +74,48 @@ assert.equal(filterClients([{...node,observations:[{id:1,client:{...current,stat
 assert.equal(filterClients([node],{query:'missing'}).length,0);
 assert.equal(filterClients([{...node,placement:{room_id:1}}],{unplaced:true}).length,0);
 assert.equal(clientObservation({observations:[]}),undefined);
+// Router sightings: evidence of an address in use, never "connected".
+const seenAt=new Date().toISOString();
+const sighting=(id,scope,extra={})=>({id:'observed:'+id,name:'workstation',placement:null,observations:[{id,source_id:20,client:{
+  evidence:'router-sighting',state:'seen',seen_at:seenAt,sampled_at:seenAt,source_enabled:true,collection_error:false,
+  mac_address:'02:00:00:00:10:01',ip_address:'203.0.113.12',ipv6:['2001:db8:1::a'],scope,network_name:scope.toUpperCase(),
+  connection:'unknown',...extra}}]});
+assert.equal(clientCondition(sighting(30,'opt1').observations[0].client).label,'Seen by router');
+assert.equal(clientCondition(sighting(30,'opt1',{state:'lease'}).observations[0].client).label,'Lease only');
+assert.equal(clientCondition(sighting(30,'opt1',{seen_at:'2000-01-01T00:00:00Z'}).observations[0].client).label,'Stale');
+assert.equal(clientCondition(sighting(30,'opt1',{state:'not_seen'}).observations[0].client).label,'Not seen');
+assert.equal(clientKind(sighting(30,'opt1').observations[0].client),'sighted');
+assert.equal(filterClients([sighting(30,'opt1')],{kinds:['wired','wireless','vm']}).length,0);
+assert.equal(filterClients([sighting(30,'opt1')],{query:'2001:db8:1::a'}).length,1);
+// One MAC on two networks folds into one row naming both.
+const twice=mergeClientNodes([sighting(31,'opt1'),sighting(32,'opt3')]);
+assert.equal(twice.length,1);
+assert.equal(clientAttachment(twice[0]).detail,'OPT1, OPT3');
+assert.equal(clientColumns(twice[0]).connection,'Seen by router · OPT1, OPT3');
+// A switch's attachment of the same MAC wins the row; the sighting joins it.
+const wired={id:'observed:40',name:'Desk PC',placement:null,observations:[{id:40,client:{...current,connection:'wired',
+  mac_address:'02:00:00:00:10:01',ip_address:'203.0.113.12',switch_port:7}}]};
+const joined=mergeClientNodes([sighting(33,'opt1',{seen_at:'2000-01-01T00:00:00Z'}),wired]);
+assert.equal(joined.length,1);
+assert.equal(clientObservation(joined[0]).id,40);
+assert.equal(clientColumns(joined[0]).status,'Connected');
+assert.equal(clientAttachment(joined[0]).detail,'Port 7');
+// A fresh sighting outranks a stale or disabled attachment, which stays as history.
+const oldPort={...wired,observations:[{id:42,client:{...wired.observations[0].client,sampled_at:'2000-01-01T00:00:00Z'}}]};
+const offPort={...wired,observations:[{id:43,client:{...wired.observations[0].client,source_enabled:false}}]};
+for (const attachment of [oldPort,offPort]) {
+  const row=mergeClientNodes([attachment,sighting(35,'opt1')])[0];
+  assert.equal(clientObservation(row).id,35);
+  assert.equal(clientColumns(row).status,'Seen by router');
+  assert.equal(filterClients([row],{kinds:['sighted']}).length,1);
+  assert.equal(clientObservations(row).length,2);
+}
+// Addresses: seen IPv6 when there is no IPv4, else a lease's.
+assert.deepEqual(clientAddresses(sighting(36,'opt1',{ip_address:null})),['2001:db8:1::a']);
+assert.deepEqual(clientAddresses(sighting(37,'opt1',{ip_address:null,ipv6:[],state:'lease',lease:{ip:'203.0.113.13'}})),['203.0.113.13']);
+// A stale attachment that is no longer reported yields to a current sighting.
+const gone={...wired,observations:[{id:41,client:{...wired.observations[0].client,state:'not_seen'}}]};
+assert.equal(clientObservation(mergeClientNodes([gone,sighting(34,'opt1')])[0]).id,34);
 `;
 vm.runInContext(checks,context);
 console.log('clients checks passed');

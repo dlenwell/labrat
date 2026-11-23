@@ -18,7 +18,8 @@ from labrat.audit import record_audit_event
 from labrat.auth.session import api_login_required, current_user, session_factory
 from labrat.coerce import json_object, mac_address
 from labrat.collector.scan import allowed_hosts, port_open
-from labrat.collector.sources import configured_sources
+from labrat.collector.sightings import EVIDENCE as SIGHTING
+from labrat.collector.sources import DERIVED_SOURCE_PARENTS, configured_sources
 from labrat.discovery.mac_ownership import EXACT, interface_owners
 from labrat.discovery.models import DiscoveredDevice, DiscoveredPort, DiscoverySource
 from labrat.discovery_settings import network_rows
@@ -51,6 +52,25 @@ def _config():
     return read_settings(current_app.extensions['labrat_config_path'])[1]
 
 
+def reporting_enabled(source, parent, config):
+    """Whether a client's source and the integration it derives from are both live.
+
+    Args:
+        source: The client observation's (derived) source.
+        parent: The integration source that reported it.
+        config: Current private configuration.
+
+    Returns:
+        bool: True when both are enabled and the parent is still configured
+            as the kind its derived source belongs to (UniFi for UniFi
+            clients, OPNsense for router sightings).
+    """
+    kind = DERIVED_SOURCE_PARENTS.get(source.kind) if source is not None else None
+    return bool(source is not None and source.enabled and parent is not None and parent.enabled
+                and kind is not None and parent.kind == kind
+                and parent.config_name in configured_sources(config).get(kind, {}))
+
+
 def scan_permission(client, source, db, config):
     """Return explicit address permission independently of cached firewall opinions.
 
@@ -64,18 +84,24 @@ def scan_permission(client, source, db, config):
         tuple[str | None, str]: Numeric permitted address and explanation.
     """
     parent = db.get(DiscoverySource, client.get('parent_source_id'))
-    if (source is None or not source.enabled or parent is None or not parent.enabled
-            or parent.config_name not in configured_sources(config)['unifi']):
+    if not reporting_enabled(source, parent, config):
         return None, 'The reporting connection is disabled or unavailable.'
     if source.last_error or parent.last_error:
         return None, 'The latest collection is unavailable. Refresh before scanning.'
+    # A router sighting is current while the router still sees the address
+    # in ARP; a lease alone, or a sighting by IPv6 only, is not.
+    sighting = client.get('evidence') == SIGHTING
+    if client.get('state') != ('seen' if sighting else 'connected'):
+        return None, 'The client observation is no longer current.'
+    if sighting and client.get('ip_address') not in (client.get('ipv4') or []):
+        return None, 'The client observation is no longer current.'
     try:
-        sample = datetime.fromisoformat(client['sampled_at'])
+        sample = datetime.fromisoformat(client['seen_at'] if sighting else client['sampled_at'])
         age = (datetime.now(timezone.utc) - sample).total_seconds()
         address = ipaddress.ip_address(client['ip_address'])
     except (ValueError, TypeError, KeyError):
         return None, 'A fresh numeric address is required.'
-    if client.get('state') != 'connected' or not 0 <= age <= 600:
+    if not 0 <= age <= 600:
         return None, 'The client observation is no longer current.'
     if address.is_multicast or address.is_unspecified or address.is_loopback or address.is_link_local:
         return None, 'This address is not eligible for a client port check.'
@@ -183,10 +209,8 @@ def clients():
                 client['scan_allowed'] = bool(address and current_user().is_admin)
                 client['scan_reason'] = reason if current_user().is_admin else 'Administrator permission required.'
                 client['collection_error'] = bool(source.last_error) if source else True
-                client['source_enabled'] = bool(source and source.enabled)
                 parent = db.get(DiscoverySource, client.get('parent_source_id'))
-                client['source_enabled'] = bool(client['source_enabled'] and parent and parent.enabled
-                    and parent.config_name in configured_sources(config)['unifi'])
+                client['source_enabled'] = reporting_enabled(source, parent, config)
                 client['collection_error'] = bool(client['collection_error'] or parent and parent.last_error)
                 client['networks'] = []
                 for row in networks:

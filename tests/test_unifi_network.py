@@ -9,7 +9,7 @@ import requests
 from sqlalchemy import select
 
 import test_step4c as fixture
-from labrat.api.network import dns_sinkholes, zone_paths
+from labrat.api.network import dns_sinkholes, with_integrations, zone_paths
 from labrat.collector import unifi_network as un
 from labrat.discovery.models import DiscoveredDevice, DiscoverySource
 
@@ -171,6 +171,23 @@ class CurationEdgeTests(unittest.TestCase):
         self.assertEqual((rows[0]["verdict"], len(rows[0]["exceptions"])), ("unknown", 1))
         named = dns_sinkholes({"networks": [], "clients": []}, [{"name": "pi-hole", "addresses": ["192.0.2.9"], "macs": []}])
         self.assertEqual((named[0]["ip"], named[0]["names"]), ("192.0.2.9", ["pi-hole"]))
+
+    def test_configured_piholes_always_appear(self):
+        """A Pi-hole set up in Settings is listed even when UniFi names no such server."""
+        found = dns_sinkholes({"networks": [], "clients": []}, [{"name": "pi-hole", "addresses": ["192.0.2.9"], "macs": []}])
+        integrations = {
+            "192.0.2.9": {"name": "pihole:vm", "source_id": 1, "error": None, "stats": {"queries": {}}},
+            "192.0.2.53": {"name": "pihole:other", "source_id": 2, "error": None, "stats": None},
+            "source:3": {"name": "pihole:new", "source_id": 3, "error": "Collection failed: SSLError", "stats": None},
+        }
+        listed = with_integrations(found, integrations)
+        self.assertEqual([item["ip"] for item in listed], ["192.0.2.9", "192.0.2.53", ""])
+        self.assertEqual(listed[0]["integration"]["source_id"], 1)
+        self.assertEqual(listed[1]["names"], ["other"])
+        self.assertIn("Settings", listed[1]["evidence"][0])
+        self.assertTrue(all(item["likely_pihole"] for item in listed))
+        self.assertEqual(listed[2]["integration"]["error"], "Collection failed: SSLError")
+        self.assertEqual(with_integrations(found, {})[0]["integration"], None)
 
 
 class StoredSnapshotTests(unittest.TestCase):

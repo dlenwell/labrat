@@ -172,6 +172,27 @@ def _remove(db: Session, port: DiscoveredPort | None, link: DiscoveredLink | Non
     db.flush()
 
 
+def _same_nic_as_client(db: Session, link: DiscoveredLink, switch_port: DiscoveredPort, mac: str) -> bool:
+    """Tell whether a switch port's link is the clients feed's view of this NIC.
+
+    Args:
+        db: The open session.
+        link: Another link on the switch port.
+        switch_port: The switch port the NUT server is plugged into.
+        mac: The NUT server NIC's MAC address.
+
+    Returns:
+        bool: True when the link's far end is a UniFi client's port with
+            the same MAC.
+    """
+    far = db.get(DiscoveredPort, link.b_port_id if link.a_port_id == switch_port.id else link.a_port_id)
+    if far is None or mac_address(far.mac) != mac_address(mac):
+        return False
+    device = db.get(DiscoveredDevice, far.discovered_device_id)
+    source = db.get(DiscoverySource, device.source_id) if device is not None else None
+    return source is not None and source.kind == "unifi_clients"
+
+
 def reconcile_nut_wired(
     db: Session, candidates: Mapping[int, list[dict[str, Any]]],
     *, seen_at: datetime | None = None,
@@ -210,14 +231,23 @@ def reconcile_nut_wired(
         if switch_port is None or source is None:
             _remove(db, port, link, owner)
             continue
-        # Stronger evidence (or another inference) on the switch port wins.
-        other = db.scalar(select(DiscoveredLink.id).where(
+        # Stronger evidence (or another inference) on the switch port wins,
+        # except the clients feed's own link to this same NIC: that is one
+        # cable seen twice, and the client defers to the server once the
+        # server's port carries the MAC.
+        others = list(db.scalars(select(DiscoveredLink).where(
             or_(DiscoveredLink.a_port_id == switch_port.id, DiscoveredLink.b_port_id == switch_port.id),
             DiscoveredLink.id != (link.id if link is not None else -1),
-        ).limit(1))
-        if other is not None:
+        )))
+        duplicates = [item for item in others if _same_nic_as_client(db, item, switch_port, records[0]["mac"])]
+        if len(duplicates) != len(others):
             _remove(db, port, link, owner)
             continue
+        for duplicate in duplicates:
+            _audit(db, db.get(DiscoverySource, duplicate.source_id) or source, "discovery.link.removed",
+                   "discovered_link", duplicate.id, {"evidence": duplicate.evidence, "replaced_by": EVIDENCE})
+            db.delete(duplicate)
+        db.flush()
         fields = {
             "name": PORT_NAME, "mac": records[0]["mac"], "link_up": True,
             "speed_mbps": switch_port.speed_mbps, "max_speed_mbps": None,

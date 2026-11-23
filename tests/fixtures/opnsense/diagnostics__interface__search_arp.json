@@ -1,0 +1,163 @@
+{
+ "current": 1,
+ "rowCount": 13,
+ "rows": [
+  {
+   "expired": false,
+   "expires": -1,
+   "hostname": "",
+   "intf": "em0",
+   "intf_description": "LAN",
+   "ip": "192.0.2.1",
+   "mac": "02:00:00:00:00:01",
+   "manufacturer": "",
+   "permanent": true,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": 1144,
+   "hostname": "",
+   "intf": "em0",
+   "intf_description": "LAN",
+   "ip": "192.0.2.2",
+   "mac": "02:00:00:00:00:06",
+   "manufacturer": "",
+   "permanent": false,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": -1,
+   "hostname": "",
+   "intf": "em1",
+   "intf_description": "WAN",
+   "ip": "198.51.100.15",
+   "mac": "02:00:00:00:00:02",
+   "manufacturer": "",
+   "permanent": true,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": 1140,
+   "hostname": "",
+   "intf": "em1",
+   "intf_description": "WAN",
+   "ip": "198.51.100.2",
+   "mac": "02:00:00:00:00:07",
+   "manufacturer": "",
+   "permanent": false,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": 1159,
+   "hostname": "",
+   "intf": "em2",
+   "intf_description": "DHCPLAB",
+   "ip": "203.0.113.30",
+   "mac": "02:00:00:00:10:03",
+   "manufacturer": "",
+   "permanent": false,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": 1159,
+   "hostname": "",
+   "intf": "em2",
+   "intf_description": "DHCPLAB",
+   "ip": "203.0.113.12",
+   "mac": "02:00:00:00:10:01",
+   "manufacturer": "",
+   "permanent": false,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": -1,
+   "hostname": "",
+   "intf": "em2",
+   "intf_description": "DHCPLAB",
+   "ip": "203.0.113.1",
+   "mac": "02:00:00:00:00:03",
+   "manufacturer": "",
+   "permanent": true,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": -1,
+   "hostname": "",
+   "intf": "em3",
+   "intf_description": "KEALAB",
+   "ip": "203.0.113.65",
+   "mac": "02:00:00:00:00:04",
+   "manufacturer": "",
+   "permanent": true,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": 1150,
+   "hostname": "",
+   "intf": "em4",
+   "intf_description": "PEERLINK",
+   "ip": "203.0.113.194",
+   "mac": "02:00:00:00:00:08",
+   "manufacturer": "",
+   "permanent": false,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": -1,
+   "hostname": "",
+   "intf": "em4",
+   "intf_description": "PEERLINK",
+   "ip": "203.0.113.193",
+   "mac": "02:00:00:00:00:05",
+   "manufacturer": "",
+   "permanent": true,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": 1154,
+   "hostname": "",
+   "intf": "em4",
+   "intf_description": "PEERLINK",
+   "ip": "203.0.113.198",
+   "mac": "02:00:00:00:00:08",
+   "manufacturer": "",
+   "permanent": false,
+   "type": "ethernet"
+  },
+  {
+   "expired": false,
+   "expires": 1159,
+   "hostname": "",
+   "intf": "vlan01",
+   "intf_description": "LABVLAN",
+   "ip": "203.0.113.140",
+   "mac": "02:00:00:00:10:01",
+   "manufacturer": "",
+   "permanent": false,
+   "type": "vlan"
+  },
+  {
+   "expired": false,
+   "expires": -1,
+   "hostname": "",
+   "intf": "vlan01",
+   "intf_description": "LABVLAN",
+   "ip": "203.0.113.129",
+   "mac": "02:00:00:00:00:03",
+   "manufacturer": "",
+   "permanent": true,
+   "type": "vlan"
+  }
+ ],
+ "total": 13
+}

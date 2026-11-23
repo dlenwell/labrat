@@ -32,7 +32,7 @@ LABRAT_ALLOWED_HOSTS=labrat.example.lan \
   <h2 id="setup-start-title">3. Create the database and start</h2>
   <pre><code>alembic -c alembic.ini upgrade head
 gunicorn -c gunicorn.conf.py labrat.app:app</code></pre>
-  <p>Run the migration again after each upgrade; Flask never creates tables on its own. The checked-in Gunicorn config listens on <code>127.0.0.1:8000</code>. For a VM, container, or reverse proxy, choose a bind address in your deployment and add its hostname to <code>allowed_hosts</code>.</p>
+  <p>Run the migration again after each upgrade; Flask never creates tables on its own. Until you do, every page shows a holding page with the command to run, and LabRat opens by itself a few seconds after the migration finishes. With <code>LABRAT_MIGRATE_ON_START=1</code> the web server migrates the database itself behind that page, as the container image does. The checked-in Gunicorn config listens on <code>127.0.0.1:8000</code>. For a VM, container, or reverse proxy, choose a bind address in your deployment and add its hostname to <code>allowed_hosts</code>.</p>
 
   <h2 id="setup-admin-title">4. Create the administrator</h2>
   <p>Open LabRat and select <strong>First-time setup</strong> to create the first account, which is the administrator. The form asks for a one-time setup code, which keeps anyone else who reaches the page first from claiming it: LabRat prints <code>LabRat first-time setup code: …</code> to its log when it starts (for the containers, <code>docker compose logs web</code>), and keeps it in the <code>.setup-code</code> file beside the database. Setup closes as soon as that account exists. That account manages integrations, discovery, placement, and exports.</p>
@@ -44,7 +44,7 @@ gunicorn -c gunicorn.conf.py labrat.app:app</code></pre>
 {{ shot('settings-integrations', 'Settings, Integrations panel listing two connections, Office gateway and Lab cluster, each with a status lamp, address, edit, and delete buttons.', height=600) }}
 
 <section class="docs-prose" aria-labelledby="setup-add-title">
-  <p id="setup-add-title">Select <strong>+</strong> to open the catalog, choose a category, then the product. The first integrations are UniFi Network (an API key), Proxmox VE (an API token ID and secret), and Pi-hole (an application password); new ones join the same catalog as adapters are added. Use credentials with read-only access: the collector only reads. For Proxmox, granting the token <code>VM.Audit</code> on <code>/vms</code> also lets Discovery recognize your VMs and containers among network clients.</p>
+  <p id="setup-add-title">Select <strong>+</strong> to open the catalog, choose a category, then the product. The first integrations are UniFi Network (an API key), Proxmox VE (an API token ID and secret), Pi-hole (an application password), and OPNsense (an API key and secret for a user with only the privileges in <a href="{{ url_for('docs.discovery') }}#discovery-opnsense-title">OPNsense permissions</a>); new ones join the same catalog as adapters are added. Use credentials with read-only access: the collector only reads. For Proxmox, granting the token <code>VM.Audit</code> on <code>/vms</code> also lets Discovery recognize your VMs and containers among network clients.</p>
 </section>
 
 <div class="docs-shot-pair">
@@ -66,7 +66,7 @@ gunicorn -c gunicorn.conf.py labrat.app:app</code></pre>
     <li><strong>Network scanning</strong> is the permission list. LabRat only contacts addresses inside the subnets you allow here. UniFi suggests the networks it knows, but every suggestion starts off; you switch on the ones LabRat may scan, and can add other networks or single addresses, one per line. All selections share a 4096-address limit.</li>
     <li><strong>NUT discovery</strong> finds Network UPS Tools servers inside the allowed subnets and reads them with list commands only. It never logs in to a UPS or sends it commands. Set how often UPS readings refresh between full scans.</li>
     <li><strong>SNMP interface lookups</strong> fill in physical NIC addresses and link state for the Proxmox nodes you name, over SNMPv3, when the Proxmox API leaves them out.</li>
-    <li><strong>MikroTik discovery</strong> listens for MNDP announcements without sending anything. Announcements do not cross routers, so the collector must share a network segment with your MikroTik devices.</li>
+    <li><strong>MikroTik discovery</strong> listens for MNDP announcements without sending anything. Announcements do not cross routers, so this built-in listener hears only MikroTik devices on the collector's own network segment. For others, run the <a href="{{ url_for('docs.discovery') }}#discovery-mndp-listener-title">standalone listener</a> on their segment with an API token.</li>
   </ul>
 </section>
 

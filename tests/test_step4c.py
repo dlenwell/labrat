@@ -421,6 +421,12 @@ class Step4CTests(unittest.TestCase):
         states = {node["name"]: node["observations"][0]["status"] for node in nodes}
         self.assertEqual(states, {"Lab Switch": "offline", "Other Switch": None})
         self.assertNotIn("secret", json.dumps(nodes))
+        # A controller's own device state (UniFi's ONLINE/OFFLINE) is separate.
+        with self.factory.begin() as db:
+            db.get(DiscoveredDevice, first).details_json = json.dumps({"state": "OFFLINE"})
+        nodes = self.client.get("/api/v1/topology").json["nodes"]
+        states = {node["name"]: node["observations"][0]["controller_state"] for node in nodes}
+        self.assertEqual(states, {"Lab Switch": "offline", "Other Switch": None})
 
     def test_timestamps_carry_a_utc_offset(self) -> None:
         """Browsers must not read stored UTC times as local time."""

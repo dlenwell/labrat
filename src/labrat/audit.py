@@ -12,11 +12,11 @@ rather than cascading foreign keys so history survives object deletion.
 Never pass raw credentials, full integration responses, or arbitrary request
 bodies into an audit event. Use deliberately selected, non-secret details.
 
-Used by: api.clients, api.locations, api.observation_actions,
-api.rack_devices, collector.client_links, collector.links,
+Used by: api.clients, api.locations, api.machine, api.observation_actions,
+api.rack_devices, api_tokens, collector.client_links, collector.links,
 collector.nut_wired, collector.runner, collector.sources, collector.store,
-discovery_settings, integrations, pages.activity, pages.public,
-pages.settings_backup.
+discovery_settings, integrations, pages.activity, pages.private,
+pages.public, pages.settings_backup, startup.
 """
 
 import json

@@ -3,6 +3,48 @@
 What each release adds, newest first. Entries start as a draft from
 `scripts/changelog.py` and are kept short.
 
+## 0.5.4 (2026-11-23)
+
+### Added
+
+- **OPNsense integration** (read-only): the firewall with its NICs and
+  health; its networks and VLANs with DHCP (dnsmasq or Kea), WAN gateways,
+  firewall rules and zones, WireGuard peers, services, CARP, and DNS
+  blocklist on Networks; the clients it has seen in Discovery (Seen by
+  router, or Lease only); and Observations watchlist alarms for a gateway
+  down, a stale VPN peer, or a CARP state change. Its API user needs only
+  the privileges the Discovery guide lists.
+- Networks shows one router at a time, with a picker when several report a
+  network, and Pi-holes appear there before any UniFi snapshot.
+- **Settings → API tokens**: scoped tokens for programs, and a standalone
+  MikroTik (MNDP) listener that reports from another network segment with
+  one.
+- Users can change their password from Profile.
+- Home's link cards include Cluster and Networks.
+- Each release publishes a multi-architecture container image to ghcr.io.
+
+### Changed
+
+- One web server and one collector per database: a second server shows a
+  holding page that can take over, step aside, or fork the database, and a
+  one-off `collector --once` can run beside the running collector.
+- Discovery's map leaves out unplugged, unlinked devices and draws Wi-Fi
+  links as visible dashes.
+- A wired NUT server's cable replaces the client feed's copy of it.
+- The guides and website cover OPNsense (with the privileges it needs),
+  API tokens, and the standalone MNDP listener.
+
+### Fixed
+
+- Password-protected Pi-hole v6 is read correctly, and a Pi-hole credential
+  is only ever sent to a confirmed Pi-hole.
+- Observations no longer warns about network clients that come and go;
+  one you added to inventory still warns when it goes quiet.
+- A server NIC the UniFi controller files behind the server's own LLDP
+  chassis keeps its cable to the switch port that hears it.
+- The API reference shows token-only routes as needing an API token, not
+  an administrator session.
+
 ## 0.5.3 (2026-11-17)
 
 ### Added

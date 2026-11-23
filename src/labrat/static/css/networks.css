@@ -380,3 +380,24 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* The router picker beside the tools, when several routers have networks. */
+.networks-source select {
+    width: auto;
+    max-width: 16rem;
+    min-height: 2rem;
+    margin: 0;
+    padding-block: 0.2rem;
+    font-size: var(--text-sm);
+}
+
+/* A verdict-less router's rules: one heading row per evaluation stage. */
+.net-rules-stage th {
+    padding-top: 0.75rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-align: left;
+    text-transform: uppercase;
+}

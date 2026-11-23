@@ -25,13 +25,57 @@ from labrat.collector.adapters.proxmox import ProxmoxAdapter
 from labrat.collector.client_links import collect_client_links, reconcile_client_links
 from labrat.collector.links import reconcile_proxmox_lldp_links
 from labrat.collector.nut_wired import collect_nut_wired, reconcile_nut_wired
+from labrat.collector import identity
 from labrat.collector.store import apply_batch, record_telemetry, record_wan
-from labrat.collector.sources import effective_sources
+from labrat.collector.sightings import reconcile_sightings
+from labrat.collector.sources import DERIVED_SOURCE_PARENTS, effective_sources
 from labrat.collector.wireless_clients import collect_nut_wireless, reconcile_nut_wireless
-from labrat.discovery.models import DiscoverySource
+from labrat.coerce import json_object
+from labrat.discovery.models import DiscoveredDevice, DiscoverySource
+from labrat.instance import LeaseLost
 
 
 _LOGGER = logging.getLogger(__name__)
+
+
+
+def _stored_details(db: Any, source: DiscoverySource, remote_id: str) -> dict:
+    """An observation's stored details, for adapters that merge telemetry.
+
+    Args:
+        db: Open session.
+        source: The observation's source.
+        remote_id: Its remote ID.
+
+    Returns:
+        dict: Its details, or empty when it is not stored yet.
+    """
+    device = db.scalar(select(DiscoveredDevice).where(
+        DiscoveredDevice.source_id == source.id, DiscoveredDevice.remote_id == remote_id))
+    return json_object(device.details_json) if device is not None else {}
+
+
+def _interrupt(db: Any, source: DiscoverySource, adapter: Any) -> None:
+    """Tell an adapter's stored history that a poll failed or was held.
+
+    An adapter with ``interrupt_telemetry(key, stored)`` and
+    ``INTERRUPTED`` (telemetry keys by remote ID) keeps history across
+    polls (OPNsense's watchlist); it marks that history interrupted, so
+    the next poll does not follow on from the last good one.
+
+    Args:
+        db: Open session.
+        source: The source whose poll failed or was held.
+        adapter: Its adapter.
+    """
+    hook, keys_by_remote = getattr(adapter, "interrupt_telemetry", None), getattr(adapter, "INTERRUPTED", None)
+    if not callable(hook) or not isinstance(keys_by_remote, dict):
+        return
+    for remote_id, keys in keys_by_remote.items():
+        stored = _stored_details(db, source, remote_id)
+        for key in keys:
+            if key in stored:
+                record_telemetry(db, source, remote_id, key, hook(key, stored[key]))
 
 
 def poll_once(
@@ -60,10 +104,15 @@ def poll_once(
     completed = 0
     successful_sources: list[DiscoverySource] = []
     with sessions.begin() as db:
-        for derived in db.scalars(select(DiscoverySource).where(DiscoverySource.kind == "unifi_clients")):
-            parent = db.scalar(select(DiscoverySource).where(DiscoverySource.kind == "unifi", DiscoverySource.config_name == derived.config_name))
-            derived.enabled = bool(parent and parent.enabled and parent.config_name in sources_config["unifi"])
-        sources = list(db.scalars(select(DiscoverySource).where(DiscoverySource.enabled.is_(True), DiscoverySource.kind != "unifi_clients")))
+        for derived in db.scalars(select(DiscoverySource).where(DiscoverySource.kind.in_(DERIVED_SOURCE_PARENTS))):
+            kind = DERIVED_SOURCE_PARENTS[derived.kind]
+            parent = db.scalar(select(DiscoverySource).where(DiscoverySource.kind == kind, DiscoverySource.config_name == derived.config_name))
+            derived.enabled = bool(parent and parent.enabled and parent.config_name in sources_config.get(kind, {}))
+        # Derived client sources are filled by their parent's poll, and
+        # pushed sources by machines over the API (api/machine.py).
+        sources = list(db.scalars(select(DiscoverySource).where(
+            DiscoverySource.enabled.is_(True), DiscoverySource.kind.not_in((*DERIVED_SOURCE_PARENTS, "mndp_push")),
+        )))
     for source_record in sources:
         adapter = adapters.get(source_record.kind)
         if adapter is None:
@@ -78,18 +127,44 @@ def poll_once(
             now = datetime.now(timezone.utc)
             with sessions.begin() as db:
                 source = db.get(DiscoverySource, source_record.id)
+                if source is None or not source.enabled:
+                    # Disabled, retired, or deleted while the adapter read it
+                    # (such as a replacement answered in Settings): the
+                    # in-flight result belongs to no active source.
+                    _LOGGER.info("Source %s changed during its poll; result discarded", source_record.name)
+                    continue
                 source.last_attempt_at = now
                 if interval_seconds is not None:
                     source.poll_interval_seconds = interval_seconds
+                telemetry = getattr(adapter, "last_telemetry", None)
+                if identity.hold(db, source, telemetry):
+                    # A different machine answers: apply nothing until the
+                    # owner says which it is (collector/identity.py).
+                    source.last_error = identity.HELD_MESSAGE
+                    _interrupt(db, source, adapter)
+                    _LOGGER.warning("Source %s held: its device looks different", source_record.name)
+                    continue
                 apply_batch(db, source, batch, seen_at=now)
                 # Readings an adapter took during this poll (such as Pi-hole
                 # statistics) are telemetry: kept by scans, never audited.
-                telemetry = getattr(adapter, "last_telemetry", None)
+                # An adapter may merge a reading with the stored one (to keep
+                # the last good value of a part it could not read).
+                merge = getattr(adapter, "merge_telemetry", None)
                 for remote_id, readings in (telemetry.items() if isinstance(telemetry, dict) else ()):
+                    stored = _stored_details(db, source, remote_id) if merge else {}
                     for key, value in readings.items():
-                        record_telemetry(db, source, remote_id, key, value)
+                        record_telemetry(db, source, remote_id, key, merge(key, stored.get(key), value) if merge else value)
+                    if "identity_evidence" in readings:
+                        identity.settle(db, source, remote_id)
+                # A router's client sightings go to its derived clients
+                # source in the same transaction (collector/sightings.py).
+                report = getattr(adapter, "last_sightings", None)
+                if isinstance(report, dict):
+                    reconcile_sightings(db, source, report, now)
             completed += 1
             successful_sources.append(source_record)
+        except LeaseLost:
+            raise  # Another collector took over: stop, record nothing.
         except Exception as exc:
             # Never store or log raw exception text: HTTP clients may embed API
             # tokens, URLs, or sensitive device details in their exceptions.
@@ -97,10 +172,13 @@ def poll_once(
             _LOGGER.warning("Source %s failed (%s)", source_record.name, error_name)
             with sessions.begin() as db:
                 source = db.get(DiscoverySource, source_record.id)
+                if source is None or not source.enabled:
+                    continue  # Disabled or deleted during the poll: record nothing.
                 source.last_attempt_at = datetime.now(timezone.utc)
                 if interval_seconds is not None:
                     source.poll_interval_seconds = interval_seconds
                 source.last_error = f"Collection failed: {error_name}"
+                _interrupt(db, source, adapter)
                 record_audit_event(
                     db, actor_kind="collector", actor_id=source.id,
                     actor_name=source.name, action="discovery.collection.failed",

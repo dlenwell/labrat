@@ -1,0 +1,24 @@
+{
+ "carp": {
+  "allow": "1",
+  "demotion": "240",
+  "maintenancemode": true,
+  "status_msg": ""
+ },
+ "current": 1,
+ "rowCount": 1,
+ "rows": [
+  {
+   "advbase": "1",
+   "advskew": "0",
+   "interface": "PEERLINK",
+   "mode": "carp",
+   "status": "BACKUP",
+   "status_txt": "BACKUP",
+   "subnet": "203.0.113.198",
+   "vhid": "1",
+   "vhid_txt": "1 (freq. 1/0)"
+  }
+ ],
+ "total": 1
+}

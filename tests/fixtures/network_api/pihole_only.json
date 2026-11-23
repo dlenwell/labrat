@@ -1,0 +1,29 @@
+{
+ "piholes": [
+  {
+   "client": null,
+   "evidence": [
+    "Set up as a Pi-hole integration in Settings."
+   ],
+   "guest": null,
+   "integration": {
+    "error": null,
+    "name": "pihole:home",
+    "source_id": 1,
+    "stats": {
+     "queries": {
+      "blocked": 25.0,
+      "total": 100.0
+     }
+    }
+   },
+   "ip": "192.0.2.53",
+   "likely_pihole": true,
+   "names": [
+    "home"
+   ],
+   "networks": []
+  }
+ ],
+ "sources": []
+}

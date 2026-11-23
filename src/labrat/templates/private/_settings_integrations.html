@@ -13,6 +13,7 @@
     </div>
   </div>
   {% if integration_saved %}<p class="settings-saved" role="status">Integration saved. The collector will use these settings on its next full scan.</p>{% endif %}
+  {% if integration_identity %}<p class="settings-saved" role="status">Answer saved. Collection carries on with the device you confirmed.</p>{% endif %}
   {% if integration_removed %}<p class="settings-saved" role="status">Integration deleted, with the devices it discovered. Inventory devices and placements were kept.</p>{% endif %}
   {% if integration_message and not integration_editor %}<p class="form-error" role="alert">{{ integration_message }}</p>{% endif %}
 

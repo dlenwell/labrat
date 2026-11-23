@@ -423,7 +423,13 @@ After successful Proxmox and UniFi collections, LabRat queries the classic
 `GET /proxy/network/api/s/{site}/stat/sta/{mac}` endpoint for each unique MAC
 belonging to a discovered Proxmox physical NIC. A fresh wired client record
 that names a known UniFi switch and port can produce an inferred physical link.
-Shared or ambiguous NIC MACs, stale client observations, down ports, and
+A server running lldpd announces one of its NIC MACs as its chassis ID, and the
+controller sometimes files the server's other NICs as clients of that
+"device" instead of the switch. When the named MAC belongs to the looked-up
+NIC's own server, LabRat uses the switch whose LLDP table hears that chassis,
+but only when exactly one port in the site hears it, on a switch in the latest
+snapshot that is not offline, that port is the one the client record names, and
+its LLDP remote port ID does not name a different NIC of that server. Shared or ambiguous NIC MACs, stale client observations, down ports, and
 conflicts with existing links are excluded. LLDP evidence takes precedence.
 Only the inferred cable observation is stored; ordinary client records are not
 imported into inventory. The classic endpoint is undocumented and optional;
@@ -471,6 +477,36 @@ or routed firewalls, so the collector must share a segment with the
 MikroTik's discovery interfaces (in containers or Kubernetes, see "Run on
 Kubernetes" in `docs/setup.md`). A MikroTik also heard as a UniFi LLDP
 neighbor appears once per source until linked to one inventory device.
+
+#### Standalone MNDP listener
+
+When LabRat cannot sit on the MikroTiks' segment (a Kubernetes pod, a
+VM on another VLAN), run the listener on a machine that can, and let it
+report over the API:
+
+1. In **Settings → API tokens**, create a token with the "Submit MikroTik
+   announcements" permission. Copy it: it is shown once.
+2. On a host on that segment, with LabRat installed (`pip install .` from
+   a checkout, or the container image):
+
+   ```sh
+   LABRAT_API_TOKEN=labrat_… python -m labrat.collector.mndp_push \
+       --url https://labrat.example.lan
+   ```
+
+   Options: `--token-file` instead of the variable, `--listen-seconds`
+   (5 to 300, default 65), `--interval` between reports (default 60, or
+   the listen time when that is longer),
+   `--ca-file` for a private certificate authority, and `--once`.
+
+It listens exactly as the collector's own MNDP adapter does (it sends no
+MNDP probes) and reports the decoded announcements over HTTPS to
+`POST /api/v1/machine/mndp` with `Authorization: Bearer <token>`. Each
+token reports into its own source, named `mndp:<token name>`, which the
+collector never polls; devices and ports appear just as the built-in
+listener records them. The listener needs no database or LabRat config,
+and the token can do nothing but submit announcements. Revoke it in
+Settings to stop it at once.
 
 ### Network UPS Tools (NUT), via service discovery (optional)
 
@@ -544,7 +580,9 @@ client's MAC, the switch port's speed and medium), and an inferred
 `unifi-client-ip` link to that switch port, owned by the UniFi source.
 Unlike Wi-Fi, this is a physical cable: it counts as one and appears in
 Equipment, Discovery, and the inspector. Any other link already on the
-switch port wins. When every UniFi lookup succeeds without a match, or the
+switch port wins, except the clients feed's own link to the same NIC (a
+client port with this MAC): that is the same cable seen twice, so it is
+replaced, and the client defers to the server from then on. When every UniFi lookup succeeds without a match, or the
 match is ambiguous, the port and link are removed; a failed lookup keeps
 them. Creation, changes, and removal are audited; an unchanged cable only
 refreshes its last-seen time. The NUT adapter never marks its port list
@@ -559,10 +597,114 @@ Settings with its HTTPS address and an application password (Pi-hole v6:
 Settings, Web interface / API) or, for Pi-hole v5, its API token. LabRat
 reads today's query counts, blocking state, the day's history, and the top
 allowed and blocked domains and clients. It never turns blocking on or off
-or edits lists. With v6 it signs in with one `POST /api/auth`, reads with
-GETs, and signs out with `DELETE /api/auth`, which only opens and closes
-its own session. The machine running the collector must be allowed
+or edits lists. It first asks `GET /api/auth`, without a credential,
+whether this is a v6 Pi-hole (v6 answers with a session object, HTTP 401
+when a password is set). Only when that is not v6 does it ask
+`GET /admin/api.php?versions`, again without a credential, and only a
+v5 versions answer lets it send the v5 API token (which v5 takes in the
+query string). Anything else (a proxy error, a redirect, another server)
+fails as "did not answer like a Pi-hole", and no credential is sent.
+The password is optional in Settings: leave it blank for a Pi-hole
+without one, and Test connection says so if the Pi-hole needs it. With v6 it then signs in with one `POST /api/auth`, reads
+with GETs, and signs out with `DELETE /api/auth`, which only opens and
+closes its own session; a Pi-hole with no password is read without
+signing in. A refused password shows as refused in **Test connection**.
+Pi-hole v6 serves HTTPS with its own self-signed certificate for
+`pi.hole`: add that certificate as the CA bundle and use a matching name,
+or turn certificate checking off for it. Every Pi-hole set up in
+Settings appears among the Networks page's DNS sinkholes with its
+statistics, even when UniFi's DHCP and client names give no sign of it,
+and even before (or without) any UniFi network snapshot. The machine running the collector must be allowed
 through your firewall to the Pi-hole's HTTPS port.
+
+### OPNsense (optional)
+
+Add an **OPNsense** integration in Settings with the firewall's HTTPS
+address and an API key and secret. LabRat shows the firewall as one
+device with its network cards as ports (link state and speed), and keeps
+its health: version, uptime, load, memory, disks, and per-card counters.
+The Networks page gets the firewall's networks and VLANs with their DHCP
+ranges (dnsmasq or Kea), its WAN gateways, its firewall rules, its
+interface groups as zones, its WireGuard peers, which services run, CARP
+state, and its DNS blocklist (the firewall then counts as a DNS sinkhole
+beside any Pi-hole); Discovery, Clients gets the devices it has seen.
+
+Rules are shown as OPNsense reports them, in evaluation order: floating
+rules, then interface groups, then interfaces, then the automatic system
+rules. LabRat does not say what can reach what: a rule that is not
+"quick" can be overridden by a later one, so it marks those, and rules
+still in the old format ("not yet migrated"). Alias contents and
+credentials, and blocklist URLs and domains, are never kept: only names
+and counts.
+
+The Observations watchlist shows three OPNsense conditions: a monitored
+gateway down, a WireGuard peer with keepalive and no handshake for five
+minutes, and a CARP virtual IP that left its usual state. Each needs a
+good reading on the poll before, so the first poll, a new item, or a
+return after a gap in collection never raises one, and a part LabRat
+could not read raises or clears nothing. Unmonitored gateways and peers
+without keepalive never raise one. Tested on OPNsense 26.7; **Test connection**
+says so when another release answers.
+
+A router knows that a device *used an address* on one of its networks
+(ARP, NDP, a DHCP lease), not where it is plugged in. So an OPNsense
+client is **Seen by router** while the firewall still lists it in ARP or
+NDP, **Lease only** when it holds a lease but has not been seen, and
+never "connected": switches and access points (UniFi) still say where a
+device attaches. A device seen by both shows as one row, its switch or
+access point first. Neighbours on a WAN (an interface with a gateway)
+are upstream equipment and are left out.
+
+**OPNsense has no read-only API role.** A privilege grants a whole page,
+and each page's privilege covers its actions as well as its reads. So:
+
+1. Create a group (System, Access, Groups) with only the privileges
+   below, and a user in it with a long random password you never use.
+   Never give it Firmware, Backup, System: Settings, or User Manager.
+2. On that user, add an API key. The key and secret go in Settings; LabRat
+   only ever sends `GET` requests to a fixed list of endpoints, without
+   parameters, refuses redirects, and keeps only the fields it shows.
+3. Limit the web interface (and so the API) to the address LabRat
+   collects from, with a firewall rule or the web interface's listen
+   interfaces.
+
+Privileges, by what they let LabRat show (those marked * also allow
+changes on that page, so leave them out unless you want that part):
+
+| Privilege | Shows |
+|---|---|
+| System: Status | Test connection |
+| Lobby: Dashboard (every user has it) | name, version, uptime, load, memory, disks |
+| Status: Interfaces* | the network cards and their link |
+| Diagnostics: Netstat | per-card counters |
+| Diagnostics: ARP Table*, NDP Table* | clients seen on each network |
+| Diagnostics: Routing tables* | which gateway is the default |
+| System: Gateways* | gateway status, latency, and loss |
+| Services: Dnsmasq DNS/DHCP: Settings* | dnsmasq's ranges, reservations, and leases |
+| Services: DHCP: Kea(v4)* | Kea's subnets, reservations, and leases |
+| Services: Unbound* | the DNS resolver's settings and blocklists |
+| Status: DNS Overview | whether the DNS blocklist is on |
+| Firewall: Rules [new]* | the firewall rules |
+| Firewall: Aliases*, Groups* | alias names and sizes, interface groups (zones) |
+| VPN: WireGuard: Status | WireGuard peers, handshakes, transfer |
+| Status: Services* | which services run |
+| Interfaces: Virtual IPs: Status* | CARP state |
+
+Lobby: Dashboard is required: a poll cannot complete without the system
+information it gives. System: Status is needed for **Test connection**.
+Every other privilege is optional: a missing one shows its part as "not
+available" and nothing else.
+
+One integration is one firewall. Changing its address asks whether it is
+the same firewall at a new address or a different one. If a poll finds
+a different hostname *and* none of the network cards LabRat knew, it
+pauses that integration and asks in Settings, so the known firewall
+keeps its inventory link, label, and placement; a different firewall
+then gets its own integration and the old one is kept as "(replaced)".
+A new key, a new hostname alone, or a replaced card never asks.
+
+OPNsense serves its web interface with a self-signed certificate: add
+its CA as the CA bundle, or turn certificate checking off for it.
 
 ## Adding an adapter
 

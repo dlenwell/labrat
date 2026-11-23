@@ -75,7 +75,7 @@
           </figure>
           <figure class="site-shot">
             <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/networks.webp" alt="The networks overview: site health and charts of clients by network" loading="lazy"></button>
-            <figcaption><strong>Networks, from UniFi.</strong> Site health, VLANs, Wi-Fi, firewall zones, and who can reach whom.</figcaption>
+            <figcaption><strong>Networks, from your routers.</strong> UniFi (shown) for VLANs, Wi-Fi, and firewall zones; OPNsense for gateways, DHCP, and its rules as written. LabRat can show both in one install.</figcaption>
           </figure>
           <figure class="site-shot">
             <button class="site-shot-open" type="button" aria-label="View larger"><img src="static/img/docs/floor-plan.webp" alt="A floor plan: a rack with its devices by rack unit, and a gateway on the floor" loading="lazy"></button>
@@ -118,9 +118,10 @@
               <tr><th scope="row">UniFi Network</th><td>Switches, gateways, access points; ports, PoE, link state, and cables; clients, networks, Wi-Fi, firewall zones; WAN and VPN status</td><td>A read-only API key</td></tr>
               <tr><th scope="row">Proxmox VE</th><td>Nodes, NICs, bonds, bridges, VLANs; guests; storage, drives, and Ceph; live load and memory</td><td>A read-only API token</td></tr>
               <tr><th scope="row">Pi-hole</th><td>Queries, blocking state, history, and top domains and clients</td><td>An application password</td></tr>
+              <tr><th scope="row">OPNsense</th><td>The firewall, its NICs, and its health; networks and VLANs with DHCP, WAN gateways, the clients it has seen, rules and zones, WireGuard peers, services, CARP, and DNS blocklist; watchlist alarms for gateways, VPN peers, and CARP</td><td>An API key for a user with only <a href="docs/discovery/#discovery-opnsense-title">the listed privileges</a></td></tr>
               <tr><th scope="row">Network UPS Tools</th><td>UPS status, load, battery, and runtime</td><td>Permission to scan their networks</td></tr>
               <tr><th scope="row">SNMPv3</th><td>NIC link state for Proxmox nodes</td><td>A read-only SNMPv3 user</td></tr>
-              <tr><th scope="row">MikroTik MNDP</th><td>MikroTik devices on the local segment</td><td>Nothing: it only listens</td></tr>
+              <tr><th scope="row">MikroTik MNDP</th><td>MikroTik devices on the local segment, or on another segment through a small listener</td><td>Nothing: it only listens (a listener elsewhere needs an API token)</td></tr>
             </tbody>
           </table>
         </div>

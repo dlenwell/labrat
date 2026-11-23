@@ -346,11 +346,13 @@
     opacity: 0.55;
 }
 
-/* Inferred Wi-Fi client path: never a cable, so it is dotted and thin. */
+/* Inferred Wi-Fi client path: never a cable, so it is dashed in the access
+   point's color, matching the room views. Dots this small vanished at the
+   map's scale on short runs. */
 .topology-cable.is-wireless {
     stroke: var(--color-type-ap);
-    stroke-width: 1.5;
-    stroke-dasharray: 1 5;
+    stroke-width: 1.75;
+    stroke-dasharray: 4 5;
     stroke-linecap: round;
 }
 

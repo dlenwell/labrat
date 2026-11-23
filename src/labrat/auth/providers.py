@@ -6,6 +6,8 @@
 The local provider verifies Argon2id password hashes stored in SQLite. Future
 SSO integrations can implement ``AuthenticationProvider`` and return the same
 stable local user identity, leaving sessions and authorization unchanged.
+
+Used by: app, pages.private, pages.public.
 """
 
 from dataclasses import dataclass
@@ -18,6 +20,28 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from labrat.models import LocalCredential, User
+
+
+#: Shortest and longest local password accepted when one is set.
+PASSWORD_LENGTH = (12, 1024)
+
+
+def new_password_problem(password: str, confirm: str) -> str | None:
+    """Check a new local password and its repeat, without logging either.
+
+    Args:
+        password: Proposed plaintext password.
+        confirm: The same password typed again.
+
+    Returns:
+        str | None: Human-readable problem, or ``None`` when acceptable.
+    """
+    shortest, longest = PASSWORD_LENGTH
+    if not shortest <= len(password) <= longest:
+        return f"Choose a password between {shortest} and {longest} characters."
+    if password != confirm:
+        return "Passwords do not match."
+    return None
 
 
 @dataclass(frozen=True)

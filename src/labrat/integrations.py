@@ -32,14 +32,15 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from labrat.audit import record_audit_event
+from labrat.collector import identity
 from labrat.collector.http import JsonGetClient, controller_url, tls_verification, unifi_network_root
-from labrat.collector.sources import configured_sources
+from labrat.collector.sources import DERIVED_SOURCE_PARENTS, configured_sources
+from labrat.database import as_utc
 from labrat.discovery.models import DiscoverySource, DiscoveredDevice
 from labrat.placement import DevicePlacement
 from labrat.models import User
 from labrat.discovery.neighbor_matches import saved_neighbor_matches
 from labrat.metadata import Attribute
-from labrat.pages.status import DERIVED_SOURCE_PARENTS
 
 from labrat.integration_catalog import CATALOG, CATEGORIES, DEFINITIONS, KINDS
 from labrat.settings_forms import field_views
@@ -258,16 +259,15 @@ def connection_health(settings: dict, source: DiscoverySource | None, now: datet
         dict: Lamp state, accessible label, safe message, and collection times.
     """
     now = now or datetime.now(timezone.utc)
-    def utc(value):
-        """Normalize SQLite timestamps without inventing local timezone offsets."""
-        return value.replace(tzinfo=timezone.utc) if value and value.tzinfo is None else value
-    success = utc(source.last_success_at) if source else None
-    attempt = utc(source.last_attempt_at) if source else None
+    success = as_utc(source.last_success_at) if source else None
+    attempt = as_utc(source.last_attempt_at) if source else None
     state, label, message = 'waiting', 'Awaiting first collection', 'No collection result is available yet.'
     if source is not None and not source.enabled:
         state, label, message = 'waiting', 'Collection disabled', 'Collection is disabled for this connection.'
     elif not _display_url(settings.get('url')):
         state, label, message = 'error', 'Invalid connection settings', 'The controller address is missing or invalid. Edit this connection to correct it.'
+    elif source is not None and source.last_error == identity.HELD_MESSAGE:
+        state, label, message = 'warning', 'Collection paused', 'A different device may be answering at this address. Say which it is below.'
     elif source is not None and source.last_error:
         state, label = 'error', 'Collection failed'
         messages = {
@@ -366,7 +366,9 @@ def panel_context(path: Path, db: Session, *, kind: str | None = None, name: str
                   "ca_bundle": settings.get("ca_bundle", ""),
                   "tls_mode": "disabled" if settings.get("verify_tls") is False else "verify",
                   "has_secret": all(bool(settings.get(key)) for key in _secret_fields(kind)),
-                  "enabled": source.enabled if source else True}
+                  "enabled": source.enabled if source else True,
+                  "replacement_question": not is_new and DEFINITIONS[kind].get("replacement_question") is True,
+                  "replacement": None, "identity_pending": _pending_view(db, source)}
         if submitted is not None:
             for field in ("name", "display_name", "ca_bundle", "tls_mode"):
                 if field not in submitted:
@@ -374,6 +376,7 @@ def panel_context(path: Path, db: Session, *, kind: str | None = None, name: str
                 value = submitted.get(field, "")
                 editor[field] = value[:2048] if isinstance(value, str) else ""
             editor["enabled"] = submitted.get("enabled") == "1"
+            editor["replacement"] = submitted.get("replacement") if submitted.get("replacement") in ("same", "different") else None
             revision = submitted.get("revision", revision)
         editor["category"] = DEFINITIONS[kind]["category"]
         editor["fields"] = field_views(DEFINITIONS[kind]["fields"], settings, submitted)
@@ -463,6 +466,14 @@ def save_integration(path: Path, form: object, sessions: sessionmaker, actor: Us
     """
     with configuration_edit(path, form.get('revision'), sessions) as (config, document, db):
         kind, name, settings, is_new = candidate(form, config)
+        replaced = None
+        if _asks_replacement(form, config, kind, name, settings, is_new):
+            # A different machine at the new address gets its own
+            # integration and source; the old one is kept, disabled.
+            replaced = name
+            name = _replacement_name(configured_sources(config)[kind], name)
+            is_new = True
+            _retire(document, config, db, kind, replaced, actor)
         if not is_new and name == "default" and kind in config:
             target = document[kind]
         else:
@@ -496,11 +507,189 @@ def save_integration(path: Path, form: object, sessions: sessionmaker, actor: Us
             raise IntegrationError("Another connection of this type already uses that name.")
         source.enabled = form.get("enabled") == "1"
         db.flush()
+        details = {"kind": kind, "config_name": name, "enabled": source.enabled}
+        if replaced:
+            details["replaces"] = replaced
         record_audit_event(db, actor_kind="user", actor_id=actor.id, actor_name=actor.username,
                            action="integration.created" if is_new else "integration.updated",
-                           subject_kind="discovery_source", subject_id=source.id,
-                           details={"kind": kind, "config_name": name, "enabled": source.enabled})
+                           subject_kind="discovery_source", subject_id=source.id, details=details)
     return kind, name
+
+
+def _pending_view(db: Session, source: DiscoverySource | None) -> dict | None:
+    """What a held source's editor shows: the names, never the addresses.
+
+    Args:
+        db: Open session.
+        source: The integration's source, if any.
+
+    Returns:
+        dict | None: ``known`` and ``seen`` hostnames and the pending
+            evidence's ``fingerprint``, or None when no poll is held.
+    """
+    waiting = identity.pending(db, source) if source is not None else None
+    if waiting is None:
+        return None
+    return {"known": str(waiting["stored"].get("hostname") or "unknown")[:255],
+            "seen": str(waiting["observed"].get("hostname") or "unknown")[:255],
+            "fingerprint": identity.fingerprint(waiting["observed"])}
+
+
+def _asks_replacement(form: object, config: dict, kind: str, name: str, settings: dict, is_new: bool) -> bool:
+    """Whether a save moves an integration to a different machine.
+
+    For kinds whose catalog entry sets ``replacement_question``, changing
+    the address must say whether it is the same machine.
+
+    Args:
+        form: The submitted form.
+        config: The private configuration.
+        kind: The integration kind.
+        name: Its config name.
+        settings: The validated new settings.
+        is_new: Whether this is a new integration.
+
+    Returns:
+        bool: True when the owner chose "a different one".
+
+    Raises:
+        IntegrationError: The address changed and no choice was made.
+    """
+    if is_new or DEFINITIONS[kind].get("replacement_question") is not True:
+        return False
+    previous = configured_sources(config)[kind].get(name) or {}
+    try:
+        same_address = controller_url(previous) == settings["url"]
+    except ValueError:
+        same_address = False
+    if same_address:
+        return False
+    choice = form.get("replacement")
+    if choice not in ("same", "different"):
+        raise IntegrationError("The address changed. Say whether it is the same device at a new address or a different one, then save again.")
+    return choice == "different"
+
+
+def _replacement_name(family: dict, name: str) -> str:
+    """A free config name for a replacement integration.
+
+    Args:
+        family: The kind's configured integrations.
+        name: The replaced integration's name.
+
+    Returns:
+        str: ``<name>-2`` or the next free suffix.
+    """
+    stem = name[:70]
+    suffix = 2
+    while f"{stem}-{suffix}" in family:
+        suffix += 1
+    return f"{stem}-{suffix}"
+
+
+def _retire(document: object, config: dict, db: Session, kind: str, name: str, actor: User) -> None:
+    """Keep a replaced integration, disabled and renamed, with its observations.
+
+    Its observation, inventory link, label, and placement stay as they are;
+    it just stops collecting.
+
+    Args:
+        document: The editable TOML document.
+        config: The parsed configuration.
+        db: Open transaction session.
+        kind: The integration kind.
+        name: Its config name.
+        actor: The administrator making the change.
+    """
+    section = document[kind] if name == "default" and kind in config else document["integrations"][kind][name]
+    source = db.scalar(select(DiscoverySource).where(DiscoverySource.kind == kind, DiscoverySource.config_name == name))
+    # A free label across the kind's configured connections and every source
+    # name, so a connection replaced twice keeps both retired rows.
+    taken = {str(settings.get("display_name") or config_name) for config_name, settings
+             in configured_sources(config)[kind].items() if config_name != name}
+    taken |= {row.removeprefix(f"{kind}:") for row in db.scalars(select(DiscoverySource.name).where(
+        DiscoverySource.kind == kind, DiscoverySource.id != (source.id if source is not None else -1)))}
+    stem = str(section.get("display_name") or name)[:60]
+    label, number = f"{stem} (replaced)", 2
+    while label in taken:
+        label, number = f"{stem} (replaced {number})", number + 1
+    section["display_name"] = label
+    if source is None:
+        return
+    source.enabled = False
+    source.name = f"{kind}:{label}"
+    # Its clients source stops with it (the collector would also disable it).
+    for child in db.scalars(select(DiscoverySource).where(
+            DiscoverySource.kind.in_([child for child, parent in DERIVED_SOURCE_PARENTS.items() if parent == kind]),
+            DiscoverySource.config_name == name)):
+        child.enabled = False
+    waiting = identity.pending(db, source)
+    if waiting is not None:
+        identity.settle(db, source, waiting["remote_id"])
+    source.last_error = None
+    db.flush()
+    record_audit_event(db, actor_kind="user", actor_id=actor.id, actor_name=actor.username,
+                       action="integration.retired", subject_kind="discovery_source", subject_id=source.id,
+                       details={"kind": kind, "config_name": name})
+
+
+def answer_identity(path: Path, form: object, sessions: sessionmaker, actor: User) -> tuple[str, str]:
+    """Answer a held poll: the same machine, or a different one.
+
+    "Same" adopts the new identity evidence, so collection resumes. "Different"
+    keeps this integration, disabled and renamed, and copies its settings to
+    a new integration that starts its own observation of the new machine.
+
+    Args:
+        path: Active private TOML file.
+        form: Untrusted fields: ``kind``, ``name``, ``choice``, ``revision``.
+        sessions: Transaction factory.
+        actor: The administrator answering.
+
+    Returns:
+        tuple[str, str]: The kind and the config name to show next.
+
+    Raises:
+        IntegrationError: The integration, its held poll, or the choice is
+            unknown, or the file changed.
+    """
+    with configuration_edit(path, form.get("revision"), sessions) as (config, document, db):
+        kind, name, choice = form.get("kind"), form.get("name"), form.get("choice")
+        if kind not in KINDS or choice not in ("same", "different"):
+            raise IntegrationError("Choose whether it is the same device or a different one.")
+        family = configured_sources(config)[kind]
+        source = db.scalar(select(DiscoverySource).where(DiscoverySource.kind == kind, DiscoverySource.config_name == name))
+        waiting = identity.pending(db, source) if name in family and source is not None else None
+        if waiting is None:
+            raise IntegrationError("Nothing is waiting on this answer. Reload the Integrations panel.")
+        if form.get("evidence") != identity.fingerprint(waiting["observed"]):
+            raise IntegrationError("The device answering changed since this page opened. Review it and answer again.")
+        if choice == "same":
+            identity.accept(db, source)
+            record_audit_event(db, actor_kind="user", actor_id=actor.id, actor_name=actor.username,
+                               action="integration.identity_confirmed", subject_kind="discovery_source",
+                               subject_id=source.id, details={"kind": kind, "config_name": name})
+            return kind, name
+        settings = copy.deepcopy(dict(family[name]))
+        new_name = _replacement_name(family, name)
+        _retire(document, config, db, kind, name, actor)
+        if "integrations" not in document:
+            document["integrations"] = tomlkit.table()
+        if kind not in document["integrations"]:
+            document["integrations"][kind] = tomlkit.table()
+        document["integrations"][kind][new_name] = tomlkit.table()
+        target = document["integrations"][kind][new_name]
+        editable = {field["key"] for field in DEFINITIONS[kind]["fields"]} | {"verify_tls", "ca_bundle", "display_name"}
+        for field in sorted(editable & set(settings)):
+            target[field] = settings[field]
+        label = settings.get("display_name") or name
+        fresh = DiscoverySource(kind=kind, config_name=new_name, name=f"{kind}:{label}", enabled=True)
+        db.add(fresh)
+        db.flush()
+        record_audit_event(db, actor_kind="user", actor_id=actor.id, actor_name=actor.username,
+                           action="integration.created", subject_kind="discovery_source", subject_id=fresh.id,
+                           details={"kind": kind, "config_name": new_name, "enabled": True, "replaces": name})
+        return kind, new_name
 
 
 def delete_integration(path: Path, form: object, sessions: sessionmaker, actor: User) -> None:
@@ -578,10 +767,13 @@ def test_connection(kind: str, settings: dict) -> tuple[bool, str]:
     definition = DEFINITIONS[kind]["test"]
     if definition.get("style") == "adapter":
         # Integrations whose sign-in is not one header (Pi-hole v6 sessions)
-        # test through their adapter, which makes only reads after signing in.
+        # or whose reads must pass the adapter's own allowlist (OPNsense)
+        # test through their adapter.
+        from labrat.collector.adapters.opnsense import OpnsenseAdapter
         from labrat.collector.adapters.pihole import PiholeAdapter
+        adapter = {"opnsense": OpnsenseAdapter, "pihole": PiholeAdapter}[kind]()
         try:
-            return PiholeAdapter().test_connection(settings)
+            return adapter.test_connection(settings)
         except ValueError:
             return False, "Fill in the address and credential first."
     # UniFi paths are relative to the Network application root.

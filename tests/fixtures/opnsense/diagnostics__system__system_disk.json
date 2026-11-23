@@ -1,0 +1,13 @@
+{
+ "devices": [
+  {
+   "available": "533M",
+   "blocks": "2.8G",
+   "device": "/dev/ufs/OPNsense_Nano",
+   "mountpoint": "/",
+   "type": "ufs",
+   "used": "2.1G",
+   "used_pct": 80
+  }
+ ]
+}

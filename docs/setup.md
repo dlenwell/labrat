@@ -41,7 +41,12 @@ alembic -c alembic.ini upgrade head
 gunicorn -c gunicorn.conf.py labrat.app:app
 ```
 
-Run the migration again after each upgrade; Flask never creates tables. The
+Run the migration again after each upgrade; Flask never creates tables. Until
+you do, every page shows a holding page with the command to run and the
+revisions involved, and LabRat opens on its own a few seconds after the
+migration finishes. Set `LABRAT_MIGRATE_ON_START=1` (or
+`[server].migrate_on_start = true`) to have the web server migrate the
+database itself while that page shows, as the container image does. The
 checked-in Gunicorn config binds to `127.0.0.1:8000`. For a VM, container, or
 reverse proxy, set a bind address in your deployment and add its hostname to
 `allowed_hosts`.
@@ -62,8 +67,9 @@ Open **Settings** from your name in the header, then **Integrations**.
 ![Settings, Integrations panel with two demo connections](../src/labrat/static/img/docs/settings-integrations.webp)
 
 Select **+** to open the catalog, choose a category, then the product, such
-as UniFi Network (an API key), Proxmox VE (an API token ID and secret), or
-Pi-hole (an application password). Use read-only credentials. For Proxmox, `VM.Audit` on `/vms` also lets Discovery
+as UniFi Network (an API key), Proxmox VE (an API token ID and secret),
+Pi-hole (an application password), or OPNsense (an API key and secret for a
+user with only the privileges [the discovery guide](discovery-adapters.md#opnsense-optional) lists). Use read-only credentials. For Proxmox, `VM.Audit` on `/vms` also lets Discovery
 recognize VMs and containers among network clients.
 
 <p>
@@ -97,7 +103,9 @@ controllers. Switching one off keeps its settings and what it found.
 - **SNMP interface lookups** fill in NIC addresses and link state over
   SNMPv3 for the Proxmox nodes you name.
 - **MikroTik discovery** listens for MNDP announcements and sends nothing.
-  Announcements do not cross routers.
+  Announcements do not cross routers, so it hears only MikroTik devices on
+  the collector's own segment; for others, run the standalone listener
+  ("Standalone MNDP listener" in the [collector guide](discovery-adapters.md#standalone-mndp-listener)).
 
 <img src="../src/labrat/static/img/docs/settings-scan.webp" alt="The Network scanning editor" width="300">
 
@@ -150,8 +158,9 @@ LABRAT_ALLOWED_HOSTS=labrat.example.lan \
 - **First start** writes `deploy/config/local_config.toml` from the example,
   with a new session key and `LABRAT_ALLOWED_HOSTS` (comma-separated) plus
   the loopback names as the accepted browser hosts; after that, edit the
-  file like any other config. The web container migrates the database
-  before it serves, and the collector starts once the web app is healthy.
+  file like any other config. The web container answers at once with a
+  holding page, migrates the database behind it, and then opens LabRat;
+  the collector starts once the web app is healthy.
 - **Check it:** `docker compose -f deploy/compose.yaml ps` shows `web` as
   healthy, and `curl http://127.0.0.1:8000/api/v1/health` answers
   `{"service":"labrat","status":"ok"}`.
@@ -174,6 +183,16 @@ LABRAT_ALLOWED_HOSTS=labrat.example.lan \
 - **Upgrades:** pull the new code and run the same `up -d --build`; the web
   container applies new migrations on start.
 
+**Published images.** Each release is also published to GitHub's
+container registry for amd64 and arm64, as `ghcr.io/<owner>/labrat`
+(the owner from the repository's GitHub address), tagged with its
+version (`0.5.3`), its minor series (`0.5`, which moves to each newer
+patch release), and `latest` (the newest release). Rebuilding an older
+release, for a base-image fix, refreshes only that version's tag. To use one instead of building, set the
+Compose file's `image:` to it and drop `--build`, or `docker pull` it.
+Pin a version in production so an upgrade (and its migrations) happens
+when you choose.
+
 Without Compose, `docker build -t labrat .` builds the image, and
 `docker run` takes `web` (the default) or `collector` plus collector
 options, such as `collector --once`. Any other command runs as given, for
@@ -183,10 +202,11 @@ alembic.ini current`.
 ## Run on Kubernetes
 
 `deploy/kubernetes.yaml` is a sample deployment built from the same image:
-one pod with a `migrate` init container, then the `web` and `collector`
+one pod with a `config` init container, then the `web` and `collector`
 containers, two volumes (data and config), a Service, and an HTTPS
-Ingress. Build the image, push it to a registry your cluster can pull
-from, set that name and your hostname in the file, and apply it:
+Ingress. Use a published release image (see Published images above), or
+build the image and push it to a registry your cluster can pull from; set
+that name and your hostname in the file, and apply it:
 
 ```sh
 docker build -t registry.example.lan/labrat:latest .
@@ -201,13 +221,19 @@ kubectl -n labrat logs deploy/labrat -c web   # the first-time setup code
   new one mounts the volumes. Put the data volume on block storage
   (ReadWriteOnce: Ceph RBD, Longhorn, a local volume); SQLite's locking is
   unreliable on NFS and other shared file systems.
-- **Start order.** The `migrate` init container writes the config on first
-  start and applies migrations, so both containers start against a ready
-  schema.
+- **Start order.** The `config` init container writes the config on first
+  start, so the two containers never race to create it. The web container
+  migrates the database itself while it shows a holding page, so an
+  upgrade with a long migration shows its progress instead of nothing; the
+  collector waits until the schema is current before it polls.
 - **Hosts and probes.** LabRat answers only the hostnames in
   `[server].allowed_hosts`, so the Ingress hostname must be one of them
   (`LABRAT_ALLOWED_HOSTS` sets it on first start). The kubelet probes the pod
   by its address, which LabRat refuses, so the probes send `Host: localhost`.
+  Both probes use `/api/v1/live`, which answers while LabRat starts or
+  migrates, so the Service serves the holding page and a long migration
+  never restarts the pod; `/api/v1/health` answers only once LabRat is
+  ready.
 - **HTTPS** ends at the Ingress; the sample sets `LABRAT_SECURE_COOKIES`,
   so the first config marks cookies HTTPS-only.
 - **Upgrades and rollback.** With `latest`, push a new image and run
@@ -247,6 +273,41 @@ the pod network wherever the cluster can reach the lab:
   - **A second interface.** With a multi-network plugin such as Multus, give
     the pod a macvlan interface on the MikroTik's VLAN, so the pod hears its
     broadcasts without sharing the node's network.
+  - **A standalone listener.** Run `python -m labrat.collector.mndp_push`
+    on any host (or a small host-network pod) on the MikroTik's segment.
+    It reports what it hears over LabRat's API with a token, so the LabRat
+    pod needs no layer-2 access at all. See "Standalone MNDP listener" in
+    `docs/discovery-adapters.md`.
 
   A pod moved to another node by host networking or a second interface
   hears that node's segment, so pin it with `nodeSelector` or affinity.
+
+## One instance per database
+
+LabRat runs as one web server and one collector per database: SQLite
+allows one writer, and sign-in limits and collector scheduling live in
+memory. Each holds a lease in the database and renews it every 20
+seconds, and gives it up when it stops cleanly. A lease not renewed
+for 90 seconds is stale, so a server that crashed is replaced
+automatically once that time has passed.
+
+- **A second web server** on the same database shows a holding page
+  naming the server that holds it (host, process, version, and when it
+  last renewed). Sign in as an administrator to choose:
+  - **Take over the database from here.** The other server steps down
+    within 20 seconds and shows that it was replaced. Its collector stops
+    too, and a waiting collector takes over.
+  - **Leave that one alone and stop this one.** This server shuts down. A
+    container platform that restarts it brings the page back.
+  - **Fork it and keep my own copy.** This server copies the database
+    beside the original (`<name>-fork-<time>.sqlite3`) and runs on the
+    copy, apart from the other server, until it restarts. To keep using
+    the copy, set `[database].path` to it. Its collector keeps writing to
+    the original.
+  Every choice is recorded in the audit log.
+- **A second collector** waits for the first to stop, logging once a
+  minute. `collector --on-conflict take-over` replaces it instead, and
+  `--on-conflict refuse` exits with status 3. `[collector].on_conflict`
+  sets the same choice in the config. A one-off `collector --once` (a
+  "scan now") runs its cycle beside the running collector, with a warning,
+  unless `--on-conflict` says otherwise.

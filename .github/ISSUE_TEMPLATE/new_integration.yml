@@ -1,0 +1,49 @@
+name: New integration
+description: Propose a new read-only source for LabRat to discover from.
+labels: [enhancement, integration]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an integration. Please agree on its shape here before writing code; CONTRIBUTING.md ("Adding an integration") lists the rules every integration keeps.
+
+        Leave out credentials, hostnames, IP and MAC addresses, and other details of your network. Use invented values such as `switch-1` or `192.0.2.10`.
+  - type: input
+    id: product
+    attributes:
+      label: Product and version
+      description: The software or device, and the versions you can test against.
+      placeholder: e.g. Example Router OS 7.x
+    validations:
+      required: true
+  - type: textarea
+    id: reads
+    attributes:
+      label: What LabRat should read
+      description: Devices, ports, cables, clients, statistics, or other information, and where it would show up in LabRat.
+    validations:
+      required: true
+  - type: textarea
+    id: access
+    attributes:
+      label: Read-only access it offers
+      description: The API or protocol, and the narrowest account, role, or token that can read it. Link the vendor's API documentation if there is any.
+    validations:
+      required: true
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Integration rules
+      options:
+        - label: The integration only reads; it never changes the source or sends it commands.
+          required: true
+        - label: Tests can use fake responses, without contacting a real device.
+          required: true
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you write it?
+      options:
+        - I'd like to write it
+        - I can test it against my equipment
+        - I'm suggesting it for someone else

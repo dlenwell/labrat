@@ -6,6 +6,8 @@
 A derived source owns client observations and inferred cables. Controller
 identity and source provenance remain distinct from explicit inventory links.
 Optional classic telemetry augments the supported connected-client list.
+
+Used by: collector.runner, collector.sightings.
 """
 
 from collections import Counter, defaultdict
@@ -346,6 +348,43 @@ def client_snapshot(adapter, settings):
     return result
 
 
+def endpoint_owners(db, existing):
+    """Index the MACs that belong to known equipment, for folding clients into it.
+
+    A client whose MAC is a known server interface, switch port, or device
+    address is that equipment seen as a client (display evidence only,
+    never an inventory link); a Proxmox guest's MAC is a virtual endpoint.
+
+    Args:
+        db: Open session.
+        existing: Every observation outside the client source being reconciled.
+
+    Returns:
+        tuple[dict, set]: Observation IDs by MAC (twelve hex digits), and the
+            MACs of Proxmox guests.
+    """
+    by_mac = defaultdict(set)
+    by_id = {d.id: d for d in existing if json_object(d.details_json).get('role') != 'client'}
+    for device in by_id.values():
+        mac = mac_address(json_object(device.identifiers_json).get('mac'))
+        if mac:
+            by_mac[mac].add(device.id)
+        if device.category == 'server':
+            for interface in json_object(device.details_json).get('host_interfaces', []):
+                if isinstance(interface, dict) and (mac := mac_address(interface.get('mac'))):
+                    by_mac[mac].add(device.id)
+        wireless = json_object(device.details_json).get('wireless', {})
+        if isinstance(wireless, dict) and (mac := mac_address(wireless.get('mac_address'))):
+            by_mac[mac].add(device.id)
+    for port in db.scalars(select(DiscoveredPort)):
+        if port.discovered_device_id in by_id and (mac := mac_address(port.mac)):
+            by_mac[mac].add(port.discovered_device_id)
+    guest_macs = {mac_address(mac) for device in existing
+                  for guest in json_object(device.details_json).get('proxmox_clients', {}).get('guests', [])
+                  for mac in guest.get('macs', []) if mac_address(mac)}
+    return by_mac, guest_macs
+
+
 def reconcile_clients(db, source, parent, records, sampled_at=None):
     """Apply one complete client snapshot without moving or renaming inventory.
 
@@ -358,33 +397,12 @@ def reconcile_clients(db, source, parent, records, sampled_at=None):
     """
     now = sampled_at or datetime.now(timezone.utc)
     existing = list(db.scalars(select(DiscoveredDevice).where(DiscoveredDevice.source_id != source.id)))
-    ports = list(db.scalars(select(DiscoveredPort)))
-    by_mac = defaultdict(set)
-    by_id = {d.id: d for d in existing if json_object(d.details_json).get('role') != 'client'}
-    for device in existing:
-        if json_object(device.details_json).get('role') == 'client':
-            continue
-        mac = mac_address(json_object(device.identifiers_json).get('mac'))
-        if mac:
-            by_mac[mac].add(device.id)
-        if device.category == 'server':
-            for interface in json_object(device.details_json).get('host_interfaces', []):
-                if isinstance(interface, dict) and (mac := mac_address(interface.get('mac'))):
-                    by_mac[mac].add(device.id)
-        wireless = json_object(device.details_json).get('wireless', {})
-        if isinstance(wireless, dict) and (mac := mac_address(wireless.get('mac_address'))):
-            by_mac[mac].add(device.id)
-    for port in ports:
-        if port.discovered_device_id in by_id and (mac := mac_address(port.mac)):
-            by_mac[mac].add(port.discovered_device_id)
+    by_mac, guest_macs = endpoint_owners(db, existing)
     infrastructure = {d.remote_id: d for d in existing if d.source_id == parent.id}
     switch_by_mac = {
         (json_object(d.details_json).get('site_id'), mac_address(json_object(d.identifiers_json).get('mac'))): d
         for d in infrastructure.values()
     }
-    guest_macs = {mac_address(mac) for device in existing
-                  for guest in json_object(device.details_json).get('proxmox_clients', {}).get('guests', [])
-                  for mac in guest.get('macs', []) if mac_address(mac)}
     previous_clients = {d.remote_id: json_object(d.details_json).get('client', {}) for d in db.scalars(select(DiscoveredDevice).where(DiscoveredDevice.source_id == source.id))}
     devices, observed_ports = [], []
     for record in records:

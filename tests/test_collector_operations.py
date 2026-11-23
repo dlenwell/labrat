@@ -172,6 +172,9 @@ class CollectorOperationsTests(unittest.TestCase):
             stack.enter_context(patch.object(cli, 'load_local_config', return_value=config))
             stack.enter_context(patch.object(cli, 'make_engine', return_value=self.engine))
             stack.enter_context(patch.object(cli, 'logging'))
+            # The test database is built without Alembic, so it has no
+            # revision to wait for (test_collector_lease covers the wait).
+            stack.enter_context(patch.object(cli, 'wait_for_schema'))
             for name in ('MndpAdapter', 'NutAdapter', 'ProxmoxAdapter', 'UniFiAdapter', 'AccessCollector'):
                 stack.enter_context(patch.object(cli, name))
             mocks = {name: stack.enter_context(patch.object(cli, name, **options))

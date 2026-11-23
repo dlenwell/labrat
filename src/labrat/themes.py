@@ -20,7 +20,7 @@ its own palette and ignores it. Every accent's shades are chosen in
 ``main.css`` to keep at least 4.5:1 contrast as text on the theme's
 surfaces and under text on solid accent fills.
 
-Used by: app, pages.private.
+Used by: app, pages.private, startup.
 """
 
 from dataclasses import dataclass

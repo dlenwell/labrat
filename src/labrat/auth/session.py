@@ -10,7 +10,8 @@ passwords, hashes, or adapter secrets in browser sessions. API routes return JSO
 Used by: api.clients, api.cluster, api.common, api.locations, api.network,
 api.observation_actions, api.rack_devices, api.routes, api.topology, app,
 pages.private, pages.public, pages.settings_backup,
-pages.settings_discovery, pages.settings_integrations.
+pages.settings_discovery, pages.settings_integrations,
+pages.settings_tokens, startup.
 """
 
 import hmac
@@ -96,6 +97,31 @@ def require_csrf() -> None:
         and hmac.compare_digest(expected, received)
     ):
         abort(400, description="Invalid or expired form token. Reload the page and try again.")
+
+
+def require_admin_form(max_bytes: int | None = None) -> User:
+    """Require a signed-in administrator and a valid form CSRF token.
+
+    For the administrator-only HTML forms in Settings.
+
+    Args:
+        max_bytes: A tighter request size limit to apply before the form is
+            read, for small configuration forms.
+
+    Returns:
+        User: The signed-in administrator.
+
+    Raises:
+        werkzeug.exceptions.Forbidden: The viewer is not an administrator.
+        werkzeug.exceptions.BadRequest: The CSRF token is missing or wrong.
+    """
+    if max_bytes is not None:
+        request.max_content_length = max_bytes
+    viewer = current_user()
+    if viewer is None or not viewer.is_admin:
+        abort(403)
+    require_csrf()
+    return viewer
 
 
 def sign_in(user_id: int) -> None:

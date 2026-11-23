@@ -1,0 +1,53 @@
+{
+ "current": 1,
+ "interfaces": {
+  "opt2": "KEALAB"
+ },
+ "rowCount": 2,
+ "rows": [
+  {
+   "address": "203.0.113.70",
+   "client_id": "01:02:00:00:00:20:01",
+   "duid": "",
+   "expire": 1795280284,
+   "hostname": "sensor",
+   "hwaddr": "02:00:00:00:20:01",
+   "iaid": "",
+   "if": "em3",
+   "if_descr": "KEALAB",
+   "if_name": "opt2",
+   "is_reserved": [],
+   "mac_info": "",
+   "prefix_len": 128,
+   "state": 0,
+   "type": "",
+   "valid_lifetime": 4000
+  },
+  {
+   "address": "203.0.113.90",
+   "client_id": "01:02:00:00:00:20:02",
+   "duid": "",
+   "expire": 1795280284,
+   "hostname": "printer",
+   "hwaddr": "02:00:00:00:20:02",
+   "iaid": "",
+   "if": "em3",
+   "if_descr": "KEALAB",
+   "if_name": "opt2",
+   "is_reserved": [
+    "hwaddr"
+   ],
+   "mac_info": "",
+   "prefix_len": 128,
+   "state": 0,
+   "type": "",
+   "valid_lifetime": 4000
+  }
+ ],
+ "stats": {
+  "active": 2,
+  "inactive": 0,
+  "total": 2
+ },
+ "total": 2
+}

@@ -11,11 +11,13 @@ in one place how its source's values are read.
 
 Used by: api.clients, api.cluster, api.common, api.network,
 api.observation_actions, api.topology, collector.adapters.nut,
-collector.adapters.pihole, collector.adapters.unifi_classic,
-collector.client_links, collector.clients, collector.links,
-collector.nut_wired, collector.proxmox_clients, collector.proxmox_cluster,
-collector.proxmox_live, collector.store, collector.unifi_network,
-collector.vpn, collector.wireless_clients.
+collector.adapters.opnsense, collector.adapters.pihole,
+collector.adapters.unifi_classic, collector.client_links, collector.clients,
+collector.identity, collector.links, collector.nut_wired,
+collector.proxmox_clients, collector.proxmox_cluster,
+collector.proxmox_live, collector.runner, collector.sightings,
+collector.store, collector.unifi_network, collector.vpn,
+collector.wireless_clients.
 """
 
 from __future__ import annotations

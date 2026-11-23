@@ -63,9 +63,12 @@ jobs:
       - name: Audit dependencies
         # Fails on any published advisory against an installed dependency.
         # LabRat itself is installed from this checkout, so it is skipped.
+        # A private cache directory per run: pip-audit refuses a shared
+        # cache that another user can write to (such as a runner's
+        # /root/.cache).
         run: |
           .venv/bin/python -m pip install 'pip-audit>=2.9,<3'
-          .venv/bin/pip-audit --skip-editable
+          .venv/bin/pip-audit --skip-editable --cache-dir "$(mktemp -d)"
 
   container:
     name: Container sample

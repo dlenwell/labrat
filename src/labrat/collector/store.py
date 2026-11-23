@@ -9,7 +9,8 @@ offline Proxmox nodes retain their last known ports.
 This module does *not* match devices between sources, create inventory devices,
 or modify canonical cabling; those decisions belong to reconciliation in 4B.
 
-Used by: collector.clients, collector.runner, collector.wireless_clients.
+Used by: api.machine, collector.clients, collector.identity,
+collector.runner, collector.sightings, collector.wireless_clients.
 """
 
 from collections.abc import Mapping
@@ -37,7 +38,10 @@ from labrat.discovery.observation_ignores import apply_device_ignores
 #: frequent readings add no audit events.
 TELEMETRY_DETAIL_KEYS = (
     "wan", "wan_history", "vpn_history", "ups", "wireless", "client", "proxmox_clients",
-    "proxmox_node", "proxmox_cluster", "unifi_network", "pihole",
+    "proxmox_node", "proxmox_cluster", "unifi_network", "pihole", "opnsense", "opnsense_network", "watchlist",
+    # A device's identity evidence and any conflicting evidence a held poll
+    # is waiting on (collector/identity.py).
+    "identity_evidence", "identity_pending",
 )
 
 #: WAN history: one averaged bucket per five minutes, kept for a day.
@@ -657,6 +661,37 @@ def record_telemetry(
         return False
     details = json_object(device.details_json)
     details[key] = dict(value)
+    device.details_json = _json_text(details)
+    db.flush()
+    return True
+
+
+def clear_telemetry(db: Session, source: DiscoverySource, remote_id: str, key: str) -> bool:
+    """Remove one telemetry detail from an observation, unaudited.
+
+    Args:
+        db: Open transaction session.
+        source: The source that owns the observation.
+        remote_id: The observation's source-scoped remote ID.
+        key: Telemetry detail key.
+
+    Returns:
+        bool: True when the observation had the detail.
+
+    Raises:
+        ValueError: ``key`` is not a telemetry key.
+    """
+    if key not in TELEMETRY_DETAIL_KEYS:
+        raise ValueError(f"Not a telemetry detail key: {key}")
+    device = db.scalar(select(DiscoveredDevice).where(
+        DiscoveredDevice.source_id == source.id,
+        DiscoveredDevice.remote_id == remote_id,
+    ))
+    if device is None:
+        return False
+    details = json_object(device.details_json)
+    if details.pop(key, None) is None:
+        return False
     device.details_json = _json_text(details)
     db.flush()
     return True

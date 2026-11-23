@@ -23,6 +23,7 @@ from labrat.placement import PlacementContainer
 #: Friendly labels for known audit actions. Unknown actions fall back to a
 #: label built from the last part of the action name.
 ACTION_LABELS = {
+    "auth.password.changed": "Changed your password",
     "inventory.container.positioned": "Moved in a room layout",
     "inventory.device.created": "Added equipment",
     "inventory.device.placed": "Placed equipment",

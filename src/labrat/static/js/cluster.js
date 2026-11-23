@@ -1467,7 +1467,7 @@
                 },
             }),
         ]);
-        const facts = el("dl", { class: "cluster-facts" }, [
+        const facts = el("dl", { class: "widget-facts" }, [
             el("dt", { text: "Used for" }), el("dd", { text: pool.applications.join(", ") || "—" }),
             el(
                 "dt", { text: "Proxmox storage" }
@@ -1527,7 +1527,7 @@
                 "div", { class: `cluster-health cluster-health-${tone}` },
                 [lamp(tone, ceph.health), el("strong", { text: ceph.health })]
             ),
-            el("dl", { class: "cluster-facts" }, [
+            el("dl", { class: "widget-facts" }, [
                 el("dt", { text: "OSDs" }), el("dd", { text: `${ceph.osds.up ?? "?"} up · ${ceph.osds.in ?? "?"} in · ${ceph.osds.total ?? "?"} total` }),
                 el(
                     "dt", { text: "Monitors" }
@@ -1609,7 +1609,7 @@
                 total: pool.size || 0, used: pool.alloc || 0, label: `${percent(fraction)} allocated`,
                 tone: severity(fraction)
             }),
-            el("dl", { class: "cluster-facts" }, [
+            el("dl", { class: "widget-facts" }, [
                 el(
                     "dt", { text: "Allocated" }
                 ), el("dd", { text: `${bytes(pool.alloc)} of ${bytes(pool.size)} (${percent(fraction)})` }),

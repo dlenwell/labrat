@@ -3,10 +3,10 @@
 
 """Serve administrator-only discovery controls and explicit scan permission forms."""
 
-from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, url_for
 from sqlalchemy.exc import SQLAlchemyError
 
-from labrat.auth.session import current_user, login_required, require_csrf, session_factory
+from labrat.auth.session import login_required, require_admin_form, session_factory
 from labrat.discovery_settings import panel_context, save_settings
 from labrat.integrations import IntegrationError
 
@@ -43,11 +43,7 @@ def save():
     Raises:
         Forbidden: When the viewer is not an administrator (HTTP 403).
     """
-    request.max_content_length = 32768
-    viewer = current_user()
-    if viewer is None or not viewer.is_admin:
-        abort(403)
-    require_csrf()
+    viewer = require_admin_form(32768)
     try:
         save_settings(current_app.extensions['labrat_config_path'], request.form, session_factory(), viewer)
         return redirect(url_for('private.settings', panel='discovery', saved='discovery'))

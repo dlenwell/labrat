@@ -11,7 +11,7 @@ Used by: api.clients, api.locations, api.observation_actions,
 api.placement_rules, api.rack_devices, api.topology.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 import hmac
 import json
 import re
@@ -21,6 +21,7 @@ from flask import request, session
 
 from labrat.auth.session import current_user
 from labrat.coerce import json_object
+from labrat.database import as_utc
 from labrat.discovery.models import DiscoveredDevice
 
 
@@ -71,9 +72,7 @@ def as_iso(value: datetime | None) -> str | None:
         str | None: ISO-8601 timestamp with a UTC offset, or ``None`` when no
             timestamp exists.
     """
-    if value is None:
-        return None
-    return (value if value.tzinfo else value.replace(tzinfo=timezone.utc)).isoformat()
+    return value.isoformat() if (value := as_utc(value)) is not None else None
 
 
 def positive_int(value: Any, field: str, *, required: bool = True) -> int | None:

@@ -679,23 +679,7 @@
 .cluster-health-warn { color: var(--color-status-warning); }
 .cluster-health-alarm { color: var(--color-status-error); }
 
-.cluster-facts {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    gap: 0.2rem var(--space-3);
-    margin: var(--space-2) 0 0;
-    font-size: var(--text-xs);
-}
-
-.cluster-facts dt {
-    color: var(--color-text-muted);
-}
-
-.cluster-facts dd {
-    margin: 0;
-    color: var(--color-text-secondary);
-    font-family: var(--font-mono);
-}
+/* Label and value pairs use the widget kit's .widget-facts (widgets.css). */
 
 .cluster-checks {
     margin-bottom: var(--space-3);

@@ -1,0 +1,43 @@
+{
+ "current": 1,
+ "rowCount": 1,
+ "rows": [
+  {
+   "allocator": "",
+   "ddns_conflict_resolution_mode": "",
+   "ddns_dns_port": "",
+   "ddns_dns_server": "",
+   "ddns_domain_key_algorithm": "",
+   "ddns_domain_key_name": "",
+   "ddns_domain_key_secret": "",
+   "ddns_forward_zone": "",
+   "ddns_override_client_update": "0",
+   "ddns_override_no_update": "0",
+   "ddns_qualifying_suffix": "",
+   "ddns_reverse_zone": "",
+   "ddns_update_on_renew": "0",
+   "description": "Kea lab",
+   "match-client-id": "1",
+   "next_server": "",
+   "option": "",
+   "option_data.boot_file_name": "",
+   "option_data.classless_static_route": "",
+   "option_data.domain_name": "",
+   "option_data.domain_name_servers": "",
+   "option_data.domain_search": "",
+   "option_data.ntp_servers": "",
+   "option_data.routers": "",
+   "option_data.static_routes": "",
+   "option_data.tftp_server_name": "",
+   "option_data.time_servers": "",
+   "option_data.v4_dnr": "",
+   "option_data.v6_only_preferred": "",
+   "option_data_autocollect": "1",
+   "pools": "203.0.113.70-203.0.113.80",
+   "subnet": "203.0.113.64/26",
+   "uuid": "6f1c2a40-0000-4000-8000-000000000003",
+   "valid_lifetime": ""
+  }
+ ],
+ "total": 1
+}

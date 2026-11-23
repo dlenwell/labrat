@@ -14,7 +14,10 @@ more screenshots, is at `/docs/tour`.
 - **Observations** (`/observations`) is a live operations screen for the
   whole lab or one area: internet and VPN history, servers, UPS power, a
   watchlist, collector health, port state, and an activity log. It rereads
-  the local cache every 15 seconds and never contacts a controller.
+  the local cache every 15 seconds and never contacts a controller. An
+  OPNsense firewall adds three watchlist conditions: **Gateway down** (a
+  monitored gateway), **VPN peer stale** (a WireGuard peer with keepalive
+  and no handshake for five minutes), and **CARP state changed**.
   Administrators can ignore a watchlist condition and restore it from
   **Ignored items**. **Wallboard** fills the screen; Escape exits.
 
@@ -22,7 +25,8 @@ more screenshots, is at `/docs/tour`.
 
 - **Discovery** (`/topology`) draws physical equipment as a tree (routers,
   switches by hop, then what hangs from them) in **Infrastructure**, and
-  lists UniFi's wired and Wi-Fi endpoints in **Clients**. Select a device to
+  lists UniFi's wired and Wi-Fi endpoints in **Clients**, with the devices
+  an OPNsense firewall has seen (Seen by router, or Lease only). Select a device to
   inspect or place it. Clients join inventory only when you add them, and a
   device's details drawer has a tab for each kind of link it reports
   (Switch, WAN, Bridges, VLANs, IP, VPN).
@@ -36,9 +40,13 @@ more screenshots, is at `/docs/tour`.
 
   ![The demo cluster's Storage view: every drive as hot-swap bays](../src/labrat/static/img/docs/cluster-storage.webp)
 
-- **Networks** (`/networks`) shows what UniFi knows: an overview with DNS
-  sinkholes such as Pi-hole, firewall zones and who can reach whom,
-  networks, Wi-Fi, devices, and clients.
+- **Networks** (`/networks`) shows what your routers know, one at a time
+  (a picker appears when several report one). For UniFi: an overview with
+  DNS sinkholes such as Pi-hole, firewall zones and who can reach whom,
+  networks, Wi-Fi, devices, and clients. For OPNsense: WAN gateways,
+  WireGuard peers, services, and CARP state on the overview, interface
+  groups as zones, firewall **Rules** in evaluation order, and DHCP from
+  dnsmasq or Kea. A part LabRat could not read says so.
 - **Locations** (`/locations`, or the location itself when there is only
   one) draws each location as a building of area cards listing what sits at
   each area's top level. Add, rename, and delete locations and areas here
@@ -66,8 +74,9 @@ more screenshots, is at `/docs/tour`.
 
 - **Settings** (`/settings`): **Appearance** picks this browser's theme
   (Disco, the default control-room look; Dark; Light; or Match my system)
-  and accent; administrators also get Integrations, Discovery, and Export
-  and import.
+  and accent; administrators also get Integrations, Discovery, API tokens
+  (scoped tokens for programs, such as a standalone MikroTik listener), and
+  Export and import.
 - **Docs** (`/docs`) has these guides, illustrated, plus an API reference
   generated from the running route map.
 

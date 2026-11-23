@@ -74,9 +74,10 @@ gateway; cables leaving the room end on a patch panel along the top.
 | **UniFi Network** (UniFi OS consoles, or a self-hosted Network application) | Switches, gateways, and access points; ports, link state, PoE, and cables (from uplinks and LLDP); clients; networks, Wi-Fi, firewall zones; WAN and VPN status | A read-only API key |
 | **Proxmox VE** | Nodes, physical NICs, bonds, bridges, and VLANs; guests and their NICs; storage, drives, and Ceph; live load and memory | An API token with read-only access (`Sys.Audit`; `VM.Audit` on `/vms` to recognize guests) |
 | **Pi-hole** | Today's queries, blocking state, history, and top domains and clients | An application password (v6) or API token (v5) |
+| **OPNsense** | The firewall, its network cards and their link, and its health (version, uptime, load, memory, disks, counters); its networks and VLANs with DHCP (dnsmasq or Kea), WAN gateways, the clients it has seen, its rules and zones, WireGuard peers, services, CARP, and DNS blocklist; watchlist alarms when a gateway goes down, a VPN peer goes stale, or CARP changes state | An API key for a user with only [the listed privileges](docs/discovery-adapters.md#opnsense-optional) (OPNsense has no read-only role) |
 | **Network UPS Tools** | UPS status, load, battery, and runtime from NUT servers it finds | Permission to scan the networks they are on; read-only list commands, no login |
 | **SNMPv3** (optional) | NIC link state and addresses for Proxmox nodes the API leaves out | A read-only SNMPv3 user on those nodes |
-| **MikroTik MNDP** (optional) | MikroTik devices announcing themselves on the local segment | Nothing: it only listens, and needs to share a network segment with them |
+| **MikroTik MNDP** (optional) | MikroTik devices announcing themselves on the local segment, or on another segment through a small standalone listener | Nothing: it only listens on a segment it shares with them; a listener elsewhere reports with a scoped API token |
 
 New sources plug into the same read-only adapter contract; see the
 [collector guide](docs/discovery-adapters.md#adding-an-adapter).

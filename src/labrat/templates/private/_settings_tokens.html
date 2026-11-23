@@ -1,0 +1,78 @@
+{# Copyright 2026 LabRat contributors. SPDX-License-Identifier: Apache-2.0 #}
+{#
+  Settings → API tokens (pages/settings_tokens.py): tokens for machines
+  such as a standalone MNDP listener. Rows reuse the integration row look
+  (settings.css). A new token's secret is shown once, on the page that
+  answers the create POST, and never again.
+#}
+{% from "_icons.html" import icon %}
+<section class="settings-section" aria-labelledby="settings-tokens-title">
+  <div class="settings-section-heading">
+    <p class="eyebrow">Machines</p>
+    <h2 id="settings-tokens-title">API tokens</h2>
+    <p>Let a small program report to LabRat without a browser sign-in, such as a MikroTik listener on another network segment. Each token can do only what you allow.</p>
+  </div>
+
+  {% if new_token %}
+  <div class="token-reveal" role="status">
+    <p><strong>Copy the token for {{ new_token_name }} now.</strong> LabRat keeps only a fingerprint of it and cannot show it again.</p>
+    <label class="visually-hidden" for="new-token">New API token</label>
+    <input id="new-token" class="token-reveal-value" type="text" value="{{ new_token }}" readonly spellcheck="false" autocomplete="off">
+  </div>
+  {% endif %}
+  {% if token_revoked %}<p class="settings-saved" role="status">Token revoked. Programs using it are refused from now on.</p>{% endif %}
+  {% if token_error %}<p class="form-error" role="alert">{{ token_error }}</p>{% endif %}
+
+  <div class="integration-list">
+    {% for token in api_tokens %}
+    <article class="integration-card token-card" data-token-status="{{ token.status }}">
+      <span class="led {{ 'led-ready' if token.status == 'active' else 'led-waiting' }} integration-lamp" role="img" aria-label="{{ token.status | capitalize }}" title="{{ token.status | capitalize }}"></span>
+      <span class="integration-kind">{{ icon('api') }}</span>
+      <div class="integration-row-main">
+        <strong class="integration-row-name">{{ token.name }}</strong>
+        <span class="integration-row-endpoint">{{ token.prefix }} · {{ token.scopes | join(', ') }}</span>
+        <span class="token-row-times">
+          {% if token.status == 'revoked' %}Revoked {{ token.revoked_at.strftime('%Y-%m-%d') }}
+          {% elif token.status == 'expired' %}Expired {{ token.expires_at.strftime('%Y-%m-%d') }}
+          {% else %}{% if token.last_used_at %}Last used {{ token.last_used_at.strftime('%Y-%m-%d %H:%M') }} UTC{% else %}Never used{% endif %}{% if token.expires_at %} · expires {{ token.expires_at.strftime('%Y-%m-%d') }}{% endif %}{% endif %}
+        </span>
+      </div>
+      <div class="integration-row-tools">
+        {% if token.status != 'revoked' %}
+        <form method="post" action="{{ url_for('private.tokens.revoke', token_id=token.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+          <button class="button button-quiet room-icon-button" type="submit" aria-label="Revoke {{ token.name }}" title="Revoke {{ token.name }}" data-tooltip="Revoke {{ token.name }}">{{ icon('trash') }}</button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+    {% else %}
+    <p class="integration-empty">No API tokens yet.</p>
+    {% endfor %}
+  </div>
+
+  <form class="token-create" method="post" action="{{ url_for('private.tokens.create') }}">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <h3>New token</h3>
+    <div class="form-field">
+      <label for="token-name">Name</label>
+      <input id="token-name" name="name" type="text" maxlength="80" required value="{{ token_form.get('name', '') if token_form else '' }}" placeholder="mndp-listener-1" autocomplete="off">
+    </div>
+    <fieldset class="token-scopes">
+      <legend>It may</legend>
+      {% for key, label in token_scopes.items() %}
+      <label class="token-scope"><input type="checkbox" name="scope" value="{{ key }}" {% if not token_form or key in token_form.getlist('scope') %}checked{% endif %}> {{ label }} <code>{{ key }}</code></label>
+      {% endfor %}
+    </fieldset>
+    <div class="form-field">
+      <label for="token-expiry">Expires</label>
+      <select id="token-expiry" name="expiry">
+        {% for key, days in token_expiry_choices.items() %}
+        <option value="{{ key }}" {% if (token_form and token_form.get('expiry') == key) or (not token_form and key == '365') %}selected{% endif %}>{{ 'Never' if days is none else 'After ' ~ days ~ ' days' }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="button-row"><button class="button" type="submit">Create token</button></div>
+  </form>
+  <p class="integration-storage-note">Programs send the token as <code>Authorization: Bearer …</code>. LabRat stores only a SHA-256 fingerprint; revoke a token you no longer need, or one that may have leaked.</p>
+</section>

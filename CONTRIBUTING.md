@@ -65,6 +65,11 @@ it in a browser, in both the light and dark themes and at phone width.
 
 ## Conventions
 
+**Documentation**
+
+- Describe what LabRat can observe with each supported integration and
+  leave hardware and software choices to the reader.
+
 **Code**
 
 - Every Python module, class, and function has a PEP 257 docstring in
@@ -110,6 +115,32 @@ it in a browser, in both the light and dark themes and at phone width.
   ignores; examples use invented names and documentation-range addresses
   (`192.0.2.0/24`, `example.lan`).
 - Screenshots come from the demo instance, never a real lab.
+
+## Adding an integration
+
+New integrations are welcome. Before you write code, open a
+**New integration** issue: it asks for the product and version, what
+LabRat should read, and what read-only access the product offers, so we
+can agree on the shape first. The
+[adapter guide](docs/discovery-adapters.md#adding-an-adapter) walks
+through the contract every adapter follows. An integration is accepted
+when it keeps these rules:
+
+- **Read-only.** The adapter only reads. It never changes the source's
+  configuration, toggles a feature, or sends a command. A sign-in that
+  only opens and closes the adapter's own session is fine; say so in its
+  docs section.
+- **Least privilege.** Document the narrowest account, role, or token
+  that works (a read-only API user, a view-only role), and never ask for
+  an administrator's credentials.
+- **Fake responses in tests.** Tests drive the adapter with a fake client
+  and canned responses. They never contact a real device or service, and
+  the gate must pass without one.
+- **Nothing from a real lab.** Canned responses, examples, and
+  screenshots use invented names, documentation-range addresses
+  (`192.0.2.0/24`, `2001:db8::/32`), and made-up MAC addresses and serial
+  numbers. Strip anything you captured from your own network before you
+  commit it.
 
 ## Commits and pull requests
 

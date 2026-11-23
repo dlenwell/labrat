@@ -250,5 +250,47 @@ class NutWiredTests(unittest.TestCase):
         self.assertEqual(self.inferred(), (None, None))
 
 
+    def test_clients_feed_link_to_the_same_nic_gives_way(self):
+        """The clients feed's own link to this NIC is replaced; another client's is not."""
+        clients = DiscoverySource(name="Clients", kind="unifi_clients", config_name="unifi")
+        self.db.add(clients)
+        self.db.flush()
+
+        def client_link(mac):
+            """Link switch port 2 to a client NIC the clients feed reported.
+
+            Args:
+                mac: The client NIC's MAC address.
+
+            Returns:
+                DiscoveredLink: The clients feed's link.
+            """
+            device = DiscoveredDevice(source_id=clients.id, remote_id=f"client:{mac}", name="Client",
+                                      category="other_physical", visibility="recognized")
+            self.db.add(device)
+            self.db.flush()
+            nic = DiscoveredPort(discovered_device_id=device.id, remote_id="wired", name="Wired NIC", mac=mac)
+            self.db.add(nic)
+            self.db.flush()
+            link = DiscoveredLink(source_id=clients.id, a_port_id=min(nic.id, self.ports[2].id),
+                                  b_port_id=max(nic.id, self.ports[2].id), evidence="unifi-client-attachment",
+                                  confidence="inferred", last_seen_at=datetime.now(timezone.utc))
+            self.db.add(link)
+            self.db.flush()
+            return link
+
+        found = self.collect([self.client()])
+        stranger = client_link("02:00:00:00:00:55")
+        self.assertEqual(reconcile_nut_wired(self.db, found), 0, "another client's cable still wins")
+        self.db.delete(stranger)
+        self.db.flush()
+        client_link(SERVER_MAC.upper())
+        self.assertEqual(reconcile_nut_wired(self.db, found), 1)
+        port, link = self.inferred()
+        self.assertEqual({link.a_port_id, link.b_port_id}, {port.id, self.ports[2].id})
+        remaining = self.db.scalars(select(DiscoveredLink.evidence).where(
+            (DiscoveredLink.a_port_id == self.ports[2].id) | (DiscoveredLink.b_port_id == self.ports[2].id))).all()
+        self.assertEqual(remaining, [EVIDENCE], "one cable is not drawn twice")
+
 if __name__ == "__main__":
     unittest.main()
