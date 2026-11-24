@@ -20,7 +20,7 @@ dependencies = [
     "cryptography>=50,<51",
     "pysnmp>=7.1.32,<8",
     "requests>=2.31,<3",
-    "tomlkit>=0.13,<1",
+    "tomlkit>=0.15.2,<1",
 ]
 
 [project.optional-dependencies]
